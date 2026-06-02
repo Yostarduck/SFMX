@@ -21,8 +21,8 @@ public:
 
   NODISCARD bool has(StringView section, StringView key) const;
   NODISCARD String getString(StringView section,
-                                  StringView key,
-                                  String defaultValue = "") const;
+                             StringView key,
+                             String defaultValue = "") const;
   NODISCARD int32 getInt(StringView section,
                          StringView key,
                          int32 defaultValue = 0) const;

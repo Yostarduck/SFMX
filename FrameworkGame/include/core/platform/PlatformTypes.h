@@ -26,12 +26,12 @@ using int16 = int16_t;
 using int32 = int32_t;
 using int64 = int64_t;
 
-using WCHAR16 = char16_t;
-using WCHAR32 = char32_t;
-using ANSICHAR = char;
-using UNICHAR = WCHAR16;
+using wchar16 = char16_t;
+using wchar32 = char32_t;
+using ansichar = char;
+using unichar = wchar16;
 using unchar = unsigned char;
 
-using TYPE_OF_NULL = int32;
-using SIZE_T = std::size_t;
+using typeOfNull = int32;
+using size_t = std::size_t;
 }
