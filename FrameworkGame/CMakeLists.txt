@@ -1,6 +1,7 @@
 add_library(FrameworkGame STATIC
     source/test.cpp
     source/config/IniFile.cpp
+    source/core/MemoryPool.cpp
 )
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
 

@@ -72,5 +72,6 @@ CLAUDE.md
 agents/
 skills/
 hooks/
+misc/
 
 .env
