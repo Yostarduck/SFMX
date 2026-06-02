@@ -34,6 +34,7 @@ struct IniFile::Impl
 };
 
 IniFile::IniFile() : m_impl(MakeUnique<Impl>()){}
+IniFile::~IniFile() = default;
 
 bool IniFile::load(const FileSystemPath& filePath)
 {

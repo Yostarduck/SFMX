@@ -8,7 +8,7 @@ class IniFile
 {
 public:
   IniFile();
-  ~IniFile() = default;
+  ~IniFile();
 
   IniFile(const IniFile&) = delete;
   IniFile& operator=(const IniFile&) = delete;
