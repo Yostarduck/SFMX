@@ -33,15 +33,7 @@ struct IniFile::Impl
   mINI::INIStructure data;
 };
 
-IniFile::IniFile()
-: m_impl(MakeUnique<Impl>())
-{
-}
-
-IniFile::~IniFile() = default;
-
-IniFile::IniFile(IniFile&&) noexcept = default;
-IniFile& IniFile::operator=(IniFile&&) noexcept = default;
+IniFile::IniFile() : m_impl(MakeUnique<Impl>()){}
 
 bool IniFile::load(const FileSystemPath& filePath)
 {

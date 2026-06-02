@@ -8,13 +8,13 @@ class IniFile
 {
 public:
   IniFile();
-  ~IniFile();
+  ~IniFile() = default;
 
   IniFile(const IniFile&) = delete;
   IniFile& operator=(const IniFile&) = delete;
 
-  IniFile(IniFile&&) noexcept;
-  IniFile& operator=(IniFile&&) noexcept;
+  IniFile(IniFile&&) noexcept = default;
+  IniFile& operator=(IniFile&&) noexcept = default;
 
   bool load(const FileSystemPath& filePath);
   bool loadAll(InitializerList<FileSystemPath> filePaths);
