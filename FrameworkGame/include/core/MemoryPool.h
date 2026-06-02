@@ -256,10 +256,10 @@ class MemoryPool
 
   size_t m_poolSize;
 
-  int8* m_allocatedBitFlags;
+  uint8* m_allocatedBitFlags;
   T* m_elements;
 
-  int32 m_freeElements;
+  uint32 m_freeElements;
 };
 
 }
