@@ -63,7 +63,7 @@ class MemoryPool
 
     // One bit per element, packed 8 elements per byte; round up.
     const size_t flagBytes = flagByteCount(poolSize);
-    m_allocatedBitFlags = new int8[flagBytes];
+    m_allocatedBitFlags = new uint8[flagBytes];
     for (size_t i = 0; i < flagBytes; ++i) {
       m_allocatedBitFlags[i] = 0;
     }
