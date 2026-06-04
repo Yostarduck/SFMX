@@ -2,6 +2,7 @@
 
 #include "config/IniFile.h"
 #include "scene/Scene.h"
+#include "utils/Module.h"
 
 using namespace sfmx;
 
@@ -30,10 +31,53 @@ class CircleComponent : public ComponentT<CircleComponent>
  private:
   sf::CircleShape m_circle;
 };
-}  // namespace
+
+/**
+ * @brief Minimal Module<T> example used to confirm the lifecycle works.
+ */
+class ExampleModule : public Module<ExampleModule>
+{
+ public:
+  int getValue() const { return m_value; }
+
+ private:
+  // Module<ExampleModule> owns construction/destruction of the instance.
+  friend class Module<ExampleModule>;
+
+  explicit ExampleModule(int value) : m_value(value) {}
+
+  int m_value = 0;
+};
+
+void runModuleExample()
+{
+  std::cout << "[Module] started before startUp(): "
+            << ExampleModule::isStarted() << "\n";
+
+  ExampleModule::startUp(42);
+  std::cout << "[Module] started after startUp():  "
+            << ExampleModule::isStarted() << "\n";
+  std::cout << "[Module] instance().getValue():    "
+            << ExampleModule::instance().getValue() << "\n";
+  std::cout << "[Module] instancePtr()->getValue():"
+            << ExampleModule::instancePtr()->getValue() << "\n";
+
+  ExampleModule::shutDown();
+  std::cout << "[Module] started after shutDown():  "
+            << ExampleModule::isStarted() << "\n";
+
+  // The module can be restarted after a shut down.
+  ExampleModule::startUp(7);
+  std::cout << "[Module] restarted value:          "
+            << ExampleModule::instance().getValue() << "\n";
+  ExampleModule::shutDown();
+}
+} // namespace
 
 int main()
 {
+  runModuleExample();
+
   sfmx::IniFile config;
   config.loadAll({"Game/config/Engine.ini", "Game/config/Game.ini"});
 
