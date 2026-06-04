@@ -30,9 +30,8 @@ componentTypeId() {
 class Component
 {
  public:
-  Component(SceneNode* owner, ComponentTypeId typeId)
+  explicit Component(SceneNode* owner)
     : m_owner(owner),
-      m_typeId(typeId),
       m_nextComponent(nullptr),
       m_prevComponent(nullptr)
   {}
@@ -46,7 +45,7 @@ class Component
   NODISCARD SceneNode* getOwner() const { return m_owner; }
 
   /** @brief This component's concrete-type id (see @ref componentTypeId). */
-  NODISCARD ComponentTypeId getTypeId() const { return m_typeId; }
+  NODISCARD virtual ComponentTypeId getTypeId() const = 0;
 
   /** @brief Next component on the same node's intrusive list, or nullptr. */
   NODISCARD Component* getNextComponent() const { return m_nextComponent; }
@@ -75,7 +74,6 @@ class Component
 
  protected:
   SceneNode* m_owner;
-  ComponentTypeId m_typeId;
 
  private:
   friend class SceneNode;  // maintains the intrusive component list below
@@ -100,14 +98,14 @@ class ComponentT : public Component
     return TypeTraits<Derived>::getTypeName();
   }
 
-  NODISCARD static const UUID&
-  getTypeUUID() {
-    return TypeTraits<Derived>::getTypeId();
+  NODISCARD ComponentTypeId
+  getTypeId() const override {
+    return componentTypeId<Derived>();
   }
 
  protected:
   explicit ComponentT(SceneNode* owner)
-    : Component(owner, componentTypeId<Derived>())
+    : Component(owner)
   {}
 };
 
