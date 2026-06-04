@@ -121,7 +121,7 @@ using Alloc = std::allocator<T>;
 *  @brief Fixed-size array sequence container class, holds its elements in a strict linear
 *         sequence
 */
-template<typename T, SIZE_T size>
+template<typename T, size_t size>
 using Array = std::array<T, size>;
 
 /*
