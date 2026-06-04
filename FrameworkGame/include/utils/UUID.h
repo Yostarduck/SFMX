@@ -5,7 +5,7 @@
 
 #define STDUUID_FORCE_IMPLEMENTATION
 #define UUID_SYSTEM_GENERATOR
-#include "stdUUID/uuid.h"
+#include "stduuid/uuid.h"
 
 namespace sfmx {
 
@@ -30,7 +30,7 @@ class SFMX_UTILITY_EXPORT UUID  {
   NODISCARD FORCEINLINE bool
   operator<(const UUID& other) const { return m_uuid < other.m_uuid; }
 
-  NODISCARD FORCEINLINE SIZE_T
+  NODISCARD FORCEINLINE size_t
   getHash() const noexcept { return Hash<uuids::uuid>{}(m_uuid); }
 
   NODISCARD static UUID
