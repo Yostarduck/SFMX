@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CMake Configure Debug",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "-S",
+        "${workspaceFolder}",
+        "-B",
+        "${workspaceFolder}/Build",
+        "-DCMAKE_BUILD_TYPE=Debug"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "CMake Build Debug",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/Build",
+        "--config",
+        "Debug"
+      ],
+      "dependsOn": "CMake Configure Debug",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "CMake Configure Release",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "-S",
+        "${workspaceFolder}",
+        "-B",
+        "${workspaceFolder}/Build",
+        "-DCMAKE_BUILD_TYPE=Release"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "CMake Build Release",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/Build",
+        "--config",
+        "Release"
+      ],
+      "dependsOn": "CMake Configure Release",
+      "problemMatcher": [
+        "$gcc"
+      ]
+    }
+  ]
+}
