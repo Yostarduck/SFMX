@@ -7,6 +7,7 @@
 
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
+#include "utils/TypeTraits.h"
 
 namespace sfmx
 {
@@ -72,3 +73,5 @@ class Transform : public ComponentT<Transform>
 };
 
 }  // namespace sfmx
+
+DECLARE_TYPE_TRAITS(sfmx::Transform)

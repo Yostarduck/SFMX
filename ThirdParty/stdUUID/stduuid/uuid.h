@@ -26,10 +26,12 @@
 #endif
 
 
-#ifdef LIBUUID_CPP20_OR_GREATER
+#if defined(LIBUUID_CPP20_OR_GREATER) || __has_include(<span>)
 #include <span>
-#else
+#elif __has_include(<gsl/span>)
 #include <gsl/span>
+#else
+#error "stduuid requires <span> (C++20) or <gsl/span>."
 #endif
 
 #ifdef _WIN32
@@ -66,7 +68,7 @@
 
 namespace uuids
 {
-#ifdef __cpp_lib_span
+#if defined(__cpp_lib_span) || __has_include(<span>)
    template <class ElementType, std::size_t Extent>
    using span = std::span<ElementType, Extent>;
 #else

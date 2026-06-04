@@ -5,39 +5,16 @@
 
 #include "core/platform/Prerequisites.h"
 #include "scene/SceneTypes.h"
+#include "utils/TypeTraits.h"
 
 namespace sfmx
 {
 class SceneNode;
 
-namespace detail
-{
-/**
- * @brief Hand out the next never-before-used ComponentTypeId.
- *
- * The counter is an Atomic so ids can be assigned from any thread without a
- * lock; @ref relaxed ordering is sufficient because we only need atomicity and
- * uniqueness of the value, not ordering relative to other memory.
- */
-NODISCARD inline ComponentTypeId
-nextComponentTypeId() {
-  static Atomic<ComponentTypeId> s_counter{0};
-  return s_counter.fetch_add(1, std::memory_order_relaxed);
-}
-}  // namespace detail
-
-/**
- * @brief The stable, unique id of a concrete component type @p T.
- *
- * Thread-safe: the per-@p T function-local static is initialised exactly once
- * (C++11 "magic statics"), and the underlying counter is atomic. No RTTI is
- * used, in keeping with the project coding standard.
- */
 template<typename T>
 NODISCARD ComponentTypeId
 componentTypeId() {
-  static const ComponentTypeId kId = detail::nextComponentTypeId();
-  return kId;
+  return TypeTraits<T>::getTypeId();
 }
 
 /**
@@ -117,6 +94,17 @@ class Component
 template<typename Derived>
 class ComponentT : public Component
 {
+ public:
+  NODISCARD static constexpr const ansichar*
+  getTypeName() {
+    return TypeTraits<Derived>::getTypeName();
+  }
+
+  NODISCARD static const UUID&
+  getTypeUUID() {
+    return TypeTraits<Derived>::getTypeId();
+  }
+
  protected:
   explicit ComponentT(SceneNode* owner)
     : Component(owner, componentTypeId<Derived>())
