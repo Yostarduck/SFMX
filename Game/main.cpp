@@ -3,6 +3,7 @@
 #include "config/IniFile.h"
 #include "scene/Scene.h"
 #include "utils/Module.h"
+#include "utils/EventSystem.h"
 
 using namespace sfmx;
 
@@ -25,9 +26,18 @@ class CircleComponent : public ComponentT<CircleComponent>
   onDraw(sf::RenderTarget& target, sf::RenderStates states) const override {
     target.draw(m_circle, states);
   }
+  
+  void
+  onUpdate(float deltaTime) override {
+    m_onUpdateEvent(*this, deltaTime);
+  }
+
+  NODISCARD HEvent onUpdateEvent(std::function<void(const CircleComponent&, float)> foo) const 
+  { return m_onUpdateEvent.connect(foo); }
 
  private:
   sf::CircleShape m_circle;
+  Event<void(const CircleComponent&, float)> m_onUpdateEvent;
 };
 
 namespace
@@ -102,7 +112,17 @@ int main()
   sun->transform().setPosition(
       {static_cast<float>(windowWidth) * 0.5f,
        static_cast<float>(windowHeight) * 0.5f});
-  sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
+  auto* sunComponent = sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
+
+  float totalTime = 0.f;
+  auto sunUpdateEvent = sunComponent->onUpdateEvent([&totalTime](const CircleComponent& comp, float deltaTime) {
+    totalTime += deltaTime;
+    if (totalTime >= 1.f) {
+      // Print delta every second to confirm the event system is working and can capture local state.
+      std::cout << "[Event] Sun's CircleComponent onUpdate: deltaTime = " << deltaTime << "s\n";
+      totalTime = 0.f;
+    }
+  });
 
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
