@@ -167,7 +167,7 @@ SceneNode::addComponent(Args&&... args) {
   MemoryPool<T>& pool = m_scene->componentPool<T>().pool();
   T* component = pool.allocate(this, std::forward<Args>(args)...);
   if (nullptr != component) {
-    m_components.push_back(component);
+    linkComponent(component);
   }
   return component;
 }
@@ -176,10 +176,12 @@ template<typename T>
 void
 SceneNode::removeComponent() {
   const ComponentTypeId id = componentTypeId<T>();
-  for (size_t i = 0; i < m_components.size(); ++i) {
-    if (m_components[i]->getTypeId() == id) {
-      m_scene->componentPool<T>().pool().deallocate(static_cast<T*>(m_components[i]));
-      m_components.erase(m_components.begin() + static_cast<ptrdiff_t>(i));
+  for (Component* component = m_firstComponent;
+       nullptr != component;
+       component = component->getNextComponent()) {
+    if (component->getTypeId() == id) {
+      unlinkComponent(component);
+      m_scene->componentPool<T>().pool().deallocate(static_cast<T*>(component));
       return;
     }
   }

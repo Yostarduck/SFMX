@@ -42,8 +42,7 @@ Scene::createNode(StringView name, SceneNode* parent) {
     return nullptr;
   }
 
-  node->m_parent = parent;
-  parent->m_children.push_back(node);
+  parent->appendChild(node);
   registerNode(node);
   return node;
 }
@@ -69,20 +68,27 @@ Scene::destroyNode(NodeId id) {
 
 void
 Scene::destroyNodeRecursive(SceneNode* node) {
-  // Depth-first: destroy children before the node itself.
-  for (SceneNode* child : node->m_children) {
+  // Depth-first: destroy children before the node itself. Capture the next
+  // sibling before recursing, since the child is about to be deallocated.
+  for (SceneNode* child = node->m_firstChild; nullptr != child;) {
+    SceneNode* next = child->m_nextSibling;
     destroyNodeRecursive(child);
+    child = next;
   }
-  node->m_children.clear();
+  node->m_firstChild = nullptr;
+  node->m_lastChild = nullptr;
 
-  // Return every attached component to its pool.
-  for (Component* component : node->m_components) {
+  // Return every attached component to its pool (same capture-next dance).
+  for (Component* component = node->m_firstComponent; nullptr != component;) {
+    Component* next = component->getNextComponent();
     const auto it = m_componentPools.find(component->getTypeId());
     if (it != m_componentPools.end()) {
       it->second->deallocate(component);
     }
+    component = next;
   }
-  node->m_components.clear();
+  node->m_firstComponent = nullptr;
+  node->m_lastComponent = nullptr;
 
   unregisterNode(node->getId());
   m_nodePool.deallocate(node);
@@ -107,7 +113,9 @@ Scene::findNodesByName(StringView name) const {
     if (name == node->getName()) {
       result.push_back(node);
     }
-    for (SceneNode* child : node->getChildren()) {
+    for (SceneNode* child = node->getFirstChild();
+         nullptr != child;
+         child = child->getNextSibling()) {
       stack.push_back(child);
     }
   }

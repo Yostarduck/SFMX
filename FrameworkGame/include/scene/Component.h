@@ -55,7 +55,9 @@ class Component
  public:
   Component(SceneNode* owner, ComponentTypeId typeId)
     : m_owner(owner),
-      m_typeId(typeId)
+      m_typeId(typeId),
+      m_nextComponent(nullptr),
+      m_prevComponent(nullptr)
   {}
 
   virtual ~Component() = default;
@@ -68,6 +70,11 @@ class Component
 
   /** @brief This component's concrete-type id (see @ref componentTypeId). */
   NODISCARD ComponentTypeId getTypeId() const { return m_typeId; }
+
+  /** @brief Next component on the same node's intrusive list, or nullptr. */
+  NODISCARD Component* getNextComponent() const { return m_nextComponent; }
+  /** @brief Previous component on the same node's intrusive list, or nullptr. */
+  NODISCARD Component* getPrevComponent() const { return m_prevComponent; }
 
   /**
    * @brief Per-frame update hook, called by the owning node's traversal.
@@ -92,6 +99,12 @@ class Component
  protected:
   SceneNode* m_owner;
   ComponentTypeId m_typeId;
+
+ private:
+  friend class SceneNode;  // maintains the intrusive component list below
+
+  Component* m_nextComponent;
+  Component* m_prevComponent;
 };
 
 /**

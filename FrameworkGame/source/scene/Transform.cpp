@@ -63,7 +63,9 @@ Transform::getWorldTransform() {
 void
 Transform::markDirty() {
   m_worldDirty = true;
-  for (SceneNode* child : m_owner->getChildren()) {
+  for (SceneNode* child = m_owner->getFirstChild();
+       nullptr != child;
+       child = child->getNextSibling()) {
     child->transform().markDirty();
   }
 }

@@ -13,8 +13,14 @@ SceneNode::SceneNode(NodeId id, StringView name, Scene* scene)
     m_enabled(true),
     m_visible(true),
     m_parent(nullptr),
+    m_firstChild(nullptr),
+    m_lastChild(nullptr),
+    m_prevSibling(nullptr),
+    m_nextSibling(nullptr),
     m_scene(scene),
-    m_transform(this)
+    m_transform(this),
+    m_firstComponent(nullptr),
+    m_lastComponent(nullptr)
 {
   m_name[0] = '\0';
   setName(name);
@@ -53,14 +59,68 @@ SceneNode::isAncestorOf(const SceneNode* node) const {
   return false;
 }
 
+size_t
+SceneNode::getChildCount() const {
+  size_t count = 0;
+  for (const SceneNode* child = m_firstChild;
+       nullptr != child;
+       child = child->m_nextSibling) {
+    ++count;
+  }
+  return count;
+}
+
 SceneNode*
 SceneNode::findChild(StringView name) const {
-  for (SceneNode* child : m_children) {
+  for (SceneNode* child = m_firstChild;
+       nullptr != child;
+       child = child->m_nextSibling) {
     if (name == child->getName()) {
       return child;
     }
   }
   return nullptr;
+}
+
+void
+SceneNode::appendChild(SceneNode* child) {
+  child->m_parent = this;
+  child->m_prevSibling = m_lastChild;
+  child->m_nextSibling = nullptr;
+  if (nullptr != m_lastChild) {
+    m_lastChild->m_nextSibling = child;
+  } else {
+    m_firstChild = child;
+  }
+  m_lastChild = child;
+}
+
+void
+SceneNode::linkComponent(Component* component) {
+  component->m_prevComponent = m_lastComponent;
+  component->m_nextComponent = nullptr;
+  if (nullptr != m_lastComponent) {
+    m_lastComponent->m_nextComponent = component;
+  } else {
+    m_firstComponent = component;
+  }
+  m_lastComponent = component;
+}
+
+void
+SceneNode::unlinkComponent(Component* component) {
+  if (nullptr != component->m_prevComponent) {
+    component->m_prevComponent->m_nextComponent = component->m_nextComponent;
+  } else {
+    m_firstComponent = component->m_nextComponent;
+  }
+  if (nullptr != component->m_nextComponent) {
+    component->m_nextComponent->m_prevComponent = component->m_prevComponent;
+  } else {
+    m_lastComponent = component->m_prevComponent;
+  }
+  component->m_prevComponent = nullptr;
+  component->m_nextComponent = nullptr;
 }
 
 SceneNode*
@@ -84,8 +144,7 @@ SceneNode::reparent(SceneNode* newParent, bool keepWorldTransform) {
   }
 
   detachFromParent();
-  newParent->m_children.push_back(this);
-  m_parent = newParent;
+  newParent->appendChild(this);
   m_transform.markDirty();
 
   if (keepWorldTransform) {
@@ -99,11 +158,22 @@ SceneNode::detachFromParent() {
   if (nullptr == m_parent) {
     return;
   }
-  Vector<SceneNode*>& siblings = m_parent->m_children;
-  const auto it = std::find(siblings.begin(), siblings.end(), this);
-  if (it != siblings.end()) {
-    siblings.erase(it);
+
+  // Splice out of the parent's doubly-linked child list, fixing up the
+  // parent's first/last ends when this node sits at either edge.
+  if (nullptr != m_prevSibling) {
+    m_prevSibling->m_nextSibling = m_nextSibling;
+  } else {
+    m_parent->m_firstChild = m_nextSibling;
   }
+  if (nullptr != m_nextSibling) {
+    m_nextSibling->m_prevSibling = m_prevSibling;
+  } else {
+    m_parent->m_lastChild = m_prevSibling;
+  }
+
+  m_prevSibling = nullptr;
+  m_nextSibling = nullptr;
   m_parent = nullptr;
   m_transform.markDirty();
 }
@@ -113,10 +183,14 @@ SceneNode::update(float deltaTime) {
   if (!m_enabled) {
     return;
   }
-  for (Component* component : m_components) {
+  for (Component* component = m_firstComponent;
+       nullptr != component;
+       component = component->getNextComponent()) {
     component->onUpdate(deltaTime);
   }
-  for (SceneNode* child : m_children) {
+  for (SceneNode* child = m_firstChild;
+       nullptr != child;
+       child = child->m_nextSibling) {
     child->update(deltaTime);
   }
 }
@@ -127,10 +201,14 @@ SceneNode::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     return;
   }
   states.transform *= m_transform.getLocalTransform();
-  for (const Component* component : m_components) {
+  for (const Component* component = m_firstComponent;
+       nullptr != component;
+       component = component->getNextComponent()) {
     component->onDraw(target, states);
   }
-  for (const SceneNode* child : m_children) {
+  for (const SceneNode* child = m_firstChild;
+       nullptr != child;
+       child = child->m_nextSibling) {
     child->draw(target, states);
   }
 }

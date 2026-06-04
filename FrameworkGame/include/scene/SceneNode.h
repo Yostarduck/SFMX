@@ -16,10 +16,17 @@ class Scene;
  * @brief One node in the scene hierarchy.
  *
  * A node carries a stable @ref NodeId, a fixed-length name, enable/visible
- * flags, an inline @ref Transform, a list of attached @ref Component "components",
- * and links to its parent and children. Nodes are owned by a Scene's memory
- * pool and never relocate, so the parent/child and component links are plain
- * non-owning pointers into that pooled storage.
+ * flags, an inline @ref Transform, an intrusive list of attached
+ * @ref Component "components", and links to its parent and children. Nodes are
+ * owned by a Scene's memory pool and never relocate, so the hierarchy and
+ * component lists are threaded through plain non-owning pointers stored inside
+ * the pooled objects themselves - no per-node or per-component heap allocation.
+ *
+ * Children form a doubly-linked sibling list (@c m_firstChild / @c m_lastChild
+ * on the parent, @c m_prevSibling / @c m_nextSibling on each child); components
+ * are threaded the same way. Both give O(1) attach/detach and zero auxiliary
+ * allocation, at the cost of no O(1) indexed access (which a scene graph does
+ * not need).
  *
  * Behaviour and drawing are added by attaching components, not by subclassing:
  * the node pool stores SceneNode by value, so a derived type could not be
@@ -59,8 +66,13 @@ class SceneNode
 
   // -- Hierarchy queries -----------------------------------------------------
   NODISCARD SceneNode* getParent() const { return m_parent; }
-  NODISCARD const Vector<SceneNode*>& getChildren() const { return m_children; }
-  NODISCARD size_t getChildCount() const { return m_children.size(); }
+  NODISCARD SceneNode* getFirstChild() const { return m_firstChild; }
+  NODISCARD SceneNode* getLastChild() const { return m_lastChild; }
+  NODISCARD SceneNode* getNextSibling() const { return m_nextSibling; }
+  NODISCARD SceneNode* getPrevSibling() const { return m_prevSibling; }
+
+  /** @brief Number of direct children (walks the sibling list, O(n)). */
+  NODISCARD size_t getChildCount() const;
 
   /** @brief True if this node is an ancestor of @p node (cycle guard). */
   NODISCARD bool isAncestorOf(const SceneNode* node) const;
@@ -129,15 +141,26 @@ class SceneNode
  private:
   friend class Scene;  // node creation, linking, registry, teardown
 
+  /** @brief Link @p child at the end of this node's child list. */
+  void appendChild(SceneNode* child);
+  /** @brief Link @p component at the end of this node's component list. */
+  void linkComponent(Component* component);
+  /** @brief Splice @p component out of this node's component list. */
+  void unlinkComponent(Component* component);
+
   NodeId m_id;
   Array<char, kMaxNameLength> m_name;
   bool m_enabled;
   bool m_visible;
   SceneNode* m_parent;
-  Vector<SceneNode*> m_children;
+  SceneNode* m_firstChild;
+  SceneNode* m_lastChild;
+  SceneNode* m_prevSibling;
+  SceneNode* m_nextSibling;
   Scene* m_scene;
   Transform m_transform;
-  Vector<Component*> m_components;
+  Component* m_firstComponent;
+  Component* m_lastComponent;
 };
 
 // -- Inline template that needs only Component (not Scene) --------------------
@@ -145,7 +168,9 @@ template<typename T>
 NODISCARD T*
 SceneNode::getComponent() const {
   const ComponentTypeId id = componentTypeId<T>();
-  for (Component* component : m_components) {
+  for (Component* component = m_firstComponent;
+       nullptr != component;
+       component = component->getNextComponent()) {
     if (component->getTypeId() == id) {
       return static_cast<T*>(component);
     }
