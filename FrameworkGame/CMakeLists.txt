@@ -1,6 +1,10 @@
 add_library(FrameworkGame STATIC
     source/config/IniFile.cpp
     source/core/MemoryPool.cpp
+    source/scene/Component.cpp
+    source/scene/Transform.cpp
+    source/scene/SceneNode.cpp
+    source/scene/Scene.cpp
 )
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
 
