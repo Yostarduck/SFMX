@@ -121,7 +121,6 @@ class ConnectionController
       m_lastConnection = conn->m_prev;
     }
 
-    // Resetear punteros para seguridad
     conn->m_prev = nullptr;
     conn->m_next = nullptr;
   }
@@ -238,6 +237,7 @@ template <class ReturnType, class... Args> class TEvent
    **/
   NODISCARD FORCEINLINE HEvent
   connect(function<ReturnType(Args...)> func) const {
+    RecursiveLock lock(m_connectionController->m_mutex);
     auto* connData = new BasicConnectionNode();
     m_connectionController->connect(connData);
     connData->m_function = func;
@@ -334,7 +334,6 @@ ConnectionController::disconnect(BaseConnectionNode* _connection) {
   --_connection->m_size;
 
   if (0 == _connection->m_size) {
-    // Eliminación física inmediata
     removeFromList(_connection); // Función auxiliar que implementaremos
     delete _connection;
   }
