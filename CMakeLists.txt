@@ -6,6 +6,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(SFMX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(_arch_hint "")
 
 if(CMAKE_GENERATOR_PLATFORM)
