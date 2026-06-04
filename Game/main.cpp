@@ -6,8 +6,6 @@
 
 using namespace sfmx;
 
-namespace
-{
 /**
  * @brief Minimal drawable component used to smoke-test the scene graph: draws a
  *        circle with the accumulated world transform supplied by the node.
@@ -32,6 +30,8 @@ class CircleComponent : public ComponentT<CircleComponent>
   sf::CircleShape m_circle;
 };
 
+namespace
+{
 /**
  * @brief Minimal Module<T> example used to confirm the lifecycle works.
  */
@@ -73,6 +73,8 @@ void runModuleExample()
   ExampleModule::shutDown();
 }
 } // namespace
+
+DECLARE_TYPE_TRAITS(CircleComponent)
 
 int main()
 {

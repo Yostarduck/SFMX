@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "utils/UUID.h"
 
 namespace sfmx
 {
@@ -22,6 +23,6 @@ constexpr NodeId kInvalidNodeId = 0;
 constexpr size_t kMaxNameLength = 32;
 
 /** @brief Runtime identifier for a concrete Component type (see Component.h). */
-using ComponentTypeId = uint32;
+using ComponentTypeId = UUID;
 
 }

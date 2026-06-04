@@ -51,7 +51,7 @@ class SFMX_UTILITY_EXPORT UUID  {
   friend Hash<UUID>;
   uuids::uuid m_uuid;
 
-  static const String CH_UUID_STR;
+  static const String SFMX_UUID_STR;
   static uuids::uuid_name_generator UUID_NAME_GENERATOR;
 };
 
