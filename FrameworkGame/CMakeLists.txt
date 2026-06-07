@@ -3,6 +3,7 @@ add_library(FrameworkGame STATIC
     source/core/MemoryPool.cpp
     source/scene/Component.cpp
     source/scene/Transform.cpp
+    source/scene/ParticleSystemComponent.cpp
     source/scene/SceneNode.cpp
     source/scene/Scene.cpp
     source/utils/UUID.cpp

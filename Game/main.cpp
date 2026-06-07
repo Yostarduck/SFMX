@@ -2,6 +2,7 @@
 
 #include "config/IniFile.h"
 #include "scene/Scene.h"
+#include "scene/ParticleSystemComponent.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
 
@@ -107,7 +108,8 @@ int main()
    **/
   Scene scene("Main", 1024);
   scene.registerComponent<CircleComponent>(64);
-
+  scene.registerComponent<ParticleSystemComponent>(64);
+  
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(
       {static_cast<float>(windowWidth) * 0.5f,
@@ -124,6 +126,33 @@ int main()
     }
   });
 
+  auto* texture = new sf::Texture();
+  if(!texture->loadFromFile("Game/resources/particle.png"))  // or "particle.png" depending on cwd
+  {
+    std::cerr << "Failed Loading resource" << std::endl; 
+    return -1;
+  }
+  EmitterConfig emitterConfig;
+  emitterConfig.emissionRate          = 60.f;
+  emitterConfig.maxParticles          = 200;
+  emitterConfig.direction             = sf::degrees(-90.f);       // shoot upward
+  emitterConfig.directionVariance     = sf::degrees(30.f);        // spread cone
+  emitterConfig.speed                 = 200.f;
+  emitterConfig.speedVariance         = 50.f;
+  emitterConfig.startRotation         = sf::degrees(0.f);
+  emitterConfig.startRotationVariance = sf::degrees(180.f);
+  emitterConfig.angularVelocity       = 180.f;
+  emitterConfig.angularVelocityVariance = 90.f;
+  emitterConfig.gravity               = {0.f, 100.f};              // gentle downward pull
+  emitterConfig.startColor            = sf::Color(255, 200, 100);  // bright warm
+  emitterConfig.endColor              = sf::Color(255, 50, 50, 0); // fade to transparent red
+  emitterConfig.startSize             = {32.f, 32.f};
+  emitterConfig.endSize               = {4.f, 4.f};
+  emitterConfig.lifetime              = 1.5f;
+  emitterConfig.lifetimeVariance      = 0.5f;
+  emitterConfig.texture               = nullptr;
+  emitterConfig.blendMode             = sf::BlendAlpha;
+  
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
   earth->addComponent<CircleComponent>(20.f, sf::Color(100, 180, 255));
@@ -132,6 +161,14 @@ int main()
   moon->transform().setPosition({40.f, 0.f});
   moon->addComponent<CircleComponent>(4.f, sf::Color(100, 100, 100));
 
+  auto* particles = moon->addComponent<ParticleSystemComponent>();
+  particles->setConfig(emitterConfig);
+  particles->setSortMode(ParticleSortMode::BackToFront);
+
+  // Burst 50 particles on start
+  particles->emit(50);
+
+  float particleTimer = 0.0f;
   sf::Clock clock;
   while (window.isOpen())
   {
@@ -144,7 +181,14 @@ int main()
     }
 
     const float deltaTime = clock.restart().asSeconds();
+    particleTimer += deltaTime;
 
+    if (particleTimer > 5.0f)
+    {
+      particleTimer = 0.0f;
+      particles->emit(10);
+      std::cout << "boom" << std::endl;
+    }
     // Rotating the parent drags the child with it: proof of transform
     // composition down the hierarchy.
     sun->transform().rotate(sf::degrees(45.f * deltaTime));
