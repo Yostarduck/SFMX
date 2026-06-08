@@ -13,15 +13,20 @@ class ListenerComponent : public ComponentT<ListenerComponent>
 public:
   explicit ListenerComponent(SceneNode* owner);
 
-  // Automatically sync listener position/direction with owner node each frame
+  // Auto-sync: when enabled, position/direction are driven by the node's
+  // world transform each frame. Default: true.
   void setAutoUpdate(bool autoUpdate);
   NODISCARD bool isAutoUpdate() const;
 
-  // Manual override (only needed if autoUpdate is off)
+  // Manual listener property overrides (only meaningful when autoUpdate is off)
   void setPosition(const sf::Vector3f& position);
+  NODISCARD sf::Vector3f getPosition() const;
   void setDirection(const sf::Vector3f& direction);
+  NODISCARD sf::Vector3f getDirection() const;
   void setUpVector(const sf::Vector3f& upVector);
+  NODISCARD sf::Vector3f getUpVector() const;
   void setVelocity(const sf::Vector3f& velocity);
+  NODISCARD sf::Vector3f getVelocity() const;
   void setGlobalVolume(float volume);
   NODISCARD float getGlobalVolume() const;
 

@@ -1,7 +1,9 @@
 #include <SFML/Graphics.hpp>
 
 #include "config/IniFile.h"
+#include "scene/ListenerComponent.h"
 #include "scene/Scene.h"
+#include "scene/SourceComponent.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
 
@@ -85,6 +87,8 @@ void runModuleExample()
 } // namespace
 
 DECLARE_TYPE_TRAITS(CircleComponent)
+DECLARE_TYPE_TRAITS(SourceComponent)
+DECLARE_TYPE_TRAITS(ListenerComponent)
 
 int main()
 {
@@ -107,12 +111,15 @@ int main()
    **/
   Scene scene("Main", 1024);
   scene.registerComponent<CircleComponent>(64);
+  scene.registerComponent<SourceComponent>(4);
+  scene.registerComponent<ListenerComponent>(1);
 
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(
       {static_cast<float>(windowWidth) * 0.5f,
        static_cast<float>(windowHeight) * 0.5f});
   auto* sunComponent = sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
+  sun->addComponent<ListenerComponent>();
 
   float totalTime = 0.f;
   auto sunUpdateEvent = sunComponent->onUpdateEvent([&totalTime](const CircleComponent& comp, float deltaTime) {
@@ -127,6 +134,12 @@ int main()
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
   earth->addComponent<CircleComponent>(20.f, sf::Color(100, 180, 255));
+  {
+    auto* audio = earth->addComponent<SourceComponent>();
+    audio->setFollowNode(true);
+    if (!audio->loadSoundFromFile("Game/resources/click.wav"))
+      std::cout << "[Audio] No click.wav found — skipping SFX load\n";
+  }
 
   SceneNode* moon = scene.createNode("Moon", earth);
   moon->transform().setPosition({40.f, 0.f});

@@ -1,5 +1,10 @@
 #pragma once
-#include <SFML/Audio.hpp>
+
+#include <SFML/Audio/Music.hpp>
+#include <SFML/Audio/Sound.hpp>
+#include <SFML/Audio/SoundBuffer.hpp>
+#include <SFML/Audio/SoundSource.hpp>
+
 #include "scene/Component.h"
 
 namespace sfmx
@@ -13,27 +18,20 @@ enum class AudioSpace : uint32
   eSURROUND
 };
 
-enum class Type 
-{ 
-  eNONE, 
-  eSOUND, 
-  eMUSIC 
-};
-
-class AudioComponent : public ComponentT<AudioComponent>
+class SourceComponent : public ComponentT<SourceComponent>
 {
 public:
-  AudioComponent(SceneNode* owner);
-  ~AudioComponent() override;
+  SourceComponent(SceneNode* owner);
+  ~SourceComponent() override;
 
-  // loading
+  // Loading
   bool loadFromFile(const String& filePath);
   bool loadSoundFromFile(const String& filePath);
   bool loadMusicFromFile(const String& filePath);
+  bool loadFromBuffer(const sf::SoundBuffer& data);
 
-  // playback
+  // Playback
   void play();
-  void playOnce();
   void pause();
   void stop();
 
@@ -60,26 +58,25 @@ public:
   void setSpatializationEnabled(bool enabled);
   NODISCARD bool isSpatializationEnabled() const;
 
-  // Node-follow (auto-update 3D position from owner's world transform)
+  // Node-follow: auto-update 3D position from owner's world transform
   void setFollowNode(bool follow);
   NODISCARD bool isFollowingNode() const;
 
   // Component hooks
   void onUpdate(float deltaTime) override;
 
-  private:
-  enum class Type { None, Sound, Music };
+private:
+  enum class Backend { None, Sound, Music };
 
   NODISCARD sf::SoundSource* activeSource();
   NODISCARD const sf::SoundSource* activeSource() const;
 
-  sf::SoundBuffer m_buffer;
+  sf::SoundSource* m_source = nullptr;
+  sf::SoundBuffer  m_buffer;
   sf::Sound        m_sound;
   sf::Music        m_music;
-  Type             m_type   = Type::None;
+  Backend          m_backend   = Backend::None;
   bool             m_followNode = false;
-
 };
 
-
-} // sfmx
+} // namespace sfmx
