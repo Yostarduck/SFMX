@@ -91,7 +91,8 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   void clear();
   void start();
   void stop();
-  NODISCARD bool isRunning() const { return m_running; }
+  
+  NODISCARD bool  isRunning() const { return m_running; }
   NODISCARD float getProgress() const;
   
   NODISCARD size_t getParticleCount() const { return m_count; }
