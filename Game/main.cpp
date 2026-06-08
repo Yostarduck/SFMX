@@ -37,10 +37,40 @@ class CircleComponent : public ComponentT<CircleComponent>
   Event<void(const CircleComponent&, float)> m_onUpdateEvent;
 };
 
+namespace
+{
+
+class ExampleModule : public Module<ExampleModule>
+{
+ public:
+  int getValue() const { return m_value; }
+
+ private:
+  friend class Module<ExampleModule>;
+  explicit ExampleModule(int value) : m_value(value) {}
+  int m_value = 0;
+};
+
+void runModuleExample()
+{
+  std::cout << "[Module] started before startUp(): " << ExampleModule::isStarted() << "\n";
+  ExampleModule::startUp(42);
+  std::cout << "[Module] started after startUp():  " << ExampleModule::isStarted() << "\n";
+  std::cout << "[Module] instance().getValue():    " << ExampleModule::instance().getValue() << "\n";
+  std::cout << "[Module] instancePtr()->getValue():" << ExampleModule::instancePtr()->getValue() << "\n";
+  ExampleModule::shutDown();
+  ExampleModule::startUp(7);
+  std::cout << "[Module] restarted value:          " << ExampleModule::instance().getValue() << "\n";
+  ExampleModule::shutDown();
+}
+} // namespace
+
 DECLARE_TYPE_TRAITS(CircleComponent)
 
 int main()
 {
+  runModuleExample();
+
   sfmx::IniFile config;
   config.loadAll({"Game/config/Engine.ini", "Game/config/Game.ini"});
 
@@ -56,7 +86,21 @@ int main()
   scene.registerComponent<CircleComponent>(64);
   scene.registerComponent<ParticleSystemComponent>(4);
 
-  // -- Load shared particle texture --
+  SceneNode* sun = scene.createNode("Sun");
+  sun->transform().setPosition(
+      {static_cast<float>(windowWidth) * 0.5f,
+       static_cast<float>(windowHeight) * 0.5f});
+  auto* sunComponent = sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
+
+  float totalTime = 0.f;
+  auto sunUpdateEvent = sunComponent->onUpdateEvent([&totalTime](const CircleComponent&, float deltaTime) {
+    totalTime += deltaTime;
+    if (totalTime >= 1.f) {
+      std::cout << "[Event] Sun's CircleComponent onUpdate: deltaTime = " << deltaTime << "s\n";
+      totalTime = 0.f;
+    }
+  });
+
   auto* texture = new sf::Texture();
   if (!texture->loadFromFile("Game/resources/particle.png"))
   {
@@ -65,69 +109,100 @@ int main()
     return -1;
   }
 
-  // -- Emitter 1: looping fountain (auto-restarts) --
-  SceneNode* left = scene.createNode("LoopingEmitter");
-  left->transform().setPosition({windowWidth * 0.3f, windowHeight * 0.6f});
+  // -- Sun: fiery corona (local space, follows the sun's rotation) --
+  EmitterConfig sunCfg;
+  sunCfg.emissionRate          = 40.f;
+  sunCfg.maxParticles          = 150;
+  sunCfg.direction             = sf::degrees(0.f);
+  sunCfg.directionVariance     = sf::degrees(360.f);
+  sunCfg.speed                 = 120.f;
+  sunCfg.speedVariance         = 40.f;
+  sunCfg.startRotation         = sf::degrees(0.f);
+  sunCfg.startRotationVariance = sf::degrees(360.f);
+  sunCfg.angularVelocity       = 90.f;
+  sunCfg.angularVelocityVariance = 45.f;
+  sunCfg.gravity               = {-40.f, 0.f};
+  sunCfg.startColor            = sf::Color(255, 200, 80);
+  sunCfg.endColor              = sf::Color(255, 50, 0, 0);
+  sunCfg.startSize             = {20.f, 20.f};
+  sunCfg.endSize               = {0.f, 0.f};
+  sunCfg.lifetime              = 1.5f;
+  sunCfg.lifetimeVariance      = 0.5f;
+  sunCfg.texture               = texture;
+  sunCfg.blendMode             = sf::BlendAlpha;
+  sunCfg.duration              = 0.f;
+  sunCfg.loop                  = false;
 
-  EmitterConfig loopCfg;
-  loopCfg.emissionRate          = 60.f;
-  loopCfg.maxParticles          = 200;
-  loopCfg.direction             = sf::degrees(-90.f);
-  loopCfg.directionVariance     = sf::degrees(25.f);
-  loopCfg.speed                 = 250.f;
-  loopCfg.speedVariance         = 50.f;
-  loopCfg.startRotation         = sf::degrees(0.f);
-  loopCfg.startRotationVariance = sf::degrees(360.f);
-  loopCfg.angularVelocity       = 200.f;
-  loopCfg.angularVelocityVariance = 100.f;
-  loopCfg.gravity               = {0.f, 200.f};
-  loopCfg.startColor            = sf::Color(100, 200, 255);
-  loopCfg.endColor              = sf::Color(100, 200, 255, 0);
-  loopCfg.startSize             = {24.f, 24.f};
-  loopCfg.endSize               = {2.f, 2.f};
-  loopCfg.lifetime              = 2.f;
-  loopCfg.lifetimeVariance      = 0.5f;
-  loopCfg.texture               = texture;
-  loopCfg.blendMode             = sf::BlendAlpha;
-  loopCfg.duration              = 2.5f;
-  loopCfg.loop                  = true;
+  auto* sunParticles = sun->addComponent<ParticleSystemComponent>();
+  sunParticles->setConfig(sunCfg);
+  sunParticles->setSortMode(ParticleSortMode::BackToFront);
+  sunParticles->setWorldSpace(false);
 
-  auto* loopEmitter = left->addComponent<ParticleSystemComponent>();
-  loopEmitter->setConfig(loopCfg);
-  loopEmitter->setSortMode(ParticleSortMode::BackToFront);
-  loopEmitter->setWorldSpace(true);
+  SceneNode* earth = scene.createNode("Earth", sun);
+  earth->transform().setPosition({140.f, 0.f});
+  earth->addComponent<CircleComponent>(20.f, sf::Color(100, 180, 255));
 
-  // -- Emitter 2: burst on Space key --
-  SceneNode* right = scene.createNode("BurstEmitter");
-  right->transform().setPosition({windowWidth * 0.7f, windowHeight * 0.6f});
+  // -- Earth: atmospheric glow (world space, trails as it orbits) --
+  EmitterConfig earthCfg;
+  earthCfg.emissionRate          = 20.f;
+  earthCfg.maxParticles          = 80;
+  earthCfg.direction             = sf::degrees(0.f);
+  earthCfg.directionVariance     = sf::degrees(360.f);
+  earthCfg.speed                 = 30.f;
+  earthCfg.speedVariance         = 10.f;
+  earthCfg.startRotation         = sf::degrees(0.f);
+  earthCfg.startRotationVariance = sf::degrees(360.f);
+  earthCfg.angularVelocity       = 30.f;
+  earthCfg.angularVelocityVariance = 15.f;
+  earthCfg.gravity               = {0.f, 0.f};
+  earthCfg.startColor            = sf::Color(100, 200, 255, 180);
+  earthCfg.endColor              = sf::Color(100, 200, 255, 0);
+  earthCfg.startSize             = {16.f, 16.f};
+  earthCfg.endSize               = {0.f, 0.f};
+  earthCfg.lifetime              = 1.0f;
+  earthCfg.lifetimeVariance      = 0.3f;
+  earthCfg.texture               = texture;
+  earthCfg.blendMode             = sf::BlendAlpha;
+  earthCfg.duration              = 0.f;
+  earthCfg.loop                  = false;
 
-  EmitterConfig burstCfg;
-  burstCfg.emissionRate          = 0.f;     // manual burst only
-  burstCfg.maxParticles          = 100;
-  burstCfg.direction             = sf::degrees(-90.f);
-  burstCfg.directionVariance     = sf::degrees(45.f);
-  burstCfg.speed                 = 300.f;
-  burstCfg.speedVariance         = 100.f;
-  burstCfg.startRotation         = sf::degrees(0.f);
-  burstCfg.startRotationVariance = sf::degrees(360.f);
-  burstCfg.angularVelocity       = 180.f;
-  burstCfg.angularVelocityVariance = 90.f;
-  burstCfg.gravity               = {0.f, 150.f};
-  burstCfg.startColor            = sf::Color(255, 180, 100);
-  burstCfg.endColor              = sf::Color(255, 50, 50, 0);
-  burstCfg.startSize             = {28.f, 28.f};
-  burstCfg.endSize               = {2.f, 2.f};
-  burstCfg.lifetime              = 2.f;
-  burstCfg.lifetimeVariance      = 0.5f;
-  burstCfg.texture               = texture;
-  burstCfg.blendMode             = sf::BlendAlpha;
-  burstCfg.duration              = 0.f;
-  burstCfg.loop                  = false;
+  auto* earthParticles = earth->addComponent<ParticleSystemComponent>();
+  earthParticles->setConfig(earthCfg);
+  earthParticles->setSortMode(ParticleSortMode::BackToFront);
+  earthParticles->setWorldSpace(true);
 
-  auto* burstEmitter = right->addComponent<ParticleSystemComponent>();
-  burstEmitter->setConfig(burstCfg);
-  burstEmitter->setSortMode(ParticleSortMode::BackToFront);
-  burstEmitter->setWorldSpace(true);
+  SceneNode* moon = scene.createNode("Moon", earth);
+  moon->transform().setPosition({40.f, 0.f});
+  moon->addComponent<CircleComponent>(4.f, sf::Color(100, 100, 100));
+
+  // -- Moon: dust burst on Space --
+  EmitterConfig moonCfg;
+  moonCfg.emissionRate          = 0.f;
+  moonCfg.maxParticles          = 50;
+  moonCfg.direction             = sf::degrees(-90.f);
+  moonCfg.directionVariance     = sf::degrees(45.f);
+  moonCfg.speed                 = 150.f;
+  moonCfg.speedVariance         = 50.f;
+  moonCfg.startRotation         = sf::degrees(0.f);
+  moonCfg.startRotationVariance = sf::degrees(360.f);
+  moonCfg.angularVelocity       = 200.f;
+  moonCfg.angularVelocityVariance = 100.f;
+  moonCfg.gravity               = {0.f, 100.f};
+  moonCfg.startColor            = sf::Color(200, 200, 200);
+  moonCfg.endColor              = sf::Color(100, 100, 255, 0);
+  moonCfg.startSize             = {12.f, 12.f};
+  moonCfg.endSize               = {2.f, 2.f};
+  moonCfg.lifetime              = 1.5f;
+  moonCfg.lifetimeVariance      = 0.5f;
+  moonCfg.texture               = texture;
+  moonCfg.blendMode             = sf::BlendAlpha;
+  moonCfg.duration              = 0.f;
+  moonCfg.loop                  = false;
+
+  auto* moonParticles = moon->addComponent<ParticleSystemComponent>();
+  moonParticles->setConfig(moonCfg);
+  moonParticles->setSortMode(ParticleSortMode::BackToFront);
+  moonParticles->setWorldSpace(true);
 
   sf::Clock clock;
   while (window.isOpen())
@@ -142,19 +217,16 @@ int main()
       {
         if (key->code == sf::Keyboard::Key::Space)
         {
-          burstEmitter->emit(50);
-          std::cout << "[Burst] 50 particles emitted ("
-                    << burstEmitter->getParticleCount() << " alive)\n";
-        }
-        if (key->code == sf::Keyboard::Key::L)
-        {
-          loopEmitter->start();
-          std::cout << "[Loop] restarting\n";
+          moonParticles->emit(30);
+          std::cout << "[Moon] Burst 30 particles\n";
         }
       }
     }
 
     const float deltaTime = clock.restart().asSeconds();
+
+    sun->transform().rotate(sf::degrees(45.f * deltaTime));
+    earth->transform().rotate(sf::degrees(215.f * deltaTime));
 
     scene.update(deltaTime);
 

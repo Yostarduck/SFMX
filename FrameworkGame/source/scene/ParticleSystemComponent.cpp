@@ -321,6 +321,7 @@ ParticleSystemComponent::rebuildVertices() const
   }
 
   m_scratchVertices.setPrimitiveType(sf::PrimitiveType::Triangles);
+  m_vertexBuffer.setPrimitiveType(sf::PrimitiveType::Triangles);
   m_scratchVertices.resize(m_count * 6);
 
   const bool hasTexture = m_config.texture != nullptr;
