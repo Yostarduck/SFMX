@@ -5,6 +5,7 @@
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
+#include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/System/Angle.hpp>
 #include <SFML/Graphics/Color.hpp>
 
@@ -59,6 +60,9 @@ struct EmitterConfig
   float         lifetime                = 1.f;
   float         lifetimeVariance        = 0.f;
 
+  float         duration                = 0.f;    // 0 = infinite
+  bool          loop                    = false;
+
   const sf::Texture* texture            = nullptr;
   sf::BlendMode      blendMode          = sf::BlendAlpha;
 };
@@ -85,6 +89,10 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   
   void emit(size_t count);
   void clear();
+  void start();
+  void stop();
+  NODISCARD bool isRunning() const { return m_running; }
+  NODISCARD float getProgress() const;
   
   NODISCARD size_t getParticleCount() const { return m_count; }
   NODISCARD size_t getMaxParticles() const { return m_capacity; }
@@ -105,7 +113,11 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   size_t            m_count       = 0;
   size_t            m_capacity    = 0;
 
-  mutable sf::VertexArray m_vertices;
+  float        m_elapsed = 0.f;
+  bool         m_running = true;
+
+  mutable sf::VertexArray  m_scratchVertices;
+  mutable sf::VertexBuffer m_vertexBuffer;
   mutable bool m_verticesDirty = true;
 
 };

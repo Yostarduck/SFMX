@@ -64,6 +64,8 @@ ParticleSystemComponent::setConfig(const EmitterConfig& config)
   m_config = config;
   m_capacity = config.maxParticles;
   m_particles.resize(m_capacity);
+  m_elapsed = 0.f;
+  m_running = true;
   m_verticesDirty = true;
 }
 
@@ -128,6 +130,26 @@ ParticleSystemComponent::clear()
 }
 
 void
+ParticleSystemComponent::start()
+{
+  m_elapsed = 0.f;
+  m_running = true;
+}
+
+void
+ParticleSystemComponent::stop()
+{
+  m_running = false;
+}
+
+float
+ParticleSystemComponent::getProgress() const
+{
+  if (m_config.duration <= 0.f) return 0.f;
+  return std::min(m_elapsed / m_config.duration, 1.f);
+}
+
+void
 ParticleSystemComponent::spawnParticle()
 {
   if (m_count >= m_capacity)
@@ -173,7 +195,7 @@ ParticleSystemComponent::spawnParticle()
     const sf::Transform& world = m_owner->getWorldTransform();
     p.position = world.transformPoint(p.position);
     p.velocity = world.transformPoint(p.velocity) -
-                  world.transformPoint({0.f, 0.f});
+                 world.transformPoint({0.f, 0.f});
   }
 
   ++m_count;
@@ -201,6 +223,25 @@ ParticleSystemComponent::onUpdate(float deltaTime)
     return;
   }
 
+  // Duration / loop
+  if (m_config.duration > 0.0f)
+  {
+    m_elapsed += deltaTime;
+    if (m_elapsed >= m_config.duration)
+    {
+      if (m_config.loop)
+      {
+        // clear();
+        m_elapsed = 0.0f;
+        m_running = true;
+      }
+      else
+      {
+        m_running = false;
+      }
+    }
+  }
+
   for (size_t i = 0; i < m_count; ++i)
   {
     Particle& p = m_particles[i];
@@ -226,7 +267,7 @@ ParticleSystemComponent::onUpdate(float deltaTime)
     ++i;
   }
 
-  if (m_config.emissionRate > 0.f)
+  if (m_running && m_config.emissionRate > 0.f)
   {
     m_accumulator += m_config.emissionRate * deltaTime;
     while (m_accumulator >= 1.f && m_count < m_capacity)
@@ -268,7 +309,7 @@ ParticleSystemComponent::onDraw(sf::RenderTarget& target,
   states.blendMode = m_config.blendMode;
   states.texture   = m_config.texture;
 
-  target.draw(m_vertices, states);
+  target.draw(m_vertexBuffer, states);
 }
 
 void
@@ -279,8 +320,8 @@ ParticleSystemComponent::rebuildVertices() const
     return;
   }
 
-  m_vertices.setPrimitiveType(sf::PrimitiveType::Triangles);
-  m_vertices.resize(m_count * 6);
+  m_scratchVertices.setPrimitiveType(sf::PrimitiveType::Triangles);
+  m_scratchVertices.resize(m_count * 6);
 
   const bool hasTexture = m_config.texture != nullptr;
   sf::Vector2f texSize;
@@ -331,23 +372,37 @@ ParticleSystemComponent::rebuildVertices() const
         {0.f,        texSize.y},
       };
 
-      m_vertices[base + 0] = {worldCorners[0], p.color, uvs[0]};
-      m_vertices[base + 1] = {worldCorners[1], p.color, uvs[1]};
-      m_vertices[base + 2] = {worldCorners[2], p.color, uvs[2]};
-      m_vertices[base + 3] = {worldCorners[0], p.color, uvs[0]};
-      m_vertices[base + 4] = {worldCorners[2], p.color, uvs[2]};
-      m_vertices[base + 5] = {worldCorners[3], p.color, uvs[3]};
+      m_scratchVertices[base + 0] = {worldCorners[0], p.color, uvs[0]};
+      m_scratchVertices[base + 1] = {worldCorners[1], p.color, uvs[1]};
+      m_scratchVertices[base + 2] = {worldCorners[2], p.color, uvs[2]};
+      m_scratchVertices[base + 3] = {worldCorners[0], p.color, uvs[0]};
+      m_scratchVertices[base + 4] = {worldCorners[2], p.color, uvs[2]};
+      m_scratchVertices[base + 5] = {worldCorners[3], p.color, uvs[3]};
     }
     else
     {
       const sf::Vector2f zeroUV{};
-      m_vertices[base + 0] = {worldCorners[0], p.color, zeroUV};
-      m_vertices[base + 1] = {worldCorners[1], p.color, zeroUV};
-      m_vertices[base + 2] = {worldCorners[2], p.color, zeroUV};
-      m_vertices[base + 3] = {worldCorners[0], p.color, zeroUV};
-      m_vertices[base + 4] = {worldCorners[2], p.color, zeroUV};
-      m_vertices[base + 5] = {worldCorners[3], p.color, zeroUV};
+      m_scratchVertices[base + 0] = {worldCorners[0], p.color, zeroUV};
+      m_scratchVertices[base + 1] = {worldCorners[1], p.color, zeroUV};
+      m_scratchVertices[base + 2] = {worldCorners[2], p.color, zeroUV};
+      m_scratchVertices[base + 3] = {worldCorners[0], p.color, zeroUV};
+      m_scratchVertices[base + 4] = {worldCorners[2], p.color, zeroUV};
+      m_scratchVertices[base + 5] = {worldCorners[3], p.color, zeroUV};
     }
+  }
+
+  // Upload to GPU buffer
+  if (m_vertexBuffer.getVertexCount() != m_scratchVertices.getVertexCount())
+  {
+    if (!m_vertexBuffer.create(m_scratchVertices.getVertexCount()))
+    {
+      return;
+    }
+  }
+  if (!m_vertexBuffer.update(&m_scratchVertices[0],
+                              m_scratchVertices.getVertexCount(), 0))
+  {
+    return;
   }
 
   m_verticesDirty = false;
