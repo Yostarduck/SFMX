@@ -78,7 +78,7 @@ private:
   sf::Sound        m_sound;
   sf::Music        m_music;
   Backend          m_backend   = Backend::None;
-  bool             m_followNode = false;
+  bool             m_followNode = true;
 };
 
 } // namespace sfmx
