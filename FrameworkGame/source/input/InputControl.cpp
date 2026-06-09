@@ -74,7 +74,7 @@ InputControl::fromPath(StringView path) {
   }
   else if (device.rfind("Gamepad", 0) == 0 && parts.size() >= 3) {
     control.m_device = DeviceType::kGamepad;
-    control.m_gamepadIndex = std::atoi(device.c_str() + 7);  // after "Gamepad"
+    control.m_gamepadIndex = device.size() > 7 ? std::atoi(device.c_str() + 7) : 0;
     if ("Axis" == parts[1]) {
       control.m_isAxis = true;
       control.m_code = static_cast<int>(axisFromString(parts[2]));
