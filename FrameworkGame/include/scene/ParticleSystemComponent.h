@@ -1,4 +1,5 @@
 #pragma once
+
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/PrimitiveType.hpp>
@@ -69,7 +70,7 @@ struct EmitterConfig
 
 class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
 {
-  public:
+ public:
   ParticleSystemComponent(SceneNode* owner);
   ParticleSystemComponent(SceneNode* owner, 
                           const EmitterConfig& config);
@@ -101,7 +102,7 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   void onUpdate(float deltaTime) override;
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
-  private:
+ private:
   void spawnParticle();
   void kill(size_t index);
   void rebuildVertices() const;
