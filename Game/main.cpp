@@ -98,8 +98,8 @@ int main()
     cgm->setFollowNode(true);
     if (cgm->loadMusicFromFile("Game/resources/chinese.mp3")) {
       cgm->setLooping(true);
-      cgm->setVolume(25.f);
-      cgm->setMinDistance(75.f);
+      cgm->setVolume(10.f);
+      cgm->setMinDistance(50.f);
       cgm->setAttenuation(0.3f);
       cgm->setSpatializationEnabled(true);
       cgm->play();
@@ -114,8 +114,9 @@ int main()
     mgm->setFollowNode(true);
     if (mgm->loadMusicFromFile("Game/resources/mozart.mp3")) {
       mgm->setLooping(true);
-      mgm->setVolume(25.f);
-      mgm->setMinDistance(75.f);
+      mgm->setVolume(10.f);
+      mgm->setPitch(2.0f);
+      mgm->setMinDistance(50.f);
       mgm->setAttenuation(0.3f);
       mgm->setSpatializationEnabled(true);
       mgm->play();
