@@ -4,6 +4,8 @@
 #include "scene/Scene.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
+#include "utils/Random.h"
+#include "utils/Arithmetic.h"
 
 using namespace sfmx;
 
@@ -133,6 +135,16 @@ int main()
   moon->addComponent<CircleComponent>(4.f, sf::Color(100, 100, 100));
 
   sf::Clock clock;
+  std::cout << Random::get<float>() << std::endl;
+  std::cout << Random::get<float>() << std::endl;
+  std::cout << Random::get<float>() << std::endl;
+  std::cout << Random::range<int>(0, 30) << std::endl;
+  std::cout << Random::range<int>(0, 30) << std::endl;
+  std::cout << Random::range<int>(0, 30) << std::endl;
+  std::cout << Random::diceThrow(3, 6) << std::endl;
+  std::cout << Random::diceThrow(2, 6) << std::endl;
+  std::cout << Random::diceThrow(1, 6) << std::endl;
+
   while (window.isOpen())
   {
     while (const Optional<sf::Event> event = window.pollEvent())
