@@ -7,8 +7,8 @@
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/System/Angle.hpp>
-#include <SFML/Graphics/Color.hpp>
 
+#include "core/MemoryPool.h"
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
 #include "scene/SceneNode.h"
@@ -106,13 +106,14 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   void kill(size_t index);
   void rebuildVertices() const;
   
-  EmitterConfig     m_config;
-  ParticleSortMode  m_sortMode    = ParticleSortMode::None;
-  bool              m_worldSpace  = false;
-  float             m_accumulator = 0.0f;
-  Vector<Particle>  m_particles;
-  size_t            m_count       = 0;
-  size_t            m_capacity    = 0;
+  EmitterConfig       m_config;
+  ParticleSortMode    m_sortMode    = ParticleSortMode::None;
+  bool                m_worldSpace  = false;
+  float               m_accumulator = 0.0f;
+  MemoryPool<Particle> m_pool;
+  Vector<Particle*>    m_active;
+  size_t               m_count       = 0;
+  size_t               m_capacity    = 0;
 
   float        m_elapsed = 0.f;
   bool         m_running = true;
