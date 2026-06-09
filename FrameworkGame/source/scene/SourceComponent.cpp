@@ -258,8 +258,9 @@ SourceComponent::onUpdate(float deltaTime) {
     return;
 
   const sf::Vector2f worldPos =
-      m_owner->getWorldTransform().transformPoint({0.f, 0.f});
+      m_owner->transform().getWorldTransform().transformPoint({0,0});
   m_source->setPosition({worldPos.x, worldPos.y, 0.f});
+  // std::cout << m_source->getPosition().x << " : " << m_source->getPosition().y << std::endl;
 }
 
 // -----------------------------------------------------------------------------
@@ -273,6 +274,11 @@ SourceComponent::activeSource() {
 
 const sf::SoundSource*
 SourceComponent::activeSource() const {
+  return m_source;
+}
+
+const sf::SoundSource*
+SourceComponent::getSource() const {
   return m_source;
 }
 

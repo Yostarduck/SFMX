@@ -4,8 +4,6 @@
 #include "scene/ListenerComponent.h"
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
-#include "utils/Module.h"
-#include "utils/EventSystem.h"
 
 using namespace sfmx;
 
@@ -66,11 +64,12 @@ int main()
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
   earth->addComponent<CircleComponent>(20.f, sf::Color(100, 180, 255));
+  auto* bgm = earth->addComponent<SourceComponent>();
   {
-    auto* bgm = earth->addComponent<SourceComponent>();
+    bgm->setFollowNode(true);
     if (bgm->loadMusicFromFile("Game/resources/background.mp3")) {
       bgm->setLooping(true);
-      bgm->setVolume(50.f);
+      bgm->setVolume(25.f);
       bgm->setSpatializationEnabled(false);
       bgm->play();
     } else {
@@ -82,8 +81,8 @@ int main()
   moon->transform().setPosition({40.f, 0.f});
   moon->addComponent<CircleComponent>(4.f, sf::Color(100, 100, 100));
   SourceComponent* moonSfx = nullptr;
+  auto* sfx = moon->addComponent<SourceComponent>();
   {
-    auto* sfx = moon->addComponent<SourceComponent>();
     sfx->setFollowNode(true);
     if (sfx->loadMusicFromFile("Game/resources/sfx.mp3")) {
       sfx->setVolume(200.f);
@@ -97,7 +96,7 @@ int main()
   neptune->transform().setPosition({280.f, 100.f});
   neptune->addComponent<CircleComponent>(12.f, sf::Color(80, 100, 200));
   neptune->addComponent<ListenerComponent>();
-
+  
   sf::Clock clock;
   while (window.isOpen())
   {

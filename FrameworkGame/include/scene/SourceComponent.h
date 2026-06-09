@@ -65,6 +65,8 @@ public:
   // Component hooks
   void onUpdate(float deltaTime) override;
 
+  NODISCARD const sf::SoundSource* getSource() const;
+
 private:
   enum class Backend { None, Sound, Music };
 
