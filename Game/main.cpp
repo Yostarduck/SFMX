@@ -54,11 +54,10 @@ int main()
       {static_cast<float>(windowWidth) * 0.5f,
        static_cast<float>(windowHeight) * 0.5f});
   sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
-
+  sf::Vector2f center = {static_cast<float>(windowWidth) * 0.5f,
+                         static_cast<float>(windowHeight) * 0.5f};
   SceneNode* sun2 = scene.createNode("Sun2");
-  sun2->transform().setPosition(
-      {static_cast<float>(windowWidth) * 0.5f,
-       static_cast<float>(windowHeight) * 0.5f});
+  sun2->transform().setPosition(center);
   
 
   SceneNode* earth = scene.createNode("Earth", sun);
@@ -69,7 +68,7 @@ int main()
     bgm->setFollowNode(true);
     if (bgm->loadMusicFromFile("Game/resources/background.mp3")) {
       bgm->setLooping(true);
-      bgm->setVolume(25.f);
+      bgm->setVolume(10.f);
       bgm->setSpatializationEnabled(false);
       bgm->play();
     } else {
@@ -90,6 +89,39 @@ int main()
       std::cout << "[Audio] Failed to load sfx.mp3\n";
     }
     moonSfx = sfx;
+  }
+
+  SceneNode* chinese = scene.createNode("Chinese");
+  chinese->transform().setPosition({0, center.y});
+  auto* cgm = chinese->addComponent<SourceComponent>();
+  {
+    cgm->setFollowNode(true);
+    if (cgm->loadMusicFromFile("Game/resources/chinese.mp3")) {
+      cgm->setLooping(true);
+      cgm->setVolume(25.f);
+      cgm->setMinDistance(75.f);
+      cgm->setAttenuation(0.3f);
+      cgm->setSpatializationEnabled(true);
+      cgm->play();
+    } else {
+      std::cout << "[Audio] Failed to load chinese.mp3\n";
+    }
+  }
+  SceneNode* mozart = scene.createNode("Mozart");
+  mozart->transform().setPosition({static_cast<float>(windowWidth), center.y});
+  auto* mgm = mozart->addComponent<SourceComponent>();
+  {
+    mgm->setFollowNode(true);
+    if (mgm->loadMusicFromFile("Game/resources/mozart.mp3")) {
+      mgm->setLooping(true);
+      mgm->setVolume(25.f);
+      mgm->setMinDistance(75.f);
+      mgm->setAttenuation(0.3f);
+      mgm->setSpatializationEnabled(true);
+      mgm->play();
+    } else {
+      std::cout << "[Audio] Failed to load mozart.mp3\n";
+    }
   }
 
   SceneNode* neptune = scene.createNode("Neptune", sun2);
