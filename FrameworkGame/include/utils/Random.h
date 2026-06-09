@@ -7,31 +7,44 @@
 
 namespace sfmx {
 
+/**
+ * @brief A Random utilities class that generates random
+ *        numbers, via a static mt1997 variable
+ * 
+ */
 class SFMX_UTILITY_EXPORT Random {
 
  public:
 
-  static void seed() {
+ /** @brief Sets a new seed based on the current time epoch */
+  static void 
+  seed() {
     if (!m_init)
       init();
-    m_mt.seed(std::chrono::system_clock::now().time_since_epoch().count());
+    m_mt.seed(
+      std::chrono::system_clock::now().time_since_epoch().count());
   }
 
+  /** @brief Sets a specific seed from a user defined number */
   static void seed(int num) {
     if (!m_init)
       init();
     m_mt.seed(num);
   }
 
+  /** @brief Gets a random number casted as T value */
   template<typename T>
-  NODISCARD static T get() {
+  NODISCARD static T 
+  get() {
     if (!m_init)
       init();
     return static_cast<T>(m_mt());
   }
 
+  /** @brief Gets a T value in a [inclusive, exclusive) range */
   template<typename T>
-  NODISCARD static T range(T inclusiveStart, T exclusiveEnd) {
+  NODISCARD static T 
+  range(T inclusiveStart, T exclusiveEnd) {
     if (!m_init)
       init();
 
@@ -46,6 +59,7 @@ class SFMX_UTILITY_EXPORT Random {
     }
   }
 
+  /** @brief based on a list of weights, generate a T number */
   template<typename T>
   NODISCARD static T weighted(const Vector<float>& weights) {
     if (!m_init)
@@ -55,6 +69,7 @@ class SFMX_UTILITY_EXPORT Random {
     return static_cast<T>(dist(m_mt));
   }
 
+  /** @brief Generates a random value based on a probability curve of n-faced dice */
   NODISCARD static int32 diceThrow(int32 amount, int32 diceFace) {
     int32 sum = 0;
     for (int32 i = 0; i < amount; ++i) {
@@ -63,6 +78,7 @@ class SFMX_UTILITY_EXPORT Random {
     return sum;
   }
 
+  /** @brief checks if the internal random generator has ben set already */
   NODISCARD static bool isInit() { return m_init; }
 
  private:
