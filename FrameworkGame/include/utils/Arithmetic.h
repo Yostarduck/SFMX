@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file Arithmetic.h
+ * @author Swampertor
+ * @date 2026/06/09
+ * @brief  Arithmetic utilities for SFML
+ */
+/************************************************************************/
 #pragma once
 
 #include <SFML/Graphics/Color.hpp>
