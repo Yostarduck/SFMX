@@ -53,6 +53,9 @@ int main()
   const String windowTitle = config.getString("Window", "Title", "SFMX Game");
   const bool enableVSync = config.getBool("Window", "VSync", true);
 
+  sf::Vector2f center = {static_cast<float>(windowWidth) * 0.5f,
+                         static_cast<float>(windowHeight) * 0.5f};
+
   sf::RenderWindow window(sf::VideoMode({windowWidth, windowHeight}), windowTitle);
   window.setVerticalSyncEnabled(enableVSync);
 
@@ -64,28 +67,24 @@ int main()
   scene.registerComponent<ListenerComponent>(1);
 
   SceneNode* sun = scene.createNode("Sun");
-  sun->transform().setPosition(
-      {static_cast<float>(windowWidth) * 0.5f,
-       static_cast<float>(windowHeight) * 0.5f});
+  sun->transform().setPosition(center);
   sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
-  sf::Vector2f center = {static_cast<float>(windowWidth) * 0.5f,
-                         static_cast<float>(windowHeight) * 0.5f};
+  
   SceneNode* sun2 = scene.createNode("Sun2");
   sun2->transform().setPosition(center);
   
-
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
   earth->addComponent<CircleComponent>(20.f, sf::Color(100, 180, 255));
   auto* bgm = earth->addComponent<SourceComponent>();
   {
-    bgm->setFollowNode(true);
     if (bgm->loadMusicFromFile("Game/resources/background.mp3")) {
       bgm->setLooping(true);
       bgm->setVolume(10.f);
       bgm->setSpatializationEnabled(false);
       bgm->play();
-    } else {
+    }
+    else {
       std::cout << "[Audio] Failed to load background.mp3\n";
     }
   }
@@ -96,14 +95,52 @@ int main()
   SourceComponent* moonSfx = nullptr;
   auto* sfx = moon->addComponent<SourceComponent>();
   {
-    sfx->setFollowNode(true);
     if (sfx->loadMusicFromFile("Game/resources/sfx.mp3")) {
       sfx->setVolume(200.f);
-    } else {
+    }
+    else {
       std::cout << "[Audio] Failed to load sfx.mp3\n";
     }
     moonSfx = sfx;
   }
+
+  SceneNode* chinese = scene.createNode("Chinese");
+  chinese->transform().setPosition({0, center.y});
+  auto* cgm = chinese->addComponent<SourceComponent>();
+  {
+    if (cgm->loadMusicFromFile("Game/resources/chinese.mp3")) {
+      cgm->setLooping(true);
+      cgm->setVolume(10.f);
+      cgm->setMinDistance(50.f);
+      cgm->setAttenuation(0.3f);
+      cgm->setSpatializationEnabled(true);
+      cgm->play();
+    }
+    else {
+      std::cout << "[Audio] Failed to load chinese.mp3\n";
+    }
+  }
+  SceneNode* mozart = scene.createNode("Mozart");
+  mozart->transform().setPosition({static_cast<float>(windowWidth), center.y});
+  auto* mgm = mozart->addComponent<SourceComponent>();
+  {
+    if (mgm->loadMusicFromFile("Game/resources/mozart.mp3")) {
+      mgm->setLooping(true);
+      mgm->setVolume(10.f);
+      mgm->setPitch(2.0f);
+      mgm->setMinDistance(50.f);
+      mgm->setAttenuation(0.3f);
+      mgm->setSpatializationEnabled(true);
+      mgm->play();
+    } else {
+      std::cout << "[Audio] Failed to load mozart.mp3\n";
+    }
+  }
+
+  SceneNode* neptune = scene.createNode("Neptune", sun2);
+  neptune->transform().setPosition({280.f, 100.f});
+  neptune->addComponent<CircleComponent>(12.f, sf::Color(80, 100, 200));
+  neptune->addComponent<ListenerComponent>();
 
   // InputSystem: Example of "Mapping Mode", you create a "Mapping", which
   // contains a "Map", a map contains "Actions", an action contains "Bindings",
@@ -149,73 +186,39 @@ int main()
   HEvent crouchSub = crouch->onPerformed([](const InputContext&) {
     std::cout << "[Action] Crouch performed (held past threshold)\n";
   });
+  HEvent crouchStart = crouch->onStarted([](const InputContext&) {
+    std::cout << "[Action] Crouch started\n";
+  });
   HEvent crouchEnd = crouch->onCanceled([](const InputContext&) {
     std::cout << "[Action] Crouch canceled\n";
   });
-  float moveReportTimer = 0.f;
+  float moveReportTimer = 0.1f;
   HEvent moveSub = move->onPerformed([&moveReportTimer](const InputContext& ctx) {
     // Performed fires every non-zero frame; throttle the print.
     moveReportTimer += ctx.m_deltaTime;
-    if (moveReportTimer >= 0.5f) {
+    if (moveReportTimer >= 0.1f) {
       const Vector2f value = ctx.m_value.asVector2();
       std::cout << "[Action] Move (" << value.x << ", " << value.y << ")\n";
       moveReportTimer = 0.f;
     }
   });
-  
-  SceneNode* chinese = scene.createNode("Chinese");
-  chinese->transform().setPosition({0, center.y});
-  auto* cgm = chinese->addComponent<SourceComponent>();
-  {
-    cgm->setFollowNode(true);
-    if (cgm->loadMusicFromFile("Game/resources/chinese.mp3")) {
-      cgm->setLooping(true);
-      cgm->setVolume(10.f);
-      cgm->setMinDistance(50.f);
-      cgm->setAttenuation(0.3f);
-      cgm->setSpatializationEnabled(true);
-      cgm->play();
-    } else {
-      std::cout << "[Audio] Failed to load chinese.mp3\n";
-    }
-  }
-  SceneNode* mozart = scene.createNode("Mozart");
-  mozart->transform().setPosition({static_cast<float>(windowWidth), center.y});
-  auto* mgm = mozart->addComponent<SourceComponent>();
-  {
-    mgm->setFollowNode(true);
-    if (mgm->loadMusicFromFile("Game/resources/mozart.mp3")) {
-      mgm->setLooping(true);
-      mgm->setVolume(10.f);
-      mgm->setPitch(2.0f);
-      mgm->setMinDistance(50.f);
-      mgm->setAttenuation(0.3f);
-      mgm->setSpatializationEnabled(true);
-      mgm->play();
-    } else {
-      std::cout << "[Audio] Failed to load mozart.mp3\n";
-    }
-  }
-
-  SceneNode* neptune = scene.createNode("Neptune", sun2);
-  neptune->transform().setPosition({280.f, 100.f});
-  neptune->addComponent<CircleComponent>(12.f, sf::Color(80, 100, 200));
-  neptune->addComponent<ListenerComponent>();
 
   sf::Clock clock;
-  std::cout << Random::get<float>() << std::endl;
-  std::cout << Random::get<float>() << std::endl;
-  std::cout << Random::get<float>() << std::endl;
-  std::cout << Random::range<int>(0, 30) << std::endl;
-  std::cout << Random::range<int>(0, 30) << std::endl;
-  std::cout << Random::range<int>(0, 30) << std::endl;
-  std::cout << Random::diceThrow(3, 6) << std::endl;
-  std::cout << Random::diceThrow(2, 6) << std::endl;
-  std::cout << Random::diceThrow(1, 6) << std::endl;
+  std::cout << "Random demo:\n"
+            << "Get: "    << Random::get<float>()       << "\n"
+            << "Get: "    << Random::get<float>()       << "\n"
+            << "Get: "    << Random::get<float>()       << "\n"
+            << "Range: "  << Random::range<int>(0, 30)  << "\n"
+            << "Range: "  << Random::range<int>(0, 30)  << "\n"
+            << "Range: "  << Random::range<int>(0, 30)  << "\n"
+            << "Dice: "   << Random::diceThrow(3, 6)    << "\n"
+            << "Dice: "   << Random::diceThrow(2, 6)    << "\n"
+            << "Dice: "   << Random::diceThrow(1, 6)    << "\n";
 
   while (window.isOpen())
   {
-    InputSystem::instance().beginFrame();  // snapshot device state before polling
+    // InputSystem: snapshot device state before polling
+    InputSystem::instance().beginFrame();
 
     while (const Optional<sf::Event> event = window.pollEvent())
     {
