@@ -64,11 +64,16 @@ int main()
 
   InputSystem::startUp();
   
-  Scene scene("Main", 1024);
-  scene.registerComponent<CircleComponent>(64);
-  scene.registerComponent<SourceComponent>(4);
-  scene.registerComponent<ListenerComponent>(1);
-  scene.registerComponent<CameraComponent>(1);
+  MemoryPoolHandler::startUp(64);
+  MemoryPoolHandler& pools = MemoryPoolHandler::instance();
+  pools.registerPool<SceneNode>(1024);
+  pools.registerPool<CircleComponent>(64);
+  pools.registerPool<SourceComponent>(4);
+  pools.registerPool<ListenerComponent>(1);
+  pools.registerPool<CameraComponent>(1);
+
+
+  Scene scene("Main");
 
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(center);
