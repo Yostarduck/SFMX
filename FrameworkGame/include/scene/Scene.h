@@ -6,12 +6,10 @@
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 
-#include "core/MemoryPool.h"
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
 #include "scene/SceneNode.h"
 #include "scene/SceneTypes.h"
-#include "utils/MemoryPoolHandler.h"
 
 namespace sfmx
 {
@@ -74,39 +72,5 @@ class Scene
   NodeId m_nextId;
   UnorderedMap<NodeId, SceneNode*> m_registry;
 };
-
-// ---------------------------------------------------------------------------
-// SceneNode component templates: defined here, where MemoryPoolHandler (and so
-// the typed pools the components are stored in) is a complete type.
-// ---------------------------------------------------------------------------
-
-template<typename T, typename... Args>
-T*
-SceneNode::addComponent(Args&&... args) {
-  static_assert(std::is_base_of<Component, T>::value,
-                "addComponent<T>: T must derive from Component");
-  MemoryPool<T>& pool = MemoryPoolHandler::instance().pool<T>();
-  T* component = pool.allocate(this, std::forward<Args>(args)...);
-  if (nullptr != component) {
-    linkComponent(component);
-  }
-  return component;
-}
-
-template<typename T>
-void
-SceneNode::removeComponent() {
-  const ComponentTypeId id = componentTypeId<T>();
-  for (Component* component = m_firstComponent;
-       nullptr != component;
-       component = component->getNextComponent()) {
-    if (component->getTypeId() == id) {
-      unlinkComponent(component);
-      MemoryPool<T>& pool = MemoryPoolHandler::instance().pool<T>();
-      pool.deallocate(static_cast<T*>(component));
-      return;
-    }
-  }
-}
 
 }  // namespace sfmx

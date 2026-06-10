@@ -27,8 +27,7 @@ class IMemoryPool
    *
    * @param object Address of a live element of this pool's element type. For
    *               the framework's single-public-inheritance, offset-zero
-   *               hierarchies (see CodeStyle: composition first, public
-   *               inheritance only, no RTTI) a base-subobject pointer is a valid
+   *               hierarchies a base-subobject pointer is a valid
    *               argument, so a @c Component* may be passed for a component
    *               pool.
    */

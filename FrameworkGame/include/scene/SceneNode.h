@@ -5,6 +5,7 @@
 
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
+#include "utils/MemoryPoolHandler.h"
 #include "scene/SceneTypes.h"
 #include "scene/Transform.h"
 #include "utils/TypeTraits.h"
@@ -164,7 +165,19 @@ class SceneNode
   Component* m_lastComponent;
 };
 
-// -- Inline template that needs only Component (not Scene) --------------------
+template<typename T, typename... Args>
+T*
+SceneNode::addComponent(Args&&... args) {
+  static_assert(std::is_base_of<Component, T>::value,
+                "addComponent<T>: T must derive from Component");
+  MemoryPool<T>& pool = MemoryPoolHandler::instance().pool<T>();
+  T* component = pool.allocate(this, std::forward<Args>(args)...);
+  if (nullptr != component) {
+    linkComponent(component);
+  }
+  return component;
+}
+
 template<typename T>
 NODISCARD T*
 SceneNode::getComponent() const {
@@ -177,6 +190,22 @@ SceneNode::getComponent() const {
     }
   }
   return nullptr;
+}
+
+template<typename T>
+void
+SceneNode::removeComponent() {
+  const ComponentTypeId id = componentTypeId<T>();
+  for (Component* component = m_firstComponent;
+       nullptr != component;
+       component = component->getNextComponent()) {
+    if (component->getTypeId() == id) {
+      unlinkComponent(component);
+      MemoryPool<T>& pool = MemoryPoolHandler::instance().pool<T>();
+      pool.deallocate(static_cast<T*>(component));
+      return;
+    }
+  }
 }
 
 }  // namespace sfmx
