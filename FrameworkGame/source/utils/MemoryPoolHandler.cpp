@@ -7,7 +7,7 @@ void
 MemoryPoolHandler::deallocate(const UUID& typeId, void* object) {
   const auto it = m_pools.find(typeId);
   if (it != m_pools.end()) {
-    it->second->deallocateErased(object);
+    it->second->deallocate(object);
   }
 }
 

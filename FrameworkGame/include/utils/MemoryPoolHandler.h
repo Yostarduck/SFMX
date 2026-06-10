@@ -32,7 +32,7 @@ class IMemoryPool
    *               argument, so a @c Component* may be passed for a component
    *               pool.
    */
-  virtual void deallocateErased(void* object) = 0;
+  virtual void deallocate(void* object) = 0;
 
   /**
    * @brief Destroy every live element and return all slots to free, keeping the
@@ -62,7 +62,7 @@ class TypedPool : public IMemoryPool
   pool() { return m_pool; }
 
   void
-  deallocateErased(void* object) override {
+  deallocate(void* object) override {
     m_pool.deallocate(static_cast<T*>(object));
   }
 
