@@ -1,9 +1,17 @@
+/************************************************************************/
+/**
+ * @file Random.h
+ * @author Swampertor
+ * @date 2026/06/9
+ * @brief  Class with random number generation functions.
+ */
+/************************************************************************/
 #pragma once
+
+#include "core/platform/Prerequisites.h"
 
 #include <chrono>
 #include <random>
-
-#include "core/platform/Prerequisites.h"
 
 namespace sfmx {
 
@@ -83,6 +91,7 @@ class SFMX_UTILITY_EXPORT Random {
 
  private:
 
+  /** @brief Internally initializes the mt19937 variable */
   static void init() {
     m_mt.seed(std::random_device{}());
     m_init = true;
