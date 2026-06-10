@@ -7,6 +7,7 @@
 #include "scene/Component.h"
 #include "scene/SceneTypes.h"
 #include "scene/Transform.h"
+#include "utils/TypeTraits.h"
 
 namespace sfmx
 {
@@ -179,3 +180,7 @@ SceneNode::getComponent() const {
 }
 
 }  // namespace sfmx
+
+// SceneNode is pooled like any other type by MemoryPoolHandler, so it needs a
+// type id to key its pool (see registerPool<SceneNode>).
+DECLARE_TYPE_TRAITS(sfmx::SceneNode)

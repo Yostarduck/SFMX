@@ -154,11 +154,58 @@ class MemoryPool
   }
 
   /**
+   * @brief Destroy every live element and return its slot to the pool, keeping
+   *        the backing storage and capacity so the pool stays usable.
+   *
+   * Unlike @ref freePool, the storage is not released: the pool ends empty but
+   * ready to allocate again at the same capacity.
+   */
+  void
+  clear() {
+    if (nullptr == m_elements) {
+      return;
+    }
+
+    for (size_t i = 0; i < m_poolSize; ++i) {
+      if (isElementUsed(i)) {
+        m_elements[i].~T();
+      }
+    }
+
+    const size_t flagBytes = flagByteCount(m_poolSize);
+    for (size_t i = 0; i < flagBytes; ++i) {
+      m_allocatedBitFlags[i] = 0;
+    }
+    m_freeElements = static_cast<uint32>(m_poolSize);
+  }
+
+  /**
    * @brief Whether every element is currently in use.
    */
   NODISCARD bool
   isFull() const {
     return 0 == m_freeElements;
+  }
+
+  /** @brief Total number of slots, i.e. the fixed capacity of the pool. */
+  NODISCARD size_t
+  getCapacity() const {
+    return m_poolSize;
+  }
+
+  /** @brief Number of slots currently in use. */
+  NODISCARD size_t
+  getAllocatedCount() const {
+    return m_poolSize - m_freeElements;
+  }
+
+  /**
+   * @brief Bytes of backing storage this pool owns: the element block plus the
+   *        occupancy bit field.
+   */
+  NODISCARD size_t
+  getMemoryUsage() const {
+    return m_poolSize * sizeof(T) + flagByteCount(m_poolSize);
   }
 
   /**
