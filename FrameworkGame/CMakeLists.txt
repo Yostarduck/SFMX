@@ -7,6 +7,7 @@ add_library(FrameworkGame STATIC
     source/scene/Scene.cpp
     source/scene/SourceComponent.cpp
     source/scene/ListenerComponent.cpp
+    source/utils/Random.cpp
     source/utils/UUID.cpp
 )
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
