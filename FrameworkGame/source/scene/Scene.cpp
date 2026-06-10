@@ -6,9 +6,8 @@
 namespace sfmx
 {
 
-Scene::Scene(StringView name, size_t maxNodes)
-  : m_defaultComponentCapacity(64),
-    m_root(nullptr),
+Scene::Scene(StringView name)
+  : m_root(nullptr),
     m_nextId(1)
 {
   const size_t count = std::min(name.size(), kMaxNameLength - 1);
@@ -17,10 +16,9 @@ Scene::Scene(StringView name, size_t maxNodes)
   }
   m_name[count] = '\0';
 
-  m_nodePool.initialize(maxNodes);
-
   const NodeId rootId = allocateId();
-  m_root = m_nodePool.allocate(rootId, StringView("Root"), this);
+  m_root = MemoryPoolHandler::instance().pool<SceneNode>().allocate(
+    rootId, StringView("Root"), this);
   SFMX_ASSERT(nullptr != m_root && "node pool must hold at least the root");
   if (nullptr != m_root) {
     registerNode(m_root);
@@ -36,7 +34,8 @@ Scene::createNode(StringView name, SceneNode* parent) {
   }
 
   const NodeId id = allocateId();
-  SceneNode* node = m_nodePool.allocate(id, name, this);
+  SceneNode* node =
+    MemoryPoolHandler::instance().pool<SceneNode>().allocate(id, name, this);
   if (nullptr == node) {
     SFMX_ASSERT(false && "node pool exhausted");
     return nullptr;
@@ -79,19 +78,18 @@ Scene::destroyNodeRecursive(SceneNode* node) {
   node->m_lastChild = nullptr;
 
   // Return every attached component to its pool (same capture-next dance).
+  MemoryPoolHandler& pools = MemoryPoolHandler::instance();
   for (Component* component = node->m_firstComponent; nullptr != component;) {
     Component* next = component->getNextComponent();
-    const auto it = m_componentPools.find(component->getTypeId());
-    if (it != m_componentPools.end()) {
-      it->second->deallocate(component);
-    }
+    pools.deallocate(component->getTypeId(), component);
     component = next;
   }
   node->m_firstComponent = nullptr;
   node->m_lastComponent = nullptr;
 
   unregisterNode(node->getId());
-  m_nodePool.deallocate(node);
+  pools.deallocate(TypeTraits<SceneNode>::getTypeId(),
+                   static_cast<void*>(node));
 }
 
 SceneNode*

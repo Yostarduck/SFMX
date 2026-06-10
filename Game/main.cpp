@@ -12,6 +12,7 @@
 #include "scene/ListenerComponent.h"
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
+#include "utils/MemoryPoolHandler.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
 #include "utils/Random.h"
@@ -60,11 +61,17 @@ int main()
   window.setVerticalSyncEnabled(enableVSync);
 
   InputSystem::startUp();
-  
-  Scene scene("Main", 1024);
-  scene.registerComponent<CircleComponent>(64);
-  scene.registerComponent<SourceComponent>(4);
-  scene.registerComponent<ListenerComponent>(1);
+
+  // The MemoryPoolHandler owns all pooled storage process-wide. Start it up and
+  // register every pool (the SceneNode pool included) before creating a Scene.
+  MemoryPoolHandler::startUp(64);
+  MemoryPoolHandler& pools = MemoryPoolHandler::instance();
+  pools.registerPool<SceneNode>(1024);
+  pools.registerPool<CircleComponent>(64);
+  pools.registerPool<SourceComponent>(4);
+  pools.registerPool<ListenerComponent>(1);
+
+  Scene scene("Main");
 
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(center);
@@ -270,6 +277,9 @@ int main()
   }
 
   InputSystem::shutDown();
+  // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
+  // and components are destroyed here, while SFML is still alive.
+  MemoryPoolHandler::shutDown();
 
   return 0;
 }
