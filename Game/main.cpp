@@ -13,6 +13,7 @@
 #include "scene/ListenerComponent.h"
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
+#include "utils/MemoryPoolHandler.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
 #include "utils/Random.h"
@@ -280,6 +281,9 @@ int main()
   }
 
   InputSystem::shutDown();
+  // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
+  // and components are destroyed here, while SFML is still alive.
+  MemoryPoolHandler::shutDown();
 
   return 0;
 }
