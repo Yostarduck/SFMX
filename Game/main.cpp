@@ -1,7 +1,9 @@
 #include <SFML/Graphics.hpp>
 
 #include "config/IniFile.h"
+#include "scene/ListenerComponent.h"
 #include "scene/Scene.h"
+#include "scene/SourceComponent.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
 #include "utils/Random.h"
@@ -9,10 +11,6 @@
 
 using namespace sfmx;
 
-/**
- * @brief Minimal drawable component used to smoke-test the scene graph: draws a
- *        circle with the accumulated world transform supplied by the node.
- */
 class CircleComponent : public ComponentT<CircleComponent>
 {
  public:
@@ -28,70 +26,17 @@ class CircleComponent : public ComponentT<CircleComponent>
   onDraw(sf::RenderTarget& target, sf::RenderStates states) const override {
     target.draw(m_circle, states);
   }
-  
-  void
-  onUpdate(float deltaTime) override {
-    m_onUpdateEvent(*this, deltaTime);
-  }
-
-  NODISCARD HEvent onUpdateEvent(std::function<void(const CircleComponent&, float)> foo) const 
-  { return m_onUpdateEvent.connect(foo); }
 
  private:
   sf::CircleShape m_circle;
-  Event<void(const CircleComponent&, float)> m_onUpdateEvent;
 };
-
-namespace
-{
-/**
- * @brief Minimal Module<T> example used to confirm the lifecycle works.
- */
-class ExampleModule : public Module<ExampleModule>
-{
- public:
-  int getValue() const { return m_value; }
-
- private:
-  // Module<ExampleModule> owns construction/destruction of the instance.
-  friend class Module<ExampleModule>;
-
-  explicit ExampleModule(int value) : m_value(value) {}
-
-  int m_value = 0;
-};
-
-void runModuleExample()
-{
-  std::cout << "[Module] started before startUp(): "
-            << ExampleModule::isStarted() << "\n";
-
-  ExampleModule::startUp(42);
-  std::cout << "[Module] started after startUp():  "
-            << ExampleModule::isStarted() << "\n";
-  std::cout << "[Module] instance().getValue():    "
-            << ExampleModule::instance().getValue() << "\n";
-  std::cout << "[Module] instancePtr()->getValue():"
-            << ExampleModule::instancePtr()->getValue() << "\n";
-
-  ExampleModule::shutDown();
-  std::cout << "[Module] started after shutDown():  "
-            << ExampleModule::isStarted() << "\n";
-
-  // The module can be restarted after a shut down.
-  ExampleModule::startUp(7);
-  std::cout << "[Module] restarted value:          "
-            << ExampleModule::instance().getValue() << "\n";
-  ExampleModule::shutDown();
-}
-} // namespace
 
 DECLARE_TYPE_TRAITS(CircleComponent)
+DECLARE_TYPE_TRAITS(SourceComponent)
+DECLARE_TYPE_TRAITS(ListenerComponent)
 
 int main()
 {
-  runModuleExample();
-
   sfmx::IniFile config;
   config.loadAll({"Game/config/Engine.ini", "Game/config/Game.ini"});
 
@@ -103,37 +48,92 @@ int main()
   sf::RenderWindow window(sf::VideoMode({windowWidth, windowHeight}), windowTitle);
   window.setVerticalSyncEnabled(enableVSync);
 
-  /**
-   * Small Sun-Earth-Moon hierarchy: a parent circle with an orbiting child
-   * circle with an orbiting child circle. 
-   **/
   Scene scene("Main", 1024);
   scene.registerComponent<CircleComponent>(64);
+  scene.registerComponent<SourceComponent>(4);
+  scene.registerComponent<ListenerComponent>(1);
 
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(
       {static_cast<float>(windowWidth) * 0.5f,
        static_cast<float>(windowHeight) * 0.5f});
-  auto* sunComponent = sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
-
-  float totalTime = 0.f;
-  auto sunUpdateEvent = sunComponent->onUpdateEvent([&totalTime](const CircleComponent& comp, float deltaTime) {
-    totalTime += deltaTime;
-    if (totalTime >= 1.f) {
-      // Print delta every second to confirm the event system is working and can capture local state.
-      std::cout << "[Event] Sun's CircleComponent onUpdate: deltaTime = " << deltaTime << "s\n";
-      totalTime = 0.f;
-    }
-  });
+  sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
+  sf::Vector2f center = {static_cast<float>(windowWidth) * 0.5f,
+                         static_cast<float>(windowHeight) * 0.5f};
+  SceneNode* sun2 = scene.createNode("Sun2");
+  sun2->transform().setPosition(center);
+  
 
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
   earth->addComponent<CircleComponent>(20.f, sf::Color(100, 180, 255));
+  auto* bgm = earth->addComponent<SourceComponent>();
+  {
+    bgm->setFollowNode(true);
+    if (bgm->loadMusicFromFile("Game/resources/background.mp3")) {
+      bgm->setLooping(true);
+      bgm->setVolume(10.f);
+      bgm->setSpatializationEnabled(false);
+      bgm->play();
+    } else {
+      std::cout << "[Audio] Failed to load background.mp3\n";
+    }
+  }
 
   SceneNode* moon = scene.createNode("Moon", earth);
   moon->transform().setPosition({40.f, 0.f});
   moon->addComponent<CircleComponent>(4.f, sf::Color(100, 100, 100));
+  SourceComponent* moonSfx = nullptr;
+  auto* sfx = moon->addComponent<SourceComponent>();
+  {
+    sfx->setFollowNode(true);
+    if (sfx->loadMusicFromFile("Game/resources/sfx.mp3")) {
+      sfx->setVolume(200.f);
+    } else {
+      std::cout << "[Audio] Failed to load sfx.mp3\n";
+    }
+    moonSfx = sfx;
+  }
 
+  SceneNode* chinese = scene.createNode("Chinese");
+  chinese->transform().setPosition({0, center.y});
+  auto* cgm = chinese->addComponent<SourceComponent>();
+  {
+    cgm->setFollowNode(true);
+    if (cgm->loadMusicFromFile("Game/resources/chinese.mp3")) {
+      cgm->setLooping(true);
+      cgm->setVolume(10.f);
+      cgm->setMinDistance(50.f);
+      cgm->setAttenuation(0.3f);
+      cgm->setSpatializationEnabled(true);
+      cgm->play();
+    } else {
+      std::cout << "[Audio] Failed to load chinese.mp3\n";
+    }
+  }
+  SceneNode* mozart = scene.createNode("Mozart");
+  mozart->transform().setPosition({static_cast<float>(windowWidth), center.y});
+  auto* mgm = mozart->addComponent<SourceComponent>();
+  {
+    mgm->setFollowNode(true);
+    if (mgm->loadMusicFromFile("Game/resources/mozart.mp3")) {
+      mgm->setLooping(true);
+      mgm->setVolume(10.f);
+      mgm->setPitch(2.0f);
+      mgm->setMinDistance(50.f);
+      mgm->setAttenuation(0.3f);
+      mgm->setSpatializationEnabled(true);
+      mgm->play();
+    } else {
+      std::cout << "[Audio] Failed to load mozart.mp3\n";
+    }
+  }
+
+  SceneNode* neptune = scene.createNode("Neptune", sun2);
+  neptune->transform().setPosition({280.f, 100.f});
+  neptune->addComponent<CircleComponent>(12.f, sf::Color(80, 100, 200));
+  neptune->addComponent<ListenerComponent>();
+  
   sf::Clock clock;
   std::cout << Random::get<float>() << std::endl;
   std::cout << Random::get<float>() << std::endl;
@@ -153,15 +153,22 @@ int main()
       {
         window.close();
       }
+      if (const auto* key = event->getIf<sf::Event::KeyPressed>())
+      {
+        if (key->code == sf::Keyboard::Key::Space && moonSfx)
+        {
+          moonSfx->stop();
+          moonSfx->play();
+        }
+      }
     }
 
     const float deltaTime = clock.restart().asSeconds();
 
-    // Rotating the parent drags the child with it: proof of transform
-    // composition down the hierarchy.
     sun->transform().rotate(sf::degrees(45.f * deltaTime));
-    
+    sun2->transform().rotate(sf::degrees(10.f * deltaTime));
     earth->transform().rotate(sf::degrees(215.f * deltaTime));
+    neptune->transform().rotate(sf::degrees(-1.f * deltaTime));
 
     scene.update(deltaTime);
 

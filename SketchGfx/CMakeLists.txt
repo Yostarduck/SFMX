@@ -39,5 +39,5 @@ FetchContent_MakeAvailable(SFML)
 add_library(SketchGfx INTERFACE)
 add_library(SFMX::SketchGfx ALIAS SketchGfx)
 
-target_link_libraries(SketchGfx INTERFACE SFML::Graphics)
+target_link_libraries(SketchGfx INTERFACE SFML::Graphics SFML::Audio)
 

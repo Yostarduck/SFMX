@@ -5,6 +5,8 @@ add_library(FrameworkGame STATIC
     source/scene/Transform.cpp
     source/scene/SceneNode.cpp
     source/scene/Scene.cpp
+    source/scene/SourceComponent.cpp
+    source/scene/ListenerComponent.cpp
     source/utils/Random.cpp
     source/utils/UUID.cpp
 )
