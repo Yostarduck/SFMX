@@ -199,10 +199,11 @@ SceneNode::removeComponent() {
   for (Component* component = m_firstComponent;
        nullptr != component;
        component = component->getNextComponent()) {
+    
     if (component->getTypeId() == id) {
       unlinkComponent(component);
       MemoryPool<T>& pool = MemoryPoolHandler::instance().pool<T>();
-      pool.deallocate(static_cast<T*>(component));
+      pool.deallocate(id, static_cast<void*>(component));
       return;
     }
   }

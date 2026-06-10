@@ -88,7 +88,8 @@ Scene::destroyNodeRecursive(SceneNode* node) {
   node->m_lastComponent = nullptr;
 
   unregisterNode(node->getId());
-  pools.pool<SceneNode>().deallocate(node);
+  pools.deallocate(TypeTraits<SceneNode>::getTypeId(),
+                   static_cast<void*>(node));
 }
 
 SceneNode*
