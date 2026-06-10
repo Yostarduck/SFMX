@@ -8,6 +8,7 @@
 
 #include "core/MemoryPool.h"
 #include "core/platform/Prerequisites.h"
+#include "scene/CameraComponent.h"
 #include "scene/Component.h"
 #include "scene/SceneNode.h"
 #include "scene/SceneTypes.h"
@@ -99,6 +100,20 @@ class Scene
 
   NODISCARD size_t getNodeCount() const { return m_registry.size(); }
 
+  // -- Cameras --------------------------------------------------------------
+  /** @brief Convenience: clears all cameras and activates a single one. */
+  void setCamera(CameraComponent* camera);
+  /** @brief Returns the first camera in the list, or nullptr if empty. */
+  NODISCARD CameraComponent* getCamera() const;
+  /** @brief Appends a camera to the draw list. */
+  void addCamera(CameraComponent* camera);
+  /** @brief Removes a specific camera from the list. */
+  void removeCamera(const CameraComponent* camera);
+  /** @brief Removes all cameras. */
+  void clearCameras();
+  /** @brief Number of registered cameras. */
+  NODISCARD size_t getCameraCount() const { return m_cameras.size(); }
+
   void update(float deltaTime);
   void draw(sf::RenderTarget& target) const;
 
@@ -122,6 +137,7 @@ class Scene
   UnorderedMap<ComponentTypeId, UniquePtr<IComponentPool>> m_componentPools;
   size_t m_defaultComponentCapacity;
   SceneNode* m_root;
+  Vector<CameraComponent*> m_cameras;
   NodeId m_nextId;
   UnorderedMap<NodeId, SceneNode*> m_registry;
 };

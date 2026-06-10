@@ -140,8 +140,61 @@ Scene::update(float deltaTime) {
 }
 
 void
+Scene::setCamera(CameraComponent* camera) {
+  m_cameras.clear();
+  if (nullptr != camera) {
+    m_cameras.push_back(camera);
+  }
+}
+
+CameraComponent*
+Scene::getCamera() const {
+  return m_cameras.empty() ? nullptr : m_cameras.front();
+}
+
+void
+Scene::addCamera(CameraComponent* camera) {
+  if (nullptr != camera) {
+    m_cameras.push_back(camera);
+  }
+}
+
+void
+Scene::removeCamera(const CameraComponent* camera) {
+  auto it = std::find(m_cameras.begin(), m_cameras.end(), camera);
+  if (it != m_cameras.end()) {
+    m_cameras.erase(it);
+  }
+}
+
+void
+Scene::clearCameras() {
+  m_cameras.clear();
+}
+
+void
 Scene::draw(sf::RenderTarget& target) const {
-  if (nullptr != m_root) {
+  if (nullptr == m_root) {
+    return;
+  }
+
+  if (m_cameras.empty()) {
+    target.setView(target.getDefaultView());
+    m_root->draw(target, sf::RenderStates::Default);
+    return;
+  }
+
+  // Sort by draw order so lower values render first
+  auto sorted = m_cameras;
+  std::sort(sorted.begin(), sorted.end(),
+    [](CameraComponent* a, CameraComponent* b) {
+      return a->getDrawOrder() < b->getDrawOrder();
+    });
+
+  for (CameraComponent* cam : sorted) {
+    if (!cam->getOwner() || !cam->getOwner()->isEnabledInHierarchy())
+      continue;
+    target.setView(cam->getView());
     m_root->draw(target, sf::RenderStates::Default);
   }
 }

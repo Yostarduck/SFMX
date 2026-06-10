@@ -9,6 +9,7 @@
 #include "input/Keyboard.h"
 #include "input/Mapping.h"
 #include "input/Mouse.h"
+#include "scene/CameraComponent.h"
 #include "scene/ListenerComponent.h"
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
@@ -42,6 +43,7 @@ class CircleComponent : public ComponentT<CircleComponent>
 DECLARE_TYPE_TRAITS(CircleComponent)
 DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
+DECLARE_TYPE_TRAITS(CameraComponent)
 
 int main()
 {
@@ -65,6 +67,7 @@ int main()
   scene.registerComponent<CircleComponent>(64);
   scene.registerComponent<SourceComponent>(4);
   scene.registerComponent<ListenerComponent>(1);
+  scene.registerComponent<CameraComponent>(1);
 
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(center);
@@ -72,6 +75,13 @@ int main()
   
   SceneNode* sun2 = scene.createNode("Sun2");
   sun2->transform().setPosition(center);
+
+  SceneNode* cameraNode = scene.createNode("Camera", sun);
+  auto* camera = cameraNode->addComponent<CameraComponent>();
+  camera->setSize({static_cast<float>(windowWidth) * 2.f,
+                   static_cast<float>(windowHeight) * 2.f});
+  camera->setFollowNode(true);
+  scene.setCamera(camera);
   
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
