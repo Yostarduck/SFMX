@@ -9,6 +9,7 @@
 #include "input/Keyboard.h"
 #include "input/Mapping.h"
 #include "input/Mouse.h"
+#include "scene/CameraComponent.h"
 #include "scene/ListenerComponent.h"
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
@@ -43,6 +44,7 @@ class CircleComponent : public ComponentT<CircleComponent>
 DECLARE_TYPE_TRAITS(CircleComponent)
 DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
+DECLARE_TYPE_TRAITS(CameraComponent)
 
 int main()
 {
@@ -61,15 +63,15 @@ int main()
   window.setVerticalSyncEnabled(enableVSync);
 
   InputSystem::startUp();
-
-  // The MemoryPoolHandler owns all pooled storage process-wide. Start it up and
-  // register every pool (the SceneNode pool included) before creating a Scene.
+  
   MemoryPoolHandler::startUp(64);
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
   pools.registerPool<SceneNode>(1024);
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
+  pools.registerPool<CameraComponent>(1);
+
 
   Scene scene("Main");
 
@@ -79,6 +81,13 @@ int main()
   
   SceneNode* sun2 = scene.createNode("Sun2");
   sun2->transform().setPosition(center);
+
+  SceneNode* cameraNode = scene.createNode("Camera", sun);
+  auto* camera = cameraNode->addComponent<CameraComponent>();
+  camera->setSize({static_cast<float>(windowWidth) * 2.f,
+                   static_cast<float>(windowHeight) * 2.f});
+  camera->setFollowNode(true);
+  scene.setCamera(camera);
   
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
