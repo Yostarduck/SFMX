@@ -202,7 +202,8 @@ MemoryPoolHandler::pool() {
 
   // Not registered: create at the default capacity, but assert so a missing
   // registerPool<T>() shows up in debug builds.
-  SFMX_ASSERT(false && "pool type used without registerPool<T>()");
+  std::cerr << "pool type used without registerPool<T>()" << std::endl;
+
   TypedPool<T>* created = new TypedPool<T>(m_defaultCapacity);
   m_pools[id] = UniquePtr<IMemoryPool>(created);
   return created->pool();

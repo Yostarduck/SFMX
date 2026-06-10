@@ -55,7 +55,7 @@ class MemoryPool
     }
 
     m_poolSize = poolSize;
-    m_freeElements = static_cast<int32>(poolSize);
+    m_freeElements = static_cast<uint32>(poolSize);
 
     // Raw, suitably-aligned storage; elements are placement-constructed later.
     m_elements = static_cast<T*>(::operator new(poolSize * sizeof(T),
@@ -196,7 +196,7 @@ class MemoryPool
   /** @brief Number of slots currently in use. */
   NODISCARD size_t
   getAllocatedCount() const {
-    return m_poolSize - m_freeElements;
+    return m_poolSize - static_cast<size_t>(m_freeElements);
   }
 
   /**
