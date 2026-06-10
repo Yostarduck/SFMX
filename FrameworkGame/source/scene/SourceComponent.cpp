@@ -31,7 +31,7 @@ SourceComponent::loadFromFile(const String& filePath) {
 bool
 SourceComponent::loadSoundFromFile(const String& filePath) {
   stop();
-  m_backend = Backend::None;
+  m_backend = AudioBackend::kNone;
   m_source = nullptr;
 
   if (!m_buffer.loadFromFile(filePath))
@@ -39,34 +39,34 @@ SourceComponent::loadSoundFromFile(const String& filePath) {
 
   m_sound.setBuffer(m_buffer);
   m_source = &m_sound;
-  m_backend = Backend::Sound;
+  m_backend = AudioBackend::kSound;
   return true;
 }
 
 bool
 SourceComponent::loadMusicFromFile(const String& filePath) {
   stop();
-  m_backend = Backend::None;
+  m_backend = AudioBackend::kNone;
   m_source = nullptr;
 
   if (!m_music.openFromFile(filePath))
     return false;
 
   m_source = &m_music;
-  m_backend = Backend::Music;
+  m_backend = AudioBackend::kMusic;
   return true;
 }
 
 bool
 SourceComponent::loadFromBuffer(const sf::SoundBuffer& data) {
   stop();
-  m_backend = Backend::None;
+  m_backend = AudioBackend::kNone;
   m_source = nullptr;
 
   m_buffer = data;
   m_sound.setBuffer(m_buffer);
   m_source = &m_sound;
-  m_backend = Backend::Sound;
+  m_backend = AudioBackend::kSound;
   return true;
 }
 
@@ -94,7 +94,8 @@ SourceComponent::stop() {
 
 sf::SoundSource::Status
 SourceComponent::getStatus() const {
-  return m_source ? m_source->getStatus() : sf::SoundSource::Status::Stopped;
+  return m_source ? m_source->getStatus() : 
+                    sf::SoundSource::Status::Stopped;
 }
 
 // -----------------------------------------------------------------------------
@@ -137,8 +138,8 @@ SourceComponent::getPan() const {
 void
 SourceComponent::setLooping(bool loop) {
   switch (m_backend) {
-    case Backend::Sound: m_sound.setLooping(loop); break;
-    case Backend::Music: m_music.setLooping(loop); break;
+    case AudioBackend::kSound: m_sound.setLooping(loop); break;
+    case AudioBackend::kMusic: m_music.setLooping(loop); break;
     default: break;
   }
 }
@@ -146,8 +147,8 @@ SourceComponent::setLooping(bool loop) {
 bool
 SourceComponent::isLooping() const {
   switch (m_backend) {
-    case Backend::Sound: return m_sound.isLooping();
-    case Backend::Music: return m_music.isLooping();
+    case AudioBackend::kSound: return m_sound.isLooping();
+    case AudioBackend::kMusic: return m_music.isLooping();
     default:             return false;
   }
 }
@@ -155,8 +156,8 @@ SourceComponent::isLooping() const {
 void
 SourceComponent::setPlayingOffset(sf::Time offset) {
   switch (m_backend) {
-    case Backend::Sound: m_sound.setPlayingOffset(offset); break;
-    case Backend::Music: m_music.setPlayingOffset(offset); break;
+    case AudioBackend::kSound: m_sound.setPlayingOffset(offset); break;
+    case AudioBackend::kMusic: m_music.setPlayingOffset(offset); break;
     default: break;
   }
 }
@@ -164,8 +165,8 @@ SourceComponent::setPlayingOffset(sf::Time offset) {
 sf::Time
 SourceComponent::getPlayingOffset() const {
   switch (m_backend) {
-    case Backend::Sound: return m_sound.getPlayingOffset();
-    case Backend::Music: return m_music.getPlayingOffset();
+    case AudioBackend::kSound: return m_sound.getPlayingOffset();
+    case AudioBackend::kMusic: return m_music.getPlayingOffset();
     default:             return sf::Time::Zero;
   }
 }
@@ -173,8 +174,8 @@ SourceComponent::getPlayingOffset() const {
 sf::Time
 SourceComponent::getDuration() const {
   switch (m_backend) {
-    case Backend::Sound: return m_buffer.getDuration();
-    case Backend::Music: return m_music.getDuration();
+    case AudioBackend::kSound: return m_buffer.getDuration();
+    case AudioBackend::kMusic: return m_music.getDuration();
     default:             return sf::Time::Zero;
   }
 }
