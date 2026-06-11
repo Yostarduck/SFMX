@@ -1,6 +1,8 @@
 add_library(FrameworkGame STATIC
     source/config/IniFile.cpp
     source/core/MemoryPool.cpp
+    source/core/DataStream.cpp
+    source/core/MemoryDataStream.cpp
     source/input/InputTypes.cpp
     source/input/Keyboard.cpp
     source/input/Mouse.cpp

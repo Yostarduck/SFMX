@@ -5,10 +5,12 @@
 #include "TestRunner.h"
 
 #include "FlagTest.h"
+#include "DataStreamTest.h"
 
 int
 main() {
   runFlagTests();
+  runDataStreamTests();
   // runFooTests();   // future test groups go here
 
   return sfmxtest::report();
