@@ -6,11 +6,13 @@
 
 #include "FlagTest.h"
 #include "DataStreamTest.h"
+#include "FileSystemTest.h"
 
 int
 main() {
   runFlagTests();
   runDataStreamTests();
+  runFileSystemTests();
   // runFooTests();   // future test groups go here
 
   return sfmxtest::report();
