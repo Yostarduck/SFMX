@@ -41,7 +41,7 @@ class Transform : public ComponentT<Transform>
   void setScale(const sf::Vector2f& factors);
   /** @brief Scale by @p factors; marks this subtree's world cache dirty. */
   void scale(const sf::Vector2f& factors);
-
+  
   NODISCARD sf::Vector2f getPosition() const { return m_local.getPosition(); }
   NODISCARD sf::Angle getRotation() const { return m_local.getRotation(); }
   NODISCARD sf::Vector2f getScale() const { return m_local.getScale(); }
