@@ -12,6 +12,7 @@
 #include "scene/ListenerComponent.h"
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
+#include "scene/SpriteComponent.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
@@ -70,6 +71,7 @@ int main()
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
+  pools.registerPool<SpriteComponent>(8);
 
   Scene scene("Main");
 
@@ -87,7 +89,7 @@ int main()
   {
     if (bgm->loadMusicFromFile("Game/resources/background.mp3")) {
       bgm->setLooping(true);
-      bgm->setVolume(10.f);
+      bgm->setVolume(1.0f);
       bgm->setSpatializationEnabled(false);
       bgm->play();
     }
@@ -148,6 +150,18 @@ int main()
   neptune->transform().setPosition({280.f, 100.f});
   neptune->addComponent<CircleComponent>(12.f, sf::Color(80, 100, 200));
   neptune->addComponent<ListenerComponent>();
+  auto* sprite = neptune->addComponent<SpriteComponent>();
+  auto* texture = new sf::Texture();
+  if (!texture->loadFromFile("Game/resources/aleka.png"))
+  {
+    std::cerr << "Failed loading particle texture\n";
+    delete texture;
+    return -1;
+  }
+  sprite->setTexture(*texture);
+  sprite->setScale(0.1f);
+  sprite->setOrigin({0.5f, 0.5f});
+  sprite->setColor(sf::Color::White);
 
   // InputSystem: Example of "Mapping Mode", you create a "Mapping", which
   // contains a "Map", a map contains "Actions", an action contains "Bindings",
