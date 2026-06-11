@@ -54,7 +54,7 @@ class SFMX_UTILITY_EXPORT MemoryDataStream : public DataStream
   clone() const override;
 
   /** @brief Pointer to the start of the buffer (for dumping to disk). */
-  NODISCARD const uint8*
+  NODISCARD FORCEINLINE const uint8*
   data() const { return m_data.data(); }
 
  private:

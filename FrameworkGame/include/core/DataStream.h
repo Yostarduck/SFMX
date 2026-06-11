@@ -46,14 +46,14 @@ class SFMX_UTILITY_EXPORT DataStream
   DataStream(const DataStream&) = delete;
   DataStream& operator=(const DataStream&) = delete;
 
-  NODISCARD bool
+  NODISCARD FORCEINLINE bool
   isReadable() const { return m_mode.isSetAny(AccessMode::kRead); }
 
-  NODISCARD bool
+  NODISCARD FORCEINLINE bool
   isWriteable() const { return m_mode.isSetAny(AccessMode::kWrite); }
 
   /** @brief Total size of the backing store in bytes. */
-  NODISCARD size_t
+  NODISCARD FORCEINLINE size_t
   size() const { return m_size; }
 
   // -- Raw byte interface (implemented per backing store) --------------------

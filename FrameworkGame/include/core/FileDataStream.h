@@ -32,11 +32,11 @@ class SFMX_UTILITY_EXPORT FileDataStream : public DataStream
   ~FileDataStream() override;
 
   /** @brief True if the underlying file is open and usable. */
-  NODISCARD bool
+  NODISCARD FORCEINLINE bool
   isOpen() const { return m_stream.is_open(); }
 
   /** @brief Path this stream was opened from. */
-  NODISCARD const FileSystemPath&
+  NODISCARD FORCEINLINE const FileSystemPath&
   getPath() const { return m_path; }
 
   NODISCARD bool
