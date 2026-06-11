@@ -38,9 +38,16 @@ struct Particle
 
 struct EmitterConfig
 {
-  float         emissionRate            = 0.0f;
   size_t        maxParticles            = 256;
   sf::Vector2f  positionOffset          = {0.0f, 0.0f};
+  sf::Vector2f  gravity                 = {0.f, 0.f};
+  sf::Vector2f  startSize               = {8.f, 8.f};
+  sf::Vector2f  endSize                 = {0.f, 0.f};
+  const sf::Texture* texture            = nullptr;
+
+  sf::BlendMode      blendMode          = sf::BlendAlpha;
+
+  float         emissionRate            = 0.0f;
   float         positionVariance        = 0.0f;
   sf::Angle     direction               = sf::Angle::Zero;
   sf::Angle     directionVariance       = sf::Angle::Zero;
@@ -50,23 +57,13 @@ struct EmitterConfig
   sf::Angle     startRotationVariance   = sf::Angle::Zero;
   float         angularVelocity         = 0.f;
   float         angularVelocityVariance = 0.f;
-
-  sf::Vector2f  gravity                 = {0.f, 0.f};
-
   sf::Color     startColor              = sf::Color::White;
   sf::Color     endColor                = sf::Color(255, 255, 255, 0);
-
-  sf::Vector2f  startSize               = {8.f, 8.f};
-  sf::Vector2f  endSize                 = {0.f, 0.f};
-
   float         lifetime                = 1.f;
   float         lifetimeVariance        = 0.f;
-
   float         duration                = 0.f;    // 0 = infinite
-  bool          loop                    = false;
 
-  const sf::Texture* texture            = nullptr;
-  sf::BlendMode      blendMode          = sf::BlendAlpha;
+  bool          loop                    = false;
 };
 
 class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
