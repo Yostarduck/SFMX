@@ -52,6 +52,40 @@ DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
 DECLARE_TYPE_TRAITS(CameraComponent)
 
+int call_lua_function(lua_State *L, float deltaTime) {
+  // Load and execute Lua file
+  if (luaL_dofile(L, "Game/resources/character.lua") != LUA_OK) {
+    fprintf(stderr, "Error: %s\n", lua_tostring(L, -1));
+    return -1;
+  }
+  
+  // Call update function
+  lua_getglobal(L, "update");
+  lua_pushnumber(L, deltaTime);
+  
+  if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
+    fprintf(stderr, "Error calling update: %s\n", lua_tostring(L, -1));
+    return -1;
+  }
+  
+  return 0;
+}
+
+static int c_keyPressed(lua_State *L) {
+    size_t len;
+    const char *input = luaL_checklstring(L, 1, &len);
+    
+    Key::E key = keyFromString(input);
+    if (key == Key::kUnknown) {
+        return luaL_error(L, "Error: Expected a valid key name");
+    }
+    
+    bool result = Keyboard::instance().isPressed(key);
+    
+    lua_pushboolean(L, result);
+    return 1;
+}
+
 int main()
 {
   sfmx::IniFile config;
@@ -242,11 +276,8 @@ int main()
   // Load standard libraries
   luaL_openlibs(L);
   
-  // Execute simple Lua code
-  luaL_dostring(L, "print('Hello from Lua!')");
-  
-  // Clean up
-  lua_close(L);
+  lua_pushcfunction(L, c_keyPressed);
+  lua_setglobal(L, "keyPressed");
 
   while (window.isOpen())
   {
@@ -297,10 +328,15 @@ int main()
 
     scene.update(deltaTime);
 
+    call_lua_function(L, deltaTime);
+
     window.clear(sf::Color(24, 24, 28));
     scene.draw(window);
     window.display();
   }
+  
+  // Clean up
+  lua_close(L);
 
   InputSystem::shutDown();
   // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
