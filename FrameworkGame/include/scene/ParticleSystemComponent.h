@@ -9,10 +9,10 @@
 #include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/System/Angle.hpp>
 
-#include "core/MemoryPool.h"
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
 #include "scene/SceneNode.h"
+#include "utils/MemoryPoolHandler.h"
 #include "utils/TypeTraits.h"
 
 namespace sfmx
@@ -112,7 +112,6 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   ParticleSortMode    m_sortMode    = ParticleSortMode::None;
   bool                m_worldSpace  = false;
   float               m_accumulator = 0.0f;
-  MemoryPool<Particle> m_pool;
   Vector<Particle*>    m_active;
   size_t               m_count       = 0;
   size_t               m_capacity    = 0;
@@ -128,4 +127,5 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
 
 } // sfmx
 
+DECLARE_TYPE_TRAITS(sfmx::Particle)
 DECLARE_TYPE_TRAITS(sfmx::ParticleSystemComponent)

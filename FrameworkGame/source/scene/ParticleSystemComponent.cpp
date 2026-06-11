@@ -4,6 +4,8 @@
 #include <cmath>
 #include <random>
 
+#include "utils/MemoryPoolHandler.h"
+
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Transform.hpp>
 
@@ -56,16 +58,21 @@ ParticleSystemComponent::ParticleSystemComponent(SceneNode* owner,
     m_config(config) {}
 
 
-ParticleSystemComponent::~ParticleSystemComponent() = default;
+ParticleSystemComponent::~ParticleSystemComponent()
+{
+  clear();
+}
 
 void
 ParticleSystemComponent::setConfig(const EmitterConfig& config)
 {
   m_config = config;
   m_capacity = config.maxParticles;
-  m_pool.initialize(m_capacity);
   m_active.clear();
   m_active.reserve(m_capacity);
+
+  SFMX_ASSERT(MemoryPoolHandler::instance().pool<Particle>().getCapacity() >= m_capacity &&
+    "Shared particle pool too small. Call registerPool<Particle>(budget) with a larger budget.");
 
   // Pre-allocate scratch vertices for the worst case so we never reallocate
   // during gameplay.
@@ -132,8 +139,9 @@ ParticleSystemComponent::emit(size_t count)
 void
 ParticleSystemComponent::clear()
 {
+  auto& pool = MemoryPoolHandler::instance().pool<Particle>();
   for (size_t i = 0; i < m_count; ++i)
-    m_pool.deallocate(m_active[i]);
+    pool.deallocate(m_active[i]);
   m_active.clear();
   m_count = 0;
   m_accumulator = 0.f;
@@ -164,7 +172,8 @@ ParticleSystemComponent::getProgress() const
 void
 ParticleSystemComponent::spawnParticle()
 {
-  if (m_count >= m_capacity || m_pool.isFull())
+  auto& pool = MemoryPoolHandler::instance().pool<Particle>();
+  if (m_count >= m_capacity || pool.isFull())
     return;
 
   const float dirAngle = m_config.direction.asRadians() +
@@ -189,7 +198,7 @@ ParticleSystemComponent::spawnParticle()
       randomRange(-m_config.positionVariance,
                   m_config.positionVariance);
 
-  Particle* p = m_pool.allocate();
+  Particle* p = pool.allocate();
   p->position        = m_config.positionOffset +
                        sf::Vector2f(posOffsetX, posOffsetY);
   p->velocity        = sf::Vector2f(std::cos(dirAngle) * spd,
@@ -218,7 +227,7 @@ void
 ParticleSystemComponent::kill(size_t index)
 {
   SFMX_ASSERT(index < m_count);
-  m_pool.deallocate(m_active[index]);
+  MemoryPoolHandler::instance().pool<Particle>().deallocate(m_active[index]);
 
   const size_t last = m_count - 1;
   if (index != last)

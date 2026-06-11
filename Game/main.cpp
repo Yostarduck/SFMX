@@ -64,9 +64,10 @@ int main()
   window.setVerticalSyncEnabled(enableVSync);
 
   InputSystem::startUp();
-  
-  MemoryPoolHandler::startUp(64);
+  MemoryPoolHandler::startUp(1024);
+
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
+  pools.registerPool<Particle>(1024);
   pools.registerPool<SceneNode>(1024);
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
@@ -144,7 +145,7 @@ int main()
   }
   EmitterConfig earthCfg;
   earthCfg.emissionRate          = 20.f;
-  earthCfg.maxParticles          = 80;
+  earthCfg.maxParticles          = 1000;
   earthCfg.direction             = sf::degrees(0.f);
   earthCfg.directionVariance     = sf::degrees(360.f);
   earthCfg.speed                 = 30.f;
