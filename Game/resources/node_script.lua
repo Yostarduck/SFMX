@@ -8,5 +8,7 @@
 return function(self, deltaTime)
   local myTransform = self:transform()
   local position = myTransform:getPosition()
-  print("[Script] " .. self:getName() .. " is at (" .. position.x .. ", " .. position.y .. ")")
+  if keyPressed("LShift") then
+    print("[Script] " .. self:getName() .. " is at (" .. position.x .. ", " .. position.y .. ")")
+  end
 end
