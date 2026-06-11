@@ -32,7 +32,7 @@ FetchContent_MakeAvailable(luajit_cmake)
 # not search for or build its own Lua, so it binds against the LuaJIT above.
 FetchContent_Declare(sol2
     GIT_REPOSITORY https://github.com/ThePhD/sol2.git
-    GIT_TAG v3.0.3
+    GIT_TAG v3.5.0
     GIT_SHALLOW ON
     EXCLUDE_FROM_ALL
     SYSTEM)
@@ -44,13 +44,7 @@ add_executable(Game main.cpp)
 # LuaJIT-specific code path explicit rather than relying on auto-detection.
 target_link_libraries(Game PRIVATE
     SFMX::FrameworkGame luajit::lib luajit::header sol2::sol2)
-# sol2 v3.0 predates C++20 and uses std::result_of, which C++20 removed. This
-# project compiles as C++23, so re-enable the deprecated trait (and silence the
-# warning) on MSVC's STL for this target.
-target_compile_definitions(Game PRIVATE
-    SOL_LUAJIT=1
-    _HAS_DEPRECATED_RESULT_OF=1
-    _SILENCE_CXX17_RESULT_OF_DEPRECATION_WARNING)
+target_compile_definitions(Game PRIVATE SOL_LUAJIT=1)
 
 # luajit.h is generated at build time (it embeds the version) into the wrapper's
 # binary dir, which luajit::header does not expose. LuaJIT's own <lua.hpp> -- and
