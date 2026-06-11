@@ -70,6 +70,7 @@ ParticleSystemComponent::setConfig(const EmitterConfig& config)
   // Pre-allocate scratch vertices for the worst case so we never reallocate
   // during gameplay.
   m_scratchVertices.resize(m_capacity * 6);
+  m_vertexBuffer.setUsage(sf::VertexBuffer::Usage::Stream);
 
   m_elapsed = 0.f;
   m_running = true;
@@ -198,6 +199,7 @@ ParticleSystemComponent::spawnParticle()
   p->color           = m_config.startColor;
   p->lifetime        = lifetime;
   p->maxLifetime     = lifetime;
+  p->progress        = 0.f;
 
   if (m_worldSpace)
   {
@@ -262,10 +264,10 @@ ParticleSystemComponent::onUpdate(float deltaTime)
     p->lifetime    -= deltaTime;
     p->rotation    += p->angularVelocity * deltaTime;
 
-    const float t = p->maxLifetime > 0.f
-                    ? 1.f - p->lifetime / p->maxLifetime
-                    : 1.f;
-    p->color = lerpColor(m_config.startColor, m_config.endColor, t);
+    p->progress = p->maxLifetime > 0.f
+                  ? 1.f - p->lifetime / p->maxLifetime
+                  : 1.f;
+    p->color = lerpColor(m_config.startColor, m_config.endColor, p->progress);
   }
 
   size_t i = 0;
@@ -344,15 +346,20 @@ ParticleSystemComponent::rebuildVertices() const
                             static_cast<float>(ts.y));
   }
 
+  const sf::Vector2f uvs[4] = {
+    {0.f,        0.f},
+    {texSize.x,  0.f},
+    {texSize.x,  texSize.y},
+    {0.f,        texSize.y},
+  };
+  const sf::Vector2f zeroUV[4] = {{}, {}, {}, {}};
+
   for (size_t i = 0; i < m_count; ++i)
   {
     const Particle& p = *m_active[i];
 
-    const float t = p.maxLifetime > 0.f
-                    ? 1.f - p.lifetime / p.maxLifetime
-                    : 1.f;
     const sf::Vector2f halfSize =
-      lerpSize(m_config.startSize, m_config.endSize, t) * 0.5f;
+      lerpSize(m_config.startSize, m_config.endSize, p.progress) * 0.5f;
 
     const float cosA = std::cos(p.rotation);
     const float sinA = std::sin(p.rotation);
@@ -374,33 +381,14 @@ ParticleSystemComponent::rebuildVertices() const
     }
 
     const size_t base = i * 6;
+    const sf::Vector2f* uv = hasTexture ? uvs : zeroUV;
 
-    if (hasTexture)
-    {
-      const sf::Vector2f uvs[4] = {
-        {0.f,        0.f},
-        {texSize.x,  0.f},
-        {texSize.x,  texSize.y},
-        {0.f,        texSize.y},
-      };
-
-      m_scratchVertices[base + 0] = {worldCorners[0], p.color, uvs[0]};
-      m_scratchVertices[base + 1] = {worldCorners[1], p.color, uvs[1]};
-      m_scratchVertices[base + 2] = {worldCorners[2], p.color, uvs[2]};
-      m_scratchVertices[base + 3] = {worldCorners[0], p.color, uvs[0]};
-      m_scratchVertices[base + 4] = {worldCorners[2], p.color, uvs[2]};
-      m_scratchVertices[base + 5] = {worldCorners[3], p.color, uvs[3]};
-    }
-    else
-    {
-      const sf::Vector2f zeroUV{};
-      m_scratchVertices[base + 0] = {worldCorners[0], p.color, zeroUV};
-      m_scratchVertices[base + 1] = {worldCorners[1], p.color, zeroUV};
-      m_scratchVertices[base + 2] = {worldCorners[2], p.color, zeroUV};
-      m_scratchVertices[base + 3] = {worldCorners[0], p.color, zeroUV};
-      m_scratchVertices[base + 4] = {worldCorners[2], p.color, zeroUV};
-      m_scratchVertices[base + 5] = {worldCorners[3], p.color, zeroUV};
-    }
+    m_scratchVertices[base + 0] = {worldCorners[0], p.color, uv[0]};
+    m_scratchVertices[base + 1] = {worldCorners[1], p.color, uv[1]};
+    m_scratchVertices[base + 2] = {worldCorners[2], p.color, uv[2]};
+    m_scratchVertices[base + 3] = {worldCorners[0], p.color, uv[0]};
+    m_scratchVertices[base + 4] = {worldCorners[2], p.color, uv[2]};
+    m_scratchVertices[base + 5] = {worldCorners[3], p.color, uv[3]};
   }
 
   // Upload to GPU buffer

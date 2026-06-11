@@ -33,6 +33,7 @@ struct Particle
   float         angularVelocity;
   float         lifetime;
   float         maxLifetime;
+  float         progress;
 };
 
 struct EmitterConfig
