@@ -47,7 +47,134 @@ class CircleComponent : public ComponentT<CircleComponent>
   sf::CircleShape m_circle;
 };
 
+// ---------------------------------------------------------------------------
+// Exposing a C++ object (SceneNode) to Lua.
+//
+// A SceneNode is handed to a script as full userdata carrying a shared
+// metatable, so a script can call methods (getName, getPosition) straight on
+// the exposed object via the `self:method()` syntax.
+// ---------------------------------------------------------------------------
+
+// Registry name of the SceneNode metatable.
+static const char* const kSceneNodeMeta = "sfmx.SceneNode";
+
+// Recover the SceneNode* a userdata wraps, erroring if the type does not match.
+static SceneNode*
+checkSceneNode(lua_State* L, int index) {
+  void* ud = luaL_checkudata(L, index, kSceneNodeMeta);
+  return *static_cast<SceneNode**>(ud);
+}
+
+// node:getName() -> string
+static int
+sceneNode_getName(lua_State* L) {
+  SceneNode* node = checkSceneNode(L, 1);
+  lua_pushstring(L, node->getName());
+  return 1;
+}
+
+// node:getPosition() -> x, y
+static int
+sceneNode_getPosition(lua_State* L) {
+  SceneNode* node = checkSceneNode(L, 1);
+  const sf::Vector2f position = node->transform().getPosition();
+  lua_pushnumber(L, position.x);
+  lua_pushnumber(L, position.y);
+  return 2;
+}
+
+// Push a SceneNode into Lua as userdata bound to the SceneNode metatable.
+static void
+pushSceneNode(lua_State* L, SceneNode* node) {
+  SceneNode** ud =
+    static_cast<SceneNode**>(lua_newuserdata(L, sizeof(SceneNode*)));
+  *ud = node;
+  luaL_getmetatable(L, kSceneNodeMeta);
+  lua_setmetatable(L, -2);
+}
+
+// Create the SceneNode metatable once and populate it with its methods. The
+// metatable doubles as its own method table (__index points back at itself).
+static void
+registerSceneNodeType(lua_State* L) {
+  luaL_newmetatable(L, kSceneNodeMeta);
+  lua_pushvalue(L, -1);
+  lua_setfield(L, -2, "__index");
+  lua_pushcfunction(L, sceneNode_getName);
+  lua_setfield(L, -2, "getName");
+  lua_pushcfunction(L, sceneNode_getPosition);
+  lua_setfield(L, -2, "getPosition");
+  lua_pop(L, 1);
+}
+
+class ScriptComponent : public ComponentT<ScriptComponent>
+{
+ public:
+  ScriptComponent(SceneNode* owner, lua_State* L, std::string_view scriptName)
+    : ComponentT<ScriptComponent>(owner),
+      m_lua(L),
+      m_scriptName(scriptName),
+      m_scriptRef(LUA_NOREF)
+  {
+    loadScript();
+  }
+
+  ~ScriptComponent() override {
+    if (LUA_NOREF != m_scriptRef) {
+      luaL_unref(m_lua, LUA_REGISTRYINDEX, m_scriptRef);
+    }
+  }
+  
+  // Run the script each frame: push the owning node as `self`, then call it.
+  void
+  onUpdate(float deltaTime) override {
+    if (LUA_NOREF == m_scriptRef) {
+      return;
+    }
+    lua_rawgeti(m_lua, LUA_REGISTRYINDEX, m_scriptRef);
+    pushSceneNode(m_lua, getOwner());
+    lua_pushnumber(m_lua, deltaTime);
+    if (lua_pcall(m_lua, 2, 0, 0) != LUA_OK) {
+      fprintf(stderr, "[Script] %s: %s\n",
+              m_scriptName.c_str(), lua_tostring(m_lua, -1));
+      lua_pop(m_lua, 1);
+    }
+  }
+
+ private:
+  // Compile the script file once; it must return a function(self, deltaTime),
+  // kept in the registry so each component runs its own copy without clobbering
+  // shared globals.
+  void
+  loadScript() {
+    if (luaL_loadfile(m_lua, m_scriptName.c_str()) != LUA_OK) {
+      fprintf(stderr, "[Script] load %s: %s\n",
+              m_scriptName.c_str(), lua_tostring(m_lua, -1));
+      lua_pop(m_lua, 1);
+      return;
+    }
+    if (lua_pcall(m_lua, 0, 1, 0) != LUA_OK) {
+      fprintf(stderr, "[Script] init %s: %s\n",
+              m_scriptName.c_str(), lua_tostring(m_lua, -1));
+      lua_pop(m_lua, 1);
+      return;
+    }
+    if (!lua_isfunction(m_lua, -1)) {
+      fprintf(stderr, "[Script] %s must return a function\n",
+              m_scriptName.c_str());
+      lua_pop(m_lua, 1);
+      return;
+    }
+    m_scriptRef = luaL_ref(m_lua, LUA_REGISTRYINDEX);
+  }
+
+  lua_State* m_lua;
+  std::string m_scriptName;
+  int m_scriptRef;
+};
+
 DECLARE_TYPE_TRAITS(CircleComponent)
+DECLARE_TYPE_TRAITS(ScriptComponent)
 DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
 DECLARE_TYPE_TRAITS(CameraComponent)
@@ -111,6 +238,7 @@ int main()
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<CameraComponent>(1);
+  pools.registerPool<ScriptComponent>(8);
 
   Scene scene("Main");
 
@@ -278,6 +406,21 @@ int main()
   
   lua_pushcfunction(L, c_keyPressed);
   lua_setglobal(L, "keyPressed");
+
+  // Object-exposure example: make the SceneNode type callable from Lua, then
+  // give two nodes a ScriptComponent each. Both share node_script.lua but get
+  // their own owner, so each prints the position of the node it is attached to.
+  // The scene traversal in the loop below runs Scripted1's script, then
+  // Scripted2's, every frame.
+  registerSceneNodeType(L);
+
+  SceneNode* scripted1 = scene.createNode("Scripted1");
+  scripted1->transform().setPosition({10.f, 20.f});
+  scripted1->addComponent<ScriptComponent>(L, "Game/resources/node_script.lua");
+
+  SceneNode* scripted2 = scene.createNode("Scripted2");
+  scripted2->transform().setPosition({300.f, 400.f});
+  scripted2->addComponent<ScriptComponent>(L, "Game/resources/node_script.lua");
 
   while (window.isOpen())
   {
