@@ -339,10 +339,10 @@ int main()
             << "Dice: "   << Random::diceThrow(2, 6)    << "\n"
             << "Dice: "   << Random::diceThrow(1, 6)    << "\n";
   
-  // Create the Lua state (LuaJIT, driven through sol2) and open the standard
-  // libraries the scripts use.
   sol::state lua;
-  lua.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string,
+  lua.open_libraries(sol::lib::base,
+                     sol::lib::math,
+                     sol::lib::string,
                      sol::lib::table);
 
   lua.set_function("keyPressed", keyPressed);
@@ -419,10 +419,7 @@ int main()
   }
 
   InputSystem::shutDown();
-  // Tear down pools before the sol::state (a local destroyed at function exit):
-  // ~Scene only drops ids/registry, so the pooled nodes and ScriptComponents
-  // are destroyed here, releasing their Lua function references while the Lua
-  // state is still alive.
+  
   MemoryPoolHandler::shutDown();
 
   return 0;
