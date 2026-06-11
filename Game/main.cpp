@@ -15,6 +15,7 @@
 #include "scene/SourceComponent.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Module.h"
+#include "utils/Flags.h"
 #include "utils/EventSystem.h"
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
@@ -45,6 +46,34 @@ DECLARE_TYPE_TRAITS(CircleComponent)
 DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
 DECLARE_TYPE_TRAITS(CameraComponent)
+
+// Flags<> demo + compile-time sanity checks: shows how to declare a flag enum,
+// wire the operators with SFMX_FLAGS_OPERATORS_EXT, and the behaviour each op has.
+// All checks are constexpr, so a passing build is the proof.
+enum class TestFlag : sfmx::uint16 {
+  kNone = 0x00,
+  kA    = 0x01,
+  kB    = 0x02,
+  kC    = 0x04,
+};
+SFMX_DECLARE_FLAGS_EXT(TestFlags, TestFlag, sfmx::uint16)
+
+static_assert((TestFlag::kA | TestFlag::kB).getRaw() == 0x03);
+static_assert((TestFlag::kA | TestFlag::kB).isSet(TestFlag::kA));
+static_assert(!(TestFlag::kA | TestFlag::kB).isSet(TestFlag::kC));
+static_assert((TestFlag::kA | TestFlag::kB).isSet(TestFlag::kA | TestFlag::kB));
+static_assert((TestFlag::kA | TestFlag::kB).isSetAny(TestFlag::kC | TestFlag::kA));
+static_assert(!(TestFlag::kA | TestFlag::kB).isSetAny(TestFlag::kC));
+static_assert(TestFlags(TestFlag::kA).set(TestFlag::kB).getRaw() == 0x03);
+static_assert(TestFlags(TestFlag::kA | TestFlag::kB).unset(TestFlag::kA).getRaw() == 0x02);
+static_assert((TestFlag::kA & (TestFlag::kA | TestFlag::kB)).getRaw() == 0x01);
+static_assert((TestFlags(TestFlag::kA) ^ TestFlag::kA).getRaw() == 0x00);
+static_assert(static_cast<bool>(TestFlags(TestFlag::kA)));
+static_assert(!static_cast<bool>(TestFlags(TestFlag::kNone)));
+static_assert(TestFlags(TestFlag::kA) == TestFlag::kA);
+static_assert(TestFlag::kA == TestFlags(TestFlag::kA));
+static_assert(TestFlags(TestFlag::kA) != TestFlag::kB);
+static_assert(!(~TestFlags(TestFlag::kA)).isSet(TestFlag::kA));
 
 int main()
 {
