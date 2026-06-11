@@ -52,15 +52,31 @@ class CircleComponent : public ComponentT<CircleComponent>
 // pair of Lua values.
 // ---------------------------------------------------------------------------
 
-// Register the SceneNode type and its methods on the given Lua state.
+// Register the Vector2, Transform, and SceneNode types on the given Lua state.
+static void
+registerVector2fType(sol::state_view lua) {
+  lua.new_usertype<sf::Vector2f>("Vector2f",
+    sol::constructors<sf::Vector2f(), sf::Vector2f(float, float)>(),
+    "x", &sf::Vector2f::x,
+    "y", &sf::Vector2f::y
+  );
+}
+
+static void
+registerTransformType(sol::state_view lua) {
+  lua.new_usertype<Transform>("Transform",
+    "getPosition", &Transform::getPosition,
+    "setPosition", &Transform::setPosition,
+    "move", &Transform::move
+  );
+}
+
 static void
 registerSceneNodeType(sol::state_view lua) {
   lua.new_usertype<SceneNode>("SceneNode",
     "getName", &SceneNode::getName,
-    "getPosition", [](SceneNode& node) {
-      const sf::Vector2f position = node.transform().getPosition();
-      return std::make_tuple(position.x, position.y);
-    });
+    "transform", sol::resolve<Transform&()>(&SceneNode::transform)
+    );
 }
 
 class ScriptComponent : public ComponentT<ScriptComponent>
@@ -352,6 +368,8 @@ int main()
   // their own owner, so each prints the position of the node it is attached to.
   // The scene traversal in the loop below runs Scripted1's script, then
   // Scripted2's, every frame.
+  registerVector2fType(lua);
+  registerTransformType(lua);
   registerSceneNodeType(lua);
 
   SceneNode* scripted1 = scene.createNode("Scripted1");

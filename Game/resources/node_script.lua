@@ -6,6 +6,7 @@
 -- and position and print them. Two nodes share this same file but each receives
 -- its own owner, so each prints its own position.
 return function(self, deltaTime)
-  local x, y = self:getPosition()
-  print("[Script] " .. self:getName() .. " is at (" .. x .. ", " .. y .. ")")
+  local myTransform = self:transform()
+  local position = myTransform:getPosition()
+  print("[Script] " .. self:getName() .. " is at (" .. position.x .. ", " .. position.y .. ")")
 end
