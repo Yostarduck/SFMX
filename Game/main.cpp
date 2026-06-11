@@ -52,15 +52,32 @@ class CircleComponent : public ComponentT<CircleComponent>
 // pair of Lua values.
 // ---------------------------------------------------------------------------
 
-// Register the SceneNode type and its methods on the given Lua state.
+// Register the Vector2, Transform, and SceneNode types on the given Lua state.
+static void
+registerVector2fType(sol::state_view lua) {
+  lua.new_usertype<sf::Vector2f>("Vector2f",
+    sol::call_constructor,
+    sol::constructors<sf::Vector2f(), sf::Vector2f(float, float)>(),
+    "x", &sf::Vector2f::x,
+    "y", &sf::Vector2f::y
+  );
+}
+
+static void
+registerTransformType(sol::state_view lua) {
+  lua.new_usertype<Transform>("Transform",
+    "getPosition", &Transform::getPosition,
+    "setPosition", &Transform::setPosition,
+    "move", &Transform::move
+  );
+}
+
 static void
 registerSceneNodeType(sol::state_view lua) {
   lua.new_usertype<SceneNode>("SceneNode",
     "getName", &SceneNode::getName,
-    "getPosition", [](SceneNode& node) {
-      const sf::Vector2f position = node.transform().getPosition();
-      return std::make_tuple(position.x, position.y);
-    });
+    "transform", sol::resolve<Transform&()>(&SceneNode::transform)
+    );
 }
 
 class ScriptComponent : public ComponentT<ScriptComponent>
@@ -88,10 +105,7 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   }
 
  private:
-  // Compile the file once; it must return a function(self, deltaTime). Holding
-  // our own sol::protected_function means each component runs its own copy
-  // without clobbering shared globals. The function keeps itself alive in the
-  // Lua registry and releases that reference when this component is destroyed.
+ 
   void
   loadScript(sol::state_view lua) {
     sol::load_result chunk = lua.load_file(m_scriptName);
@@ -352,15 +366,14 @@ int main()
   // their own owner, so each prints the position of the node it is attached to.
   // The scene traversal in the loop below runs Scripted1's script, then
   // Scripted2's, every frame.
+  registerVector2fType(lua);
+  registerTransformType(lua);
   registerSceneNodeType(lua);
 
-  SceneNode* scripted1 = scene.createNode("Scripted1");
-  scripted1->transform().setPosition({10.f, 20.f});
-  scripted1->addComponent<ScriptComponent>(lua, "Game/resources/node_script.lua");
-
-  SceneNode* scripted2 = scene.createNode("Scripted2");
-  scripted2->transform().setPosition({300.f, 400.f});
-  scripted2->addComponent<ScriptComponent>(lua, "Game/resources/node_script.lua");
+  SceneNode* Spaceship = scene.createNode("Spaceship");
+  Spaceship->transform().setPosition({center.x, 0.f});
+  Spaceship->addComponent<ScriptComponent>(lua, "Game/resources/node_script.lua");
+  Spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
 
   while (window.isOpen())
   {
@@ -411,7 +424,7 @@ int main()
 
     scene.update(deltaTime);
 
-    call_lua_function(lua, deltaTime);
+    // call_lua_function(lua, deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
     scene.draw(window);
