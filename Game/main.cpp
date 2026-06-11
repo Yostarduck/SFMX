@@ -64,10 +64,10 @@ int main()
   window.setVerticalSyncEnabled(enableVSync);
 
   InputSystem::startUp();
-  MemoryPoolHandler::startUp(1024);
+  MemoryPoolHandler::startUp(4096);
 
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
-  pools.registerPool<Particle>(1024);
+  pools.registerPool<Particle>(2048);
   pools.registerPool<SceneNode>(1024);
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
@@ -106,7 +106,7 @@ int main()
   sunCfg.endColor              = sf::Color(255, 50, 0, 0);
   sunCfg.startSize             = {20.f, 20.f};
   sunCfg.endSize               = {0.f, 0.f};
-  sunCfg.lifetime              = 1.5f;
+  sunCfg.lifetime              = 5.0f;
   sunCfg.lifetimeVariance      = 0.5f;
   sunCfg.texture               = texture;
   sunCfg.blendMode             = sf::BlendAlpha;
@@ -144,7 +144,7 @@ int main()
     }
   }
   EmitterConfig earthCfg;
-  earthCfg.emissionRate          = 20.f;
+  earthCfg.emissionRate          = 100.f;
   earthCfg.maxParticles          = 1000;
   earthCfg.direction             = sf::degrees(0.f);
   earthCfg.directionVariance     = sf::degrees(360.f);
@@ -159,7 +159,7 @@ int main()
   earthCfg.endColor              = sf::Color(100, 200, 255, 0);
   earthCfg.startSize             = {16.f, 16.f};
   earthCfg.endSize               = {0.f, 0.f};
-  earthCfg.lifetime              = 1.0f;
+  earthCfg.lifetime              = 3.0f;
   earthCfg.lifetimeVariance      = 0.3f;
   earthCfg.texture               = texture;
   earthCfg.blendMode             = sf::BlendAlpha;
