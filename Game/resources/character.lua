@@ -19,10 +19,10 @@ function update(deltaTime)
     if length > 0 then
         direction.x = direction.x / length
         direction.y = direction.y / length
+
+        direction.x = direction.x * speed * deltaTime
+        direction.y = direction.y * speed * deltaTime 
+        
+        print("Direction: (" .. direction.x .. ", " .. direction.y .. ")")
     end
-
-   direction.x = direction.x * speed * deltaTime
-   direction.y = direction.y * speed * deltaTime 
-
-   print("Direction: (" .. direction.x .. ", " .. direction.y .. ")")
 end
