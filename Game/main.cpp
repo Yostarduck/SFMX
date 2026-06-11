@@ -1,10 +1,6 @@
 #include <SFML/Graphics.hpp>
 
-extern "C" {
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-}
+#include <sol/sol.hpp>
 
 #include "config/IniFile.h"
 #include "input/ActionMap.h"
@@ -48,129 +44,77 @@ class CircleComponent : public ComponentT<CircleComponent>
 };
 
 // ---------------------------------------------------------------------------
-// Exposing a C++ object (SceneNode) to Lua.
+// Exposing a C++ object (SceneNode) to Lua via sol2.
 //
-// A SceneNode is handed to a script as full userdata carrying a shared
-// metatable, so a script can call methods (getName, getPosition) straight on
-// the exposed object via the `self:method()` syntax.
+// sol2 binds SceneNode as a usertype, so a script can call methods straight on
+// the exposed object with the `self:method()` syntax. Methods that map 1:1 to
+// a member are bound by pointer; getPosition returns the node's (x, y) as a
+// pair of Lua values.
 // ---------------------------------------------------------------------------
 
-// Registry name of the SceneNode metatable.
-static const char* const kSceneNodeMeta = "sfmx.SceneNode";
-
-// Recover the SceneNode* a userdata wraps, erroring if the type does not match.
-static SceneNode*
-checkSceneNode(lua_State* L, int index) {
-  void* ud = luaL_checkudata(L, index, kSceneNodeMeta);
-  return *static_cast<SceneNode**>(ud);
-}
-
-// node:getName() -> string
-static int
-sceneNode_getName(lua_State* L) {
-  SceneNode* node = checkSceneNode(L, 1);
-  lua_pushstring(L, node->getName());
-  return 1;
-}
-
-// node:getPosition() -> x, y
-static int
-sceneNode_getPosition(lua_State* L) {
-  SceneNode* node = checkSceneNode(L, 1);
-  const sf::Vector2f position = node->transform().getPosition();
-  lua_pushnumber(L, position.x);
-  lua_pushnumber(L, position.y);
-  return 2;
-}
-
-// Push a SceneNode into Lua as userdata bound to the SceneNode metatable.
+// Register the SceneNode type and its methods on the given Lua state.
 static void
-pushSceneNode(lua_State* L, SceneNode* node) {
-  SceneNode** ud =
-    static_cast<SceneNode**>(lua_newuserdata(L, sizeof(SceneNode*)));
-  *ud = node;
-  luaL_getmetatable(L, kSceneNodeMeta);
-  lua_setmetatable(L, -2);
-}
-
-// Create the SceneNode metatable once and populate it with its methods. The
-// metatable doubles as its own method table (__index points back at itself).
-static void
-registerSceneNodeType(lua_State* L) {
-  luaL_newmetatable(L, kSceneNodeMeta);
-  lua_pushvalue(L, -1);
-  lua_setfield(L, -2, "__index");
-  lua_pushcfunction(L, sceneNode_getName);
-  lua_setfield(L, -2, "getName");
-  lua_pushcfunction(L, sceneNode_getPosition);
-  lua_setfield(L, -2, "getPosition");
-  lua_pop(L, 1);
+registerSceneNodeType(sol::state_view lua) {
+  lua.new_usertype<SceneNode>("SceneNode",
+    "getName", &SceneNode::getName,
+    "getPosition", [](SceneNode& node) {
+      const sf::Vector2f position = node.transform().getPosition();
+      return std::make_tuple(position.x, position.y);
+    });
 }
 
 class ScriptComponent : public ComponentT<ScriptComponent>
 {
  public:
-  ScriptComponent(SceneNode* owner, lua_State* L, std::string_view scriptName)
+  ScriptComponent(SceneNode* owner, sol::state_view lua,
+                  std::string_view scriptName)
     : ComponentT<ScriptComponent>(owner),
-      m_lua(L),
-      m_scriptName(scriptName),
-      m_scriptRef(LUA_NOREF)
+      m_scriptName(scriptName)
   {
-    loadScript();
+    loadScript(lua);
   }
 
-  ~ScriptComponent() override {
-    if (LUA_NOREF != m_scriptRef) {
-      luaL_unref(m_lua, LUA_REGISTRYINDEX, m_scriptRef);
-    }
-  }
-  
-  // Run the script each frame: push the owning node as `self`, then call it.
+  // Run the script each frame, passing the owning node in as `self`.
   void
   onUpdate(float deltaTime) override {
-    if (LUA_NOREF == m_scriptRef) {
+    if (!m_script.valid()) {
       return;
     }
-    lua_rawgeti(m_lua, LUA_REGISTRYINDEX, m_scriptRef);
-    pushSceneNode(m_lua, getOwner());
-    lua_pushnumber(m_lua, deltaTime);
-    if (lua_pcall(m_lua, 2, 0, 0) != LUA_OK) {
-      fprintf(stderr, "[Script] %s: %s\n",
-              m_scriptName.c_str(), lua_tostring(m_lua, -1));
-      lua_pop(m_lua, 1);
+    sol::protected_function_result result = m_script(getOwner(), deltaTime);
+    if (!result.valid()) {
+      const sol::error err = result;
+      fprintf(stderr, "[Script] %s: %s\n", m_scriptName.c_str(), err.what());
     }
   }
 
  private:
-  // Compile the script file once; it must return a function(self, deltaTime),
-  // kept in the registry so each component runs its own copy without clobbering
-  // shared globals.
+  // Compile the file once; it must return a function(self, deltaTime). Holding
+  // our own sol::protected_function means each component runs its own copy
+  // without clobbering shared globals. The function keeps itself alive in the
+  // Lua registry and releases that reference when this component is destroyed.
   void
-  loadScript() {
-    if (luaL_loadfile(m_lua, m_scriptName.c_str()) != LUA_OK) {
-      fprintf(stderr, "[Script] load %s: %s\n",
-              m_scriptName.c_str(), lua_tostring(m_lua, -1));
-      lua_pop(m_lua, 1);
+  loadScript(sol::state_view lua) {
+    sol::load_result chunk = lua.load_file(m_scriptName);
+    if (!chunk.valid()) {
+      const sol::error err = chunk;
+      fprintf(stderr, "[Script] load %s: %s\n", m_scriptName.c_str(), err.what());
       return;
     }
-    if (lua_pcall(m_lua, 0, 1, 0) != LUA_OK) {
-      fprintf(stderr, "[Script] init %s: %s\n",
-              m_scriptName.c_str(), lua_tostring(m_lua, -1));
-      lua_pop(m_lua, 1);
+    sol::protected_function_result returned = chunk();
+    if (!returned.valid()) {
+      const sol::error err = returned;
+      fprintf(stderr, "[Script] init %s: %s\n", m_scriptName.c_str(), err.what());
       return;
     }
-    if (!lua_isfunction(m_lua, -1)) {
-      fprintf(stderr, "[Script] %s must return a function\n",
-              m_scriptName.c_str());
-      lua_pop(m_lua, 1);
+    if (sol::type::function != returned.get_type()) {
+      fprintf(stderr, "[Script] %s must return a function\n", m_scriptName.c_str());
       return;
     }
-    m_scriptRef = luaL_ref(m_lua, LUA_REGISTRYINDEX);
+    m_script = returned;
   }
 
-  lua_State* m_lua;
   std::string m_scriptName;
-  int m_scriptRef;
+  sol::protected_function m_script;
 };
 
 DECLARE_TYPE_TRAITS(CircleComponent)
@@ -179,38 +123,35 @@ DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
 DECLARE_TYPE_TRAITS(CameraComponent)
 
-int call_lua_function(lua_State *L, float deltaTime) {
-  // Load and execute Lua file
-  if (luaL_dofile(L, "Game/resources/character.lua") != LUA_OK) {
-    fprintf(stderr, "Error: %s\n", lua_tostring(L, -1));
+int call_lua_function(sol::state_view lua, float deltaTime) {
+  // Load and execute the script file; it defines a global update function.
+  sol::protected_function_result loaded =
+    lua.safe_script_file("Game/resources/character.lua", sol::script_pass_on_error);
+  if (!loaded.valid()) {
+    const sol::error err = loaded;
+    fprintf(stderr, "Error: %s\n", err.what());
     return -1;
   }
-  
-  // Call update function
-  lua_getglobal(L, "update");
-  lua_pushnumber(L, deltaTime);
-  
-  if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
-    fprintf(stderr, "Error calling update: %s\n", lua_tostring(L, -1));
+
+  // Call the update function.
+  const sol::protected_function update = lua["update"];
+  sol::protected_function_result result = update(deltaTime);
+  if (!result.valid()) {
+    const sol::error err = result;
+    fprintf(stderr, "Error calling update: %s\n", err.what());
     return -1;
   }
-  
+
   return 0;
 }
 
-static int c_keyPressed(lua_State *L) {
-    size_t len;
-    const char *input = luaL_checklstring(L, 1, &len);
-    
-    Key::E key = keyFromString(input);
-    if (key == Key::kUnknown) {
-        return luaL_error(L, "Error: Expected a valid key name");
-    }
-    
-    bool result = Keyboard::instance().isPressed(key);
-    
-    lua_pushboolean(L, result);
-    return 1;
+// Bound into Lua as keyPressed(name) -> bool. Returns false for an unknown key.
+static bool keyPressed(const std::string& name) {
+  const Key::E key = keyFromString(name);
+  if (Key::kUnknown == key) {
+    return false;
+  }
+  return Keyboard::instance().isPressed(key);
 }
 
 int main()
@@ -398,29 +339,28 @@ int main()
             << "Dice: "   << Random::diceThrow(2, 6)    << "\n"
             << "Dice: "   << Random::diceThrow(1, 6)    << "\n";
   
-  // Create new Lua state
-  lua_State *L = luaL_newstate();
-  
-  // Load standard libraries
-  luaL_openlibs(L);
-  
-  lua_pushcfunction(L, c_keyPressed);
-  lua_setglobal(L, "keyPressed");
+  // Create the Lua state (LuaJIT, driven through sol2) and open the standard
+  // libraries the scripts use.
+  sol::state lua;
+  lua.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string,
+                     sol::lib::table);
+
+  lua.set_function("keyPressed", keyPressed);
 
   // Object-exposure example: make the SceneNode type callable from Lua, then
   // give two nodes a ScriptComponent each. Both share node_script.lua but get
   // their own owner, so each prints the position of the node it is attached to.
   // The scene traversal in the loop below runs Scripted1's script, then
   // Scripted2's, every frame.
-  registerSceneNodeType(L);
+  registerSceneNodeType(lua);
 
   SceneNode* scripted1 = scene.createNode("Scripted1");
   scripted1->transform().setPosition({10.f, 20.f});
-  scripted1->addComponent<ScriptComponent>(L, "Game/resources/node_script.lua");
+  scripted1->addComponent<ScriptComponent>(lua, "Game/resources/node_script.lua");
 
   SceneNode* scripted2 = scene.createNode("Scripted2");
   scripted2->transform().setPosition({300.f, 400.f});
-  scripted2->addComponent<ScriptComponent>(L, "Game/resources/node_script.lua");
+  scripted2->addComponent<ScriptComponent>(lua, "Game/resources/node_script.lua");
 
   while (window.isOpen())
   {
@@ -471,19 +411,18 @@ int main()
 
     scene.update(deltaTime);
 
-    call_lua_function(L, deltaTime);
+    call_lua_function(lua, deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
     scene.draw(window);
     window.display();
   }
-  
-  // Clean up
-  lua_close(L);
 
   InputSystem::shutDown();
-  // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
-  // and components are destroyed here, while SFML is still alive.
+  // Tear down pools before the sol::state (a local destroyed at function exit):
+  // ~Scene only drops ids/registry, so the pooled nodes and ScriptComponents
+  // are destroyed here, releasing their Lua function references while the Lua
+  // state is still alive.
   MemoryPoolHandler::shutDown();
 
   return 0;
