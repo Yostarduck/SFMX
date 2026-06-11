@@ -1,5 +1,11 @@
 #include <SFML/Graphics.hpp>
 
+extern "C" {
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+}
+
 #include "config/IniFile.h"
 #include "input/ActionMap.h"
 #include "input/Gamepad.h"
@@ -71,7 +77,6 @@ int main()
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<CameraComponent>(1);
-
 
   Scene scene("Main");
 
@@ -230,6 +235,18 @@ int main()
             << "Dice: "   << Random::diceThrow(3, 6)    << "\n"
             << "Dice: "   << Random::diceThrow(2, 6)    << "\n"
             << "Dice: "   << Random::diceThrow(1, 6)    << "\n";
+  
+  // Create new Lua state
+  lua_State *L = luaL_newstate();
+  
+  // Load standard libraries
+  luaL_openlibs(L);
+  
+  // Execute simple Lua code
+  luaL_dostring(L, "print('Hello from Lua!')");
+  
+  // Clean up
+  lua_close(L);
 
   while (window.isOpen())
   {

@@ -11,7 +11,6 @@ FetchContent_Declare(Lua
     SYSTEM)
 FetchContent_MakeAvailable(Lua)
 
-#add_executable(Game main.cpp)
-add_executable(Game main_lua.cpp)
+add_executable(Game main.cpp)
 
 target_link_libraries(Game PRIVATE SFMX::FrameworkGame lua_static)
