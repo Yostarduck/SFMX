@@ -12,8 +12,6 @@ class Animation
 {
 public:
 
-  void setFrames(const Vector<Frame>& frames);
-
   Vector<Frame> m_frames;
   bool          m_loops;
   float         m_speedMultiplier;

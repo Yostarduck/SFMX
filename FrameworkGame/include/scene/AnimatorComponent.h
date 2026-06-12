@@ -27,14 +27,28 @@ enum class AnimationState : uint32
   kStarted, kPaused, kStopped
 };
 
-struct AnimationTransition
-{
-  // TODO: Add list of requirements for it to change. For now it this ok
-  Animation*  exit              = nullptr;
-  bool        hasExitTime       = true;
-  bool        shouldTransition  = true;
-  Map<String, std::any> params  = {}; 
+enum class ParamType : uint32 {
+  kBool,
+  kFloat,
+  kInt,
+  kTrigger
 };
+
+struct Param {
+  ParamType t;
+  std::any  v;
+};
+
+struct AnimationTransition {
+  // TODO: Add list of requirements for it to change. For now it this ok
+  Map<String, Param>  params  = {}; 
+  String              exit    = "";
+  bool      shouldTransition  = true;
+  bool      hasExitTime       = true;
+};
+
+
+
 
 class AnimatorComponent : public ComponentT<AnimatorComponent> {
  public:
@@ -44,46 +58,65 @@ class AnimatorComponent : public ComponentT<AnimatorComponent> {
 
 
   void play(const String& animation);
-  FORCEINLINE void 
+  FORCEINLINE void
   play() { m_state = AnimationState::kStarted; }
-  FORCEINLINE void 
+  FORCEINLINE void
   pause() { m_state = AnimationState::kPaused; }
   void stop();
 
   void setCurrentAnimation(const String& animation);
-  NODISCARD FORCEINLINE 
-  AnimationNode* getCurrentAnimation(const String& animation) {
+  NODISCARD FORCEINLINE
+  AnimationNode* getCurrentAnimation() const {
     return m_currentAnimation;
   }
 
-  void 
+  void
   addAnimation(Animation* newAnimation, const String& name);
-  void 
+  void
   addAnimation(AnimationNode* newAnimation, const String& name);
-  void 
+  void
   removeAnimation(const String& name);
 
-  NODISCARD FORCEINLINE bool 
-  animationExists(const String& name) { return m_animations.count(name); }
+  void
+  addTransition(const String& fromAnim, const String& toAnim,
+                bool hasExitTime = true, bool shouldTransition = true,
+                const Map<String, Param>& conditions = {});
 
-  /** @brief Drives auto position from the node's world transform when m_followNode is true */
-  void 
+  NODISCARD FORCEINLINE bool
+  animationExists(const String& name) const { return m_animations.count(name); }
+
+  void
   onUpdate(float deltaTime) override;
 
-  FORCEINLINE void 
+  FORCEINLINE void
   setSprite(SpriteComponent* newSprite) { m_sprite = newSprite; }
+
+  FORCEINLINE void
+  setTrigger(const String& paramName) { m_params[paramName] = {ParamType::kTrigger, true}; }
+  FORCEINLINE void
+  setBool(const String& paramName, bool value) { m_params[paramName] = {ParamType::kBool, value}; }
+  FORCEINLINE void
+  setFloat(const String& paramName, float value) { m_params[paramName] = {ParamType::kFloat, value}; }
+  FORCEINLINE void
+  setInt(const String& paramName, int value) { m_params[paramName] = {ParamType::kInt, value}; }
 
  private:
 
   void
-  checkAnimationState(float deltaTime); 
+  checkAnimationState(float deltaTime);
+  void
+  updateParamTriggers();
+  void
+  transitionTo(const String& name);
+  bool
+  evaluateTransitionConditions(const AnimationTransition* t) const;
 
   Map<String, AnimationNode*> m_animations;
-  AnimationNode*              m_currentAnimation;
-  Map<String, std::any>       m_params;
-  SpriteComponent*  m_sprite;
-  float             m_currentTime;
-  AnimationState    m_state;
+  AnimationNode*              m_currentAnimation = nullptr;
+  Map<String, Param>          m_params;
+  SpriteComponent*  m_sprite  = nullptr;
+  float             m_currentTime = 0.0f;
+  AnimationState    m_state   = AnimationState::kStopped;
 
 };
 
