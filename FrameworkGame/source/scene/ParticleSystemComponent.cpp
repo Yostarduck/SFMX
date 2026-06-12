@@ -2,48 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
-#include <random>
 
 #include "utils/MemoryPoolHandler.h"
+#include "utils/Random.h"
+#include "utils/Arithmetic.h"
 
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Transform.hpp>
-
-namespace
-{
-
-using namespace sfmx;
-
-float randomRange(float min, float max)
-{
-  return min + static_cast<float>(std::rand()) / RAND_MAX * (max - min);
-}
-
-sf::Color lerpColor(const sf::Color& a,
-                    const sf::Color& b,
-                    float t)
-{
-  return sf::Color(
-    static_cast<uint8>(static_cast<float>(a.r) +
-      (static_cast<float>(b.r) - static_cast<float>(a.r)) * t),
-    static_cast<uint8>(static_cast<float>(a.g) +
-      (static_cast<float>(b.g) - static_cast<float>(a.g)) * t),
-    static_cast<uint8>(static_cast<float>(a.b) +
-      (static_cast<float>(b.b) - static_cast<float>(a.b)) * t),
-    static_cast<uint8>(static_cast<float>(a.a) +
-      (static_cast<float>(b.a) - static_cast<float>(a.a)) * t)
-  );
-}
-
-sf::Vector2f
-lerpSize(const sf::Vector2f& a,
-         const sf::Vector2f& b,
-         float t)
-{
-  return { a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t };
-}
-
-} // anonymous namespace
 
 namespace sfmx
 {
@@ -58,145 +23,98 @@ ParticleSystemComponent::ParticleSystemComponent(SceneNode* owner,
     m_config(config) {}
 
 
-ParticleSystemComponent::~ParticleSystemComponent()
-{
+ParticleSystemComponent::~ParticleSystemComponent() {
   clear();
 }
 
 void
-ParticleSystemComponent::setConfig(const EmitterConfig& config)
-{
+ParticleSystemComponent::setConfig(const EmitterConfig& config) {
   m_config = config;
   m_capacity = config.maxParticles;
-  m_active.clear();
-  m_active.reserve(m_capacity);
+  m_firstParticle = nullptr;
+  m_lastParticle = nullptr;
 
   SFMX_ASSERT(MemoryPoolHandler::instance().pool<Particle>().getCapacity() >= m_capacity &&
     "Shared particle pool too small. Call registerPool<Particle>(budget) with a larger budget.");
 
-  // Pre-allocate scratch vertices for the worst case so we never reallocate
-  // during gameplay.
-  m_scratchVertices.resize(m_capacity * 6);
-  m_vertexBuffer.setUsage(sf::VertexBuffer::Usage::Stream);
+  if (m_vertexBuffer.create(m_capacity * 6)) {
+    m_vertexBuffer.setUsage(sf::VertexBuffer::Usage::Stream);
+    m_vertexBuffer.setPrimitiveType(sf::PrimitiveType::Triangles);
+  }
 
   m_elapsed = 0.f;
   m_running = true;
   m_verticesDirty = true;
 }
 
-const EmitterConfig&
-ParticleSystemComponent::getConfig() const
-{
-  return m_config;
-}
-
 void
-ParticleSystemComponent::setWorldSpace(bool worldSpace)
-{
-  m_worldSpace = worldSpace;
-}
-
-bool
-ParticleSystemComponent::isWorldSpace() const
-{
-  return m_worldSpace;
-}
-
-void
-ParticleSystemComponent::setSortMode(ParticleSortMode mode)
-{
-  m_sortMode = mode;
-}
-
-ParticleSortMode
-ParticleSystemComponent::getSortMode() const
-{
-  return m_sortMode;
-}
-
-void
-ParticleSystemComponent::setEmissionRate(float rate)
-{
-  m_config.emissionRate = rate;
-}
-
-float
-ParticleSystemComponent::getEmissionRate() const
-{
-  return m_config.emissionRate;
-}
-
-void
-ParticleSystemComponent::emit(size_t count)
-{
+ParticleSystemComponent::emit(size_t count) {
   const size_t clamped = std::min(count, m_capacity - m_count);
-  for (size_t i = 0; i < clamped; ++i)
-  {
+  for (size_t i = 0; i < clamped; ++i) {
     spawnParticle();
   }
 }
 
 void
-ParticleSystemComponent::clear()
-{
-  auto& pool = MemoryPoolHandler::instance().pool<Particle>();
-  for (size_t i = 0; i < m_count; ++i)
-    pool.deallocate(m_active[i]);
-  m_active.clear();
+ParticleSystemComponent::clear() {
+  if (MemoryPoolHandler::instancePtr()) {
+    auto& pool = MemoryPoolHandler::instance().pool<Particle>();
+    Particle* p = m_firstParticle;
+    while (p) {
+      Particle* next = p->next;
+      pool.deallocate(p);
+      p = next;
+    }
+  }
+  m_firstParticle = nullptr;
+  m_lastParticle = nullptr;
   m_count = 0;
   m_accumulator = 0.f;
   m_verticesDirty = true;
 }
 
 void
-ParticleSystemComponent::start()
-{
+ParticleSystemComponent::start() {
   m_elapsed = 0.f;
   m_running = true;
 }
 
-void
-ParticleSystemComponent::stop()
-{
-  m_running = false;
-}
-
 float
-ParticleSystemComponent::getProgress() const
-{
-  if (m_config.duration <= 0.f) 
+ParticleSystemComponent::getProgress() const {
+  if (m_config.duration <= 0.f) {
     return 0.f;
+  }
   return std::min(m_elapsed / m_config.duration, 1.f);
 }
 
 void
-ParticleSystemComponent::spawnParticle()
-{
+ParticleSystemComponent::spawnParticle() {
   auto& pool = MemoryPoolHandler::instance().pool<Particle>();
-  if (m_count >= m_capacity || pool.isFull())
+  if (m_count >= m_capacity || pool.isFull()) {
     return;
+  }
 
   const float dirAngle = m_config.direction.asRadians() +
-                        randomRange(-m_config.directionVariance.asRadians(),
-                                    m_config.directionVariance.asRadians());
+                         Random::range<float>(-m_config.directionVariance.asRadians(),
+                                              m_config.directionVariance.asRadians());
   const float spd = m_config.speed +
-                    randomRange(-m_config.speedVariance, m_config.speedVariance);
+                    Random::range<float>(-m_config.speedVariance, m_config.speedVariance);
   const float lifetime = m_config.lifetime +
-                         randomRange(-m_config.lifetimeVariance,
-                                     m_config.lifetimeVariance);
+                         Random::range<float>(-m_config.lifetimeVariance,
+                                              m_config.lifetimeVariance);
   const float rot = m_config.startRotation.asRadians() +
-                    randomRange(-m_config.startRotationVariance.asRadians(),
-                                m_config.startRotationVariance.asRadians());
+                    Random::range<float>(-m_config.startRotationVariance.asRadians(),
+                                         m_config.startRotationVariance.asRadians());
   const float angVel = m_config.angularVelocity +
-                       randomRange(-m_config.angularVelocityVariance,
-                                   m_config.angularVelocityVariance);
+                       Random::range<float>(-m_config.angularVelocityVariance,
+                                            m_config.angularVelocityVariance);
 
   const float posOffsetX =
-      randomRange(-m_config.positionVariance,
-                  m_config.positionVariance);
+    Random::range<float>(-m_config.positionVariance,
+                         m_config.positionVariance);
   const float posOffsetY =
-      randomRange(-m_config.positionVariance,
-                  m_config.positionVariance);
+    Random::range<float>(-m_config.positionVariance,
+                         m_config.positionVariance);
 
   Particle* p = pool.allocate();
   p->position        = m_config.positionOffset +
@@ -210,64 +128,69 @@ ParticleSystemComponent::spawnParticle()
   p->maxLifetime     = lifetime;
   p->progress        = 0.f;
 
-  if (m_worldSpace)
-  {
+  if (m_worldSpace) {
     const sf::Transform& world = m_owner->getWorldTransform();
     p->position = world.transformPoint(p->position);
     p->velocity = world.transformPoint(p->velocity) -
                   world.transformPoint({0.f, 0.f});
   }
 
-  m_active.push_back(p);
+  // Append to linked list
+  p->prev = m_lastParticle;
+  p->next = nullptr;
+  if (m_lastParticle)
+    m_lastParticle->next = p;
+  else
+    m_firstParticle = p;
+  m_lastParticle = p;
   ++m_count;
   m_verticesDirty = true;
 }
 
 void
-ParticleSystemComponent::kill(size_t index)
-{
-  SFMX_ASSERT(index < m_count);
-  MemoryPoolHandler::instance().pool<Particle>().deallocate(m_active[index]);
+ParticleSystemComponent::kill(Particle* particle) {
+  SFMX_ASSERT(particle);
 
-  const size_t last = m_count - 1;
-  if (index != last)
-  {
-    m_active[index] = m_active[last];
+  if (MemoryPoolHandler::instancePtr()) {
+    MemoryPoolHandler::instance().pool<Particle>().deallocate(particle);
   }
-  m_active.pop_back();
+
+  // Unlink from doubly-linked list
+  if (particle->prev)
+    particle->prev->next = particle->next;
+  else
+    m_firstParticle = particle->next;
+
+  if (particle->next)
+    particle->next->prev = particle->prev;
+  else
+    m_lastParticle = particle->prev;
+
   --m_count;
   m_verticesDirty = true;
 }
 
 void
-ParticleSystemComponent::onUpdate(float deltaTime)
-{
-  if (m_count == 0 && m_config.emissionRate == 0.0f)
-  {
+ParticleSystemComponent::onUpdate(float deltaTime) {
+  if (m_count == 0 && m_config.emissionRate == 0.0f) {
     return;
   }
 
   // Duration / loop
-  if (m_config.duration > 0.0f)
-  {
+  if (m_config.duration > 0.0f) {
     m_elapsed += deltaTime;
-    if (m_elapsed >= m_config.duration)
-    {
-      if (m_config.loop)
-      {
+    if (m_elapsed >= m_config.duration) {
+      if (m_config.loop) {
         m_elapsed = 0.0f;
         m_running = true;
       }
-      else
-      {
+      else {
         m_running = false;
       }
     }
   }
 
-  for (size_t i = 0; i < m_count; ++i)
-  {
-    Particle* p = m_active[i];
+  for (Particle* p = m_firstParticle; p; p = p->next) {
     p->position    += p->velocity * deltaTime;
     p->velocity    += m_config.gravity * deltaTime;
     p->lifetime    -= deltaTime;
@@ -276,38 +199,48 @@ ParticleSystemComponent::onUpdate(float deltaTime)
     p->progress = p->maxLifetime > 0.f
                   ? 1.f - p->lifetime / p->maxLifetime
                   : 1.f;
-    p->color = lerpColor(m_config.startColor, m_config.endColor, p->progress);
+    p->color = lerp::color(m_config.startColor, m_config.endColor, p->progress);
   }
 
-  size_t i = 0;
-  while (i < m_count)
+  // Cull expired particles (capture-next pattern)
   {
-    if (m_active[i]->lifetime <= 0.f)
-    {
-      kill(i);
-      continue;
+    Particle* p = m_firstParticle;
+    while (p) {
+      Particle* next = p->next;
+      if (p->lifetime <= 0.f) {
+        kill(p);
+      }
+      p = next;
     }
-    ++i;
   }
 
-  if (m_running && m_config.emissionRate > 0.f)
-  {
+  // Emit new particles
+  if (m_running && m_config.emissionRate > 0.f) {
     m_accumulator += m_config.emissionRate * deltaTime;
-    while (m_accumulator >= 1.f && m_count < m_capacity)
-    {
+    while (m_accumulator >= 1.f && m_count < m_capacity) {
       spawnParticle();
       m_accumulator -= 1.f;
     }
   }
 
-  if (m_sortMode == ParticleSortMode::BackToFront && m_count > 1)
-  {
-    std::sort(m_active.begin(),
-              m_active.begin() + static_cast<ptrdiff_t>(m_count),
-              [](const Particle* a, const Particle* b)
-              {
+  // Sort BackToFront
+  if (m_sortMode == ParticleSortMode::BackToFront && m_count > 1) {
+    Vector<Particle*> sorted;
+    sorted.reserve(m_count);
+    for (Particle* p = m_firstParticle; p; p = p->next)
+      sorted.push_back(p);
+
+    std::sort(sorted.begin(), sorted.end(),
+              [](const Particle* a, const Particle* b) {
                   return a->position.y < b->position.y;
               });
+
+    m_firstParticle = sorted.front();
+    m_lastParticle  = sorted.back();
+    for (size_t i = 0; i < sorted.size(); ++i) {
+      sorted[i]->prev = (i > 0) ? sorted[i - 1] : nullptr;
+      sorted[i]->next = (i + 1 < sorted.size()) ? sorted[i + 1] : nullptr;
+    }
   }
 
   m_verticesDirty = true;
@@ -315,41 +248,36 @@ ParticleSystemComponent::onUpdate(float deltaTime)
 
 void
 ParticleSystemComponent::onDraw(sf::RenderTarget& target,
-                                sf::RenderStates states) const
-{
-  if (m_count == 0)
-  {
+                                sf::RenderStates states) const {
+  if (m_count == 0) {
     return;
   }
 
   rebuildVertices();
 
-  if (m_worldSpace)
-  {
+  if (m_worldSpace) {
     states.transform = sf::Transform::Identity;
   }
 
   states.blendMode = m_config.blendMode;
   states.texture   = m_config.texture;
 
-  target.draw(m_vertexBuffer, states);
+  target.draw(m_vertexBuffer, 0, m_count * 6, states);
 }
 
 void
-ParticleSystemComponent::rebuildVertices() const
-{
-  if (!m_verticesDirty)
-  {
+ParticleSystemComponent::rebuildVertices() const {
+  if (!m_verticesDirty) {
     return;
   }
 
-  m_scratchVertices.setPrimitiveType(sf::PrimitiveType::Triangles);
-  m_vertexBuffer.setPrimitiveType(sf::PrimitiveType::Triangles);
+  // Fixed-size stack buffer for vertex data, uploaded in batches
+  static constexpr size_t BATCH_VERTS = 1024;
+  sf::Vertex batch[BATCH_VERTS];
 
   const bool hasTexture = m_config.texture != nullptr;
   sf::Vector2f texSize;
-  if (hasTexture)
-  {
+  if (hasTexture) {
     const sf::Vector2u ts = m_config.texture->getSize();
     texSize = sf::Vector2f(static_cast<float>(ts.x),
                             static_cast<float>(ts.y));
@@ -363,15 +291,15 @@ ParticleSystemComponent::rebuildVertices() const
   };
   const sf::Vector2f zeroUV[4] = {{}, {}, {}, {}};
 
-  for (size_t i = 0; i < m_count; ++i)
-  {
-    const Particle& p = *m_active[i];
+  size_t batchFilled = 0;
+  size_t uploadOffset = 0;
 
+  for (Particle* p = m_firstParticle; p; p = p->next) {
     const sf::Vector2f halfSize =
-      lerpSize(m_config.startSize, m_config.endSize, p.progress) * 0.5f;
+      lerp::vector2(m_config.startSize, m_config.endSize, p->progress) * 0.5f;
 
-    const float cosA = std::cos(p.rotation);
-    const float sinA = std::sin(p.rotation);
+    const float cosA = std::cos(p->rotation);
+    const float sinA = std::sin(p->rotation);
 
     const sf::Vector2f localCorners[4] = {
       {-halfSize.x, -halfSize.y},
@@ -381,37 +309,29 @@ ParticleSystemComponent::rebuildVertices() const
     };
 
     sf::Vector2f worldCorners[4];
-    for (int j = 0; j < 4; ++j)
-    {
+    for (int j = 0; j < 4; ++j) {
       worldCorners[j] = {
-        localCorners[j].x * cosA - localCorners[j].y * sinA + p.position.x,
-        localCorners[j].x * sinA + localCorners[j].y * cosA + p.position.y,
+        localCorners[j].x * cosA - localCorners[j].y * sinA + p->position.x,
+        localCorners[j].x * sinA + localCorners[j].y * cosA + p->position.y,
       };
     }
 
-    const size_t base = i * 6;
     const sf::Vector2f* uv = hasTexture ? uvs : zeroUV;
 
-    m_scratchVertices[base + 0] = {worldCorners[0], p.color, uv[0]};
-    m_scratchVertices[base + 1] = {worldCorners[1], p.color, uv[1]};
-    m_scratchVertices[base + 2] = {worldCorners[2], p.color, uv[2]};
-    m_scratchVertices[base + 3] = {worldCorners[0], p.color, uv[0]};
-    m_scratchVertices[base + 4] = {worldCorners[2], p.color, uv[2]};
-    m_scratchVertices[base + 5] = {worldCorners[3], p.color, uv[3]};
-  }
+    batch[batchFilled + 0] = {worldCorners[0], p->color, uv[0]};
+    batch[batchFilled + 1] = {worldCorners[1], p->color, uv[1]};
+    batch[batchFilled + 2] = {worldCorners[2], p->color, uv[2]};
+    batch[batchFilled + 3] = {worldCorners[0], p->color, uv[0]};
+    batch[batchFilled + 4] = {worldCorners[2], p->color, uv[2]};
+    batch[batchFilled + 5] = {worldCorners[3], p->color, uv[3]};
+    batchFilled += 6;
 
-  // Upload to GPU buffer
-  const size_t vertexCount = m_count * 6;
-  if (m_vertexBuffer.getVertexCount() != vertexCount)
-  {
-    if (!m_vertexBuffer.create(vertexCount))
-    {
-      return;
+    if (batchFilled + 6 > BATCH_VERTS || p == m_lastParticle) {
+      if (!m_vertexBuffer.update(batch, batchFilled, uploadOffset))
+        return;
+      uploadOffset += batchFilled;
+      batchFilled = 0;
     }
-  }
-  if (!m_vertexBuffer.update(&m_scratchVertices[0], vertexCount, 0))
-  {
-    return;
   }
 
   m_verticesDirty = false;
