@@ -1,4 +1,4 @@
-local speed = 100
+local speed = 500
 
 -- Script driven by a ScriptComponent.
 --
@@ -18,8 +18,8 @@ return function(self, deltaTime)
     movement.x = movement.x / length
     movement.y = movement.y / length
 
-    movement.x = movement.x * speed * deltaTime
-    movement.y = movement.y * speed * deltaTime
+    movement.x = movement.x * speed * deltaTime * (keyPressed("LShift") and 1 or 0.5)
+    movement.y = movement.y * speed * deltaTime * (keyPressed("LShift") and 1 or 0.5)
   
     local myTransform = self:transform()
     myTransform:move(movement)
