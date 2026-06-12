@@ -10,14 +10,19 @@ namespace sfmx
 /**
  * @brief @ref DataStream backed by a file on disk.
  *
- * A stream is opened for **reading or writing**, not both (write opens with
- * truncation). This keeps the std::fstream get/put-pointer handling simple and
- * unambiguous and covers the two real uses: read a cooked asset, or dump a
- * built buffer to disk.
+ * Open mode follows @ref AccessMode: read-only (`in`), write-only truncating
+ * (`out|trunc`), or **read+write** (`in|out`, preserving content; add
+ * `kTruncate` to start empty). Read+write supports editing a large file in
+ * place without buffering it all in memory.
+ *
+ * std::fstream requires a reposition between an input and a subsequent output
+ * (and vice versa); this class satisfies that automatically by re-seeking to its
+ * authoritative @ref m_pos on each direction switch, so callers never have to.
  *
  * Construction never throws: if the file cannot be opened, @ref isOpen returns
  * false (factories such as @ref FileSystem::openFile return nullptr in that
- * case).
+ * case). Note `in|out` (read+write without `kTruncate`) requires the file to
+ * already exist.
  */
 class SFMX_UTILITY_EXPORT FileDataStream : public DataStream
 {
@@ -67,9 +72,17 @@ class SFMX_UTILITY_EXPORT FileDataStream : public DataStream
   clone() const override;
 
  private:
+  // Tracks the last data op so a read+write stream can insert the reposition
+  // std::fstream requires when switching direction.
+  enum class LastOp { kNone, kRead, kWrite };
+
   FileSystemPath m_path;
-  // mutable: tell()/isAtEnd() are const but std::fstream queries are not.
-  mutable std::fstream m_stream;
+  std::fstream m_stream;
+  // Authoritative cursor, kept in lockstep with m_stream by every op. Drives
+  // size tracking and tell()/isAtEnd() without querying tellp()/tellg().
+  size_t m_pos = 0;
+  bool m_readWrite = false;       // opened in|out (both kRead and kWrite)
+  LastOp m_lastOp = LastOp::kNone;
 };
 
 } // namespace sfmx
