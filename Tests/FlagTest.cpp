@@ -1,21 +1,14 @@
-// Flags<> test group. Compile-time coverage via static_assert; a few runtime
-// checks exercise the "build a flags variable, then pass it" path.
-
-#include "FlagTest.h"
-
-#include <iostream>
+#include <doctest/doctest.h>
 
 #include "core/platform/Prerequisites.h"
 #include "utils/Flags.h"
-
-#include "TestRunner.h"
 
 using namespace sfmx;
 
 namespace {
 
 // ===========================================================================
-// Operator coverage (compile-time)
+// Operator coverage (compile-time + runtime)
 // ===========================================================================
 enum class TestFlag : uint16 {
   kNone = 0x00,
@@ -25,6 +18,25 @@ enum class TestFlag : uint16 {
 };
 SFMX_DECLARE_FLAGS_EXT(TestFlags, TestFlag, uint16)
 
+// "createTexture(flags)" style
+enum class TextureFlag : uint32 {
+  kNone         = 0,
+  kSRGB         = 1 << 0,
+  kGenerateMips = 1 << 1,
+  kRenderTarget = 1 << 2,
+};
+SFMX_DECLARE_FLAGS(TextureFlags, TextureFlag)
+
+NODISCARD constexpr bool
+textureWantsMips(TextureFlags flags) {
+  return flags.isSetAny(TextureFlag::kGenerateMips);
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// Compile-time verification (static_assert)
+// ---------------------------------------------------------------------------
 static_assert((TestFlag::kA | TestFlag::kB).getRaw() == 0x03);
 static_assert((TestFlag::kA | TestFlag::kB).isSet(TestFlag::kA));
 static_assert(!(TestFlag::kA | TestFlag::kB).isSet(TestFlag::kC));
@@ -33,72 +45,65 @@ static_assert((TestFlag::kA | TestFlag::kB).isSetAny(TestFlag::kC | TestFlag::kA
 static_assert(!(TestFlag::kA | TestFlag::kB).isSetAny(TestFlag::kC));
 static_assert(TestFlags(TestFlag::kA).set(TestFlag::kB).getRaw() == 0x03);
 static_assert(TestFlags(TestFlag::kA | TestFlag::kB).unset(TestFlag::kA).getRaw() == 0x02);
-static_assert((TestFlag::kA & (TestFlag::kA | TestFlag::kB)).getRaw() == 0x01);  // enum & flags
+static_assert((TestFlag::kA & (TestFlag::kA | TestFlag::kB)).getRaw() == 0x01);
 static_assert((TestFlags(TestFlag::kA) ^ TestFlag::kA).getRaw() == 0x00);
 static_assert(static_cast<bool>(TestFlags(TestFlag::kA)));
 static_assert(!static_cast<bool>(TestFlags(TestFlag::kNone)));
 static_assert(TestFlags(TestFlag::kA) == TestFlag::kA);
-static_assert(TestFlag::kA == TestFlags(TestFlag::kA));  // C++20 reversed ==
-static_assert(TestFlags(TestFlag::kA) != TestFlag::kB);  // synthesized !=
+static_assert(TestFlag::kA == TestFlags(TestFlag::kA));
+static_assert(TestFlags(TestFlag::kA) != TestFlag::kB);
 static_assert(!(~TestFlags(TestFlag::kA)).isSet(TestFlag::kA));
-
-// ===========================================================================
-// Passing flags to functions (compile-time)
-// ===========================================================================
-NODISCARD constexpr bool
-hasWriteCap(TestFlags caps) {
-  return caps.isSetAny(TestFlag::kB);  // pretend kB == "write"
-}
-
-static_assert(hasWriteCap(TestFlag::kB));                 // single enumerator
-static_assert(hasWriteCap(TestFlag::kA | TestFlag::kB));  // combination
-static_assert(!hasWriteCap(TestFlag::kA));
-static_assert(!hasWriteCap(TestFlags{}));                 // empty flags
-
-// Raw integer only for serialization / interop, and explicit on purpose:
-static constexpr uint16 kRaw = (TestFlag::kA | TestFlag::kB).getRaw();
-static_assert(kRaw == 0x03);
-static_assert(TestFlags(kRaw).isSet(TestFlag::kA | TestFlag::kB));
-
-// ===========================================================================
-// "createTexture(flags)" style: build a flags variable, then pass it
-// ===========================================================================
-enum class TextureFlag : uint32 {
-  kNone         = 0,
-  kSRGB         = 1 << 0,
-  kGenerateMips = 1 << 1,
-  kRenderTarget = 1 << 2,
-};
-SFMX_DECLARE_FLAGS(TextureFlags, TextureFlag)  // uint32 storage
-
-NODISCARD constexpr bool
-textureWantsMips(TextureFlags flags) {
-  return flags.isSetAny(TextureFlag::kGenerateMips);
-}
-
+static_assert(textureWantsMips(TextureFlag::kSRGB | TextureFlag::kGenerateMips));
+static_assert(!textureWantsMips(TextureFlag::kSRGB));
+static_assert(textureWantsMips(TextureFlag::kGenerateMips));
+static_assert(!textureWantsMips(TextureFlag::kNone));
 constexpr TextureFlags kTexFlags = TextureFlag::kSRGB | TextureFlag::kGenerateMips;
 static_assert(textureWantsMips(kTexFlags));
 
-}  // namespace
-
 // ---------------------------------------------------------------------------
-void
-runFlagTests() {
-  const int failedBefore = sfmxtest::g_checksFailed;
+// Runtime verification
+// ---------------------------------------------------------------------------
+TEST_CASE("Flags::operator| combines bits") {
+  CHECK((TestFlag::kA | TestFlag::kB).getRaw() == 0x03);
+}
 
-  // Runtime mirror of the "build a variable then pass it" path.
-  TextureFlags flags;                     // empty
-  flags.set(TextureFlag::kSRGB);          // add one
-  flags |= TextureFlag::kGenerateMips;    // add another
-  SFMX_CHECK(textureWantsMips(flags));    // pass the variable
-  SFMX_CHECK(flags.isSet(TextureFlag::kSRGB));
-  SFMX_CHECK(!flags.isSet(TextureFlag::kRenderTarget));
+TEST_CASE("Flags::isSet single bit") {
+  CHECK((TestFlag::kA | TestFlag::kB).isSet(TestFlag::kA));
+  CHECK_FALSE((TestFlag::kA | TestFlag::kB).isSet(TestFlag::kC));
+  CHECK((TestFlag::kA | TestFlag::kB).isSet(TestFlag::kA | TestFlag::kB));
+}
 
-  // Inline at the call site also works (no temporary needed).
-  SFMX_CHECK(textureWantsMips(TextureFlag::kSRGB | TextureFlag::kGenerateMips));
-  SFMX_CHECK(!textureWantsMips(TextureFlag::kSRGB));
+TEST_CASE("Flags::isSetAny") {
+  CHECK((TestFlag::kA | TestFlag::kB).isSetAny(TestFlag::kC | TestFlag::kA));
+  CHECK_FALSE((TestFlag::kA | TestFlag::kB).isSetAny(TestFlag::kC));
+}
 
-  if (sfmxtest::g_checksFailed == failedBefore) {
-    std::cout << "[FlagTest] passed\n";
-  }
+TEST_CASE("Flags::set / unset") {
+  CHECK(TestFlags(TestFlag::kA).set(TestFlag::kB).getRaw() == 0x03);
+  CHECK(TestFlags(TestFlag::kA | TestFlag::kB).unset(TestFlag::kA).getRaw() == 0x02);
+}
+
+TEST_CASE("Flags &, ^, ~, bool, ==") {
+  CHECK((TestFlag::kA & (TestFlag::kA | TestFlag::kB)).getRaw() == 0x01);
+  CHECK((TestFlags(TestFlag::kA) ^ TestFlag::kA).getRaw() == 0x00);
+  CHECK(static_cast<bool>(TestFlags(TestFlag::kA)));
+  CHECK_FALSE(static_cast<bool>(TestFlags(TestFlag::kNone)));
+  CHECK(TestFlags(TestFlag::kA) == TestFlag::kA);
+  CHECK(TestFlag::kA == TestFlags(TestFlag::kA));
+  CHECK(TestFlags(TestFlag::kA) != TestFlag::kB);
+  CHECK_FALSE((~TestFlags(TestFlag::kA)).isSet(TestFlag::kA));
+}
+
+TEST_CASE("Flags passed to functions") {
+  CHECK(textureWantsMips(TextureFlag::kSRGB | TextureFlag::kGenerateMips));
+  CHECK_FALSE(textureWantsMips(TextureFlag::kSRGB));
+}
+
+TEST_CASE("Flags built as variable then passed") {
+  TextureFlags flags;
+  flags.set(TextureFlag::kSRGB);
+  flags |= TextureFlag::kGenerateMips;
+  CHECK(textureWantsMips(flags));
+  CHECK(flags.isSet(TextureFlag::kSRGB));
+  CHECK_FALSE(flags.isSet(TextureFlag::kRenderTarget));
 }

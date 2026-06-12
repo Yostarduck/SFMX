@@ -53,6 +53,8 @@ endforeach()
 add_compile_definitions($<$<CONFIG:Debug>:DEBUG>
                         $<$<CONFIG:Release>:RELEASE>)
 
+enable_testing()
+
 add_subdirectory(SketchGfx)
 add_subdirectory(FrameworkGame)
 add_subdirectory(Game)

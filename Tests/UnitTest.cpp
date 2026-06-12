@@ -1,17 +1,24 @@
 // SFMX test runner. This is the entry point; each test group lives in its own
-// .cpp (FlagTest.cpp, ...) and is invoked here. Add a new group by including
-// its header and calling its run function before report().
+// .cpp (FlagTest.cpp, DataStreamTest.cpp, ...) and is discovered automatically
+// via doctest TEST_CASE macros.
 
-#include "TestRunner.h"
+#define DOCTEST_CONFIG_IMPLEMENT
+#define ANKERL_NANOBENCH_IMPLEMENT
 
-#include "FlagTest.h"
-#include "DataStreamTest.h"
+#include "utils/UnitTest.h"
+
 
 int
-main() {
-  runFlagTests();
-  runDataStreamTests();
-  // runFooTests();   // future test groups go here
+main(int argc, char* argv[]) {
 
-  return sfmxtest::report();
+  doctest::Context context;
+  context.applyCommandLine(argc, argv);
+
+  int res = context.run();
+  if (context.shouldExit()) {
+    return res;
+  }
+
+  context.clearFilters();
+  return res + EXIT_SUCCESS;
 }

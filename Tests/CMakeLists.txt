@@ -2,8 +2,16 @@ add_executable(UnitTests
     UnitTest.cpp
     FlagTest.cpp
     DataStreamTest.cpp
+    BenchmarkTest.cpp
+)
+
+target_include_directories(UnitTests PRIVATE
+    ${CMAKE_SOURCE_DIR}/ThirdParty/doctest
+    ${CMAKE_SOURCE_DIR}/ThirdParty/nanobench
 )
 
 target_link_libraries(UnitTests PRIVATE SFMX::FrameworkGame)
+
+add_test(NAME UnitTests COMMAND UnitTests)
 
 # Each test group lives in its own .cpp here; UnitTest.cpp is the runner.
