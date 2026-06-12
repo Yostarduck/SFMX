@@ -1,6 +1,8 @@
 add_library(FrameworkGame STATIC
     source/config/IniFile.cpp
     source/core/MemoryPool.cpp
+    source/core/DataStream.cpp
+    source/core/MemoryDataStream.cpp
     source/input/InputTypes.cpp
     source/input/Keyboard.cpp
     source/input/Mouse.cpp
@@ -14,10 +16,12 @@ add_library(FrameworkGame STATIC
     source/input/InputSystem.cpp
     source/scene/Component.cpp
     source/scene/Transform.cpp
+    source/scene/ParticleSystemComponent.cpp
     source/scene/SceneNode.cpp
     source/scene/Scene.cpp
     source/scene/SourceComponent.cpp
     source/scene/ListenerComponent.cpp
+    source/scene/CameraComponent.cpp
     source/utils/MemoryPoolHandler.cpp
     source/utils/Random.cpp
     source/utils/UUID.cpp
