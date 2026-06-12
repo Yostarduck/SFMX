@@ -15,6 +15,9 @@
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
 #include "scene/SpriteComponent.h"
+#include "scene/AnimatorComponent.h"
+#include "resource/SpriteAtlas.h"
+#include "resource/Frame.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
@@ -47,6 +50,7 @@ DECLARE_TYPE_TRAITS(CircleComponent)
 DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
 DECLARE_TYPE_TRAITS(CameraComponent)
+DECLARE_TYPE_TRAITS(AnimatorComponent)
 
 int main()
 {
@@ -75,6 +79,7 @@ int main()
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<SpriteComponent>(8);
   pools.registerPool<CameraComponent>(1);
+  pools.registerPool<AnimatorComponent>(8);
 
 
   Scene scene("Main");
@@ -226,18 +231,47 @@ int main()
   neptune->addComponent<CircleComponent>(12.f, sf::Color(80, 100, 200));
   neptune->addComponent<ListenerComponent>();
   auto* sprite = neptune->addComponent<SpriteComponent>();
-  auto* texture = new sf::Texture();
-  if (!texture->loadFromFile("Game/resources/aleka.png"))
+  auto* texture2 = new sf::Texture();
+  if (!texture2->loadFromFile("Game/resources/aleka.png"))
   {
     std::cerr << "Failed loading particle texture\n";
-    delete texture;
+    delete texture2;
     return -1;
   }
-  sprite->setTexture(*texture);
+  sprite->setTexture(*texture2);
   sprite->setScale(0.1f);
   sprite->setOrigin({sprite->getPixelSize().x * 0.5f, 
                      sprite->getPixelSize().y * 0.5f});
   sprite->setColor(sf::Color::White);
+
+  // --- Mario atlas animation demo ---
+  sf::Texture* marioTex = new sf::Texture();
+  if (marioTex->loadFromFile("Game/resources/marioatlas.png"))
+  {
+    const sf::Image marioImg = marioTex->copyToImage();
+
+    const auto rects = detectSpriteRects(marioImg);
+    std::cout << "[SpriteAtlas] Detected " << rects.size() << " frames\n";
+
+    Animation* marioAnim = new Animation();
+    marioAnim->m_loops = true;
+    marioAnim->m_duration = static_cast<float>(rects.size()) * 0.1f;
+    marioAnim->m_speedMultiplier = 1.0f;
+
+    for (const auto& r : rects)
+      marioAnim->m_frames.push_back({*marioTex, r});
+
+    SceneNode* marioNode = scene.createNode("Mario");
+    marioNode->transform().setPosition(center + sf::Vector2f{0.f, 100.f});
+    auto* marioAnimator = marioNode->addComponent<AnimatorComponent>();
+    marioAnimator->addAnimation(marioAnim, "run");
+    marioAnimator->play("run");
+  }
+  else
+  {
+    std::cerr << "[SpriteAtlas] Failed to load marioatlas.png\n";
+    delete marioTex;
+  }
 
   // InputSystem: Example of "Mapping Mode", you create a "Mapping", which
   // contains a "Map", a map contains "Actions", an action contains "Bindings",

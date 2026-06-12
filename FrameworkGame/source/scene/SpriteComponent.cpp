@@ -3,6 +3,8 @@
 #include <cmath>
 
 #include "scene/SceneNode.h"
+#include "resource/Frame.h"
+
 
 namespace sfmx
 {

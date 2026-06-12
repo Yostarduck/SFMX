@@ -6,10 +6,11 @@
 
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Color.hpp>
-#include "scene/Animation.h"
 #include "scene/Component.h"
 
+
 namespace sfmx {
+class Frame;
 
 class SpriteComponent : public ComponentT<SpriteComponent> {
 
