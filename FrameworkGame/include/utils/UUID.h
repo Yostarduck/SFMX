@@ -33,6 +33,14 @@ class SFMX_UTILITY_EXPORT UUID  {
   NODISCARD FORCEINLINE size_t
   getHash() const noexcept { return Hash<uuids::uuid>{}(m_uuid); }
 
+  /** @brief The raw 16-byte value, for compact binary serialization. */
+  NODISCARD Array<uint8, 16>
+  toBytes() const;
+
+  /** @brief Rebuild a UUID from its raw 16 bytes (see @ref toBytes). */
+  NODISCARD static UUID
+  fromBytes(const Array<uint8, 16>& bytes);
+
   NODISCARD static UUID
   createRandom();
 

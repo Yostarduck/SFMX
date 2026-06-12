@@ -143,3 +143,6 @@ class SFMX_UTILITY_EXPORT DataStream
 };
 
 } // namespace sfmx
+
+// Serialization overloads for UUID / Vector / framework types live in
+// core/DataStreamTypes.h — include that to serialize those types.
