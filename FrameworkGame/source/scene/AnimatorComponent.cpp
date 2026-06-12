@@ -38,6 +38,7 @@ AnimatorComponent::setCurrentAnimation(const String& animation) {
   if (m_animations.find(animation) != m_animations.end()) {
     stop();
     m_currentAnimation = m_animations.find(animation)->second;
+    m_sprite->setFrame(m_currentAnimation->animation->m_frames[0]);
   }
   // TODO: Show user there was no animation with that name
 }

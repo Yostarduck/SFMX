@@ -245,24 +245,26 @@ int main()
   sprite->setColor(sf::Color::White);
 
   // --- Mario atlas animation demo ---
+
+  SceneNode* marioNode = scene.createNode("Mario");
   sf::Texture* marioTex = new sf::Texture();
   if (marioTex->loadFromFile("Game/resources/marioatlas.png"))
   {
     const sf::Image marioImg = marioTex->copyToImage();
 
-    const auto rects = detectSpriteRects(marioImg);
+    auto rects = detectSpriteRects(marioImg);
+    int actualFrames = 6; // Take only the first 12 frames
+    rects.resize(actualFrames);
     std::cout << "[SpriteAtlas] Detected " << rects.size() << " frames\n";
-
     Animation* marioAnim = new Animation();
     marioAnim->m_loops = true;
     marioAnim->m_duration = static_cast<float>(rects.size()) * 0.1f;
     marioAnim->m_speedMultiplier = 1.0f;
 
-    for (const auto& r : rects)
+    for (const auto& r : rects) {
       marioAnim->m_frames.push_back({*marioTex, r});
+    }
 
-    SceneNode* marioNode = scene.createNode("Mario");
-    marioNode->transform().setPosition(center + sf::Vector2f{0.f, 100.f});
     auto* marioAnimator = marioNode->addComponent<AnimatorComponent>();
     marioAnimator->addAnimation(marioAnim, "run");
     marioAnimator->play("run");
@@ -272,6 +274,12 @@ int main()
     std::cerr << "[SpriteAtlas] Failed to load marioatlas.png\n";
     delete marioTex;
   }
+  
+  auto* marioSprite = marioNode->getComponent<SpriteComponent>();
+  marioSprite->setOrigin({marioSprite->getPixelSize().x * 0.5f,
+                          marioSprite->getPixelSize().y * 0.5f});
+  marioNode->transform().setPosition({marioSprite->getPixelSize().x,
+                                      marioSprite->getPixelSize().y});
 
   // InputSystem: Example of "Mapping Mode", you create a "Mapping", which
   // contains a "Map", a map contains "Actions", an action contains "Bindings",

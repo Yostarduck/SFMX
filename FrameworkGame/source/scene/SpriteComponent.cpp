@@ -180,10 +180,13 @@ SpriteComponent::isFlippedY() const
 void
 SpriteComponent::setFrame(const Frame& frame)
 {
-  if (frame.texture)
+  if (frame.texture) {
     m_sprite.emplace(*frame.texture, frame.framing);
-  else if (frame.framing.size.x > 0 && frame.framing.size.y > 0)
+  }
+
+  else if (frame.framing.size.x > 0 && frame.framing.size.y > 0) {
     setRect(frame.framing);
+  }
 
   setColor(frame.color);
   flipX(frame.flippedX);
@@ -222,7 +225,7 @@ SpriteComponent::onDraw(sf::RenderTarget& target,
   if (m_sprite.has_value())
   {
     states.transform = m_owner->getWorldTransform();
-    states.transform.scale({ m_flipX ? 1 : -1, m_flipY ? 1 : -1 });
+    states.transform.scale({ m_flipX ? -1 : 1, m_flipY ? -1 : 1 });
     target.draw(*m_sprite, states);
   }
 }
