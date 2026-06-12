@@ -276,10 +276,76 @@ int main()
   }
   
   auto* marioSprite = marioNode->getComponent<SpriteComponent>();
-  marioSprite->setOrigin({marioSprite->getPixelSize().x * 0.5f,
-                          marioSprite->getPixelSize().y * 0.5f});
-  marioNode->transform().setPosition({marioSprite->getPixelSize().x,
-                                      marioSprite->getPixelSize().y});
+  // marioSprite->setOrigin({marioSprite->getPixelSize().x * 0.5f,
+  //                         marioSprite->getPixelSize().y * 0.5f});
+  marioNode->transform().setPosition({0,0});
+
+  auto* playerNode = scene.createNode("Player");
+  playerNode->transform().setPosition({256,256});
+  auto* playerAnimator = playerNode->addComponent<AnimatorComponent>();
+  sf::Texture* idleText = new sf::Texture();
+  if (idleText->loadFromFile("Game/resources/playeridle.png"))
+  {
+    Vector<sf::IntRect> rects;
+    rects.resize(4);
+    rects[0] = {{0,0}, {128, 128}};
+    rects[1] = {{128,0}, {128, 128}};
+    rects[2] = {{256,0}, {128, 128}};
+    rects[3] = {{384,0}, {128, 128}};
+    // int actualFrames = 6; // Take only the first 12 frames
+    // rects.resize(actualFrames);
+    std::cout << "[SpriteAtlas] Detected " << rects.size() << " frames\n";
+    Animation* idleAnim = new Animation();
+    idleAnim->m_loops = true;
+    idleAnim->m_duration = static_cast<float>(rects.size()) * 0.5f;
+    idleAnim->m_speedMultiplier = 1.0f;
+
+    for (const auto& r : rects) {
+      idleAnim->m_frames.push_back({*idleText, r});
+    }
+
+    playerAnimator->addAnimation(idleAnim, "idle");
+    playerAnimator->play("idle");
+  }
+  else
+  {
+    std::cerr << "[SpriteAtlas] Failed to load playeridle.png\n";
+    delete idleText;
+  }
+  sf::Texture* walkingText = new sf::Texture();
+  if (walkingText->loadFromFile("Game/resources/playerwalking.png"))
+  {
+    Vector<sf::IntRect> rects;
+    rects.resize(8);
+    rects[0] = {{0,0}, {128, 128}};
+    rects[1] = {{128,0}, {128, 128}};
+    rects[2] = {{256,0}, {128, 128}};
+    rects[3] = {{384,0}, {128, 128}};
+    rects[4] = {{512,0}, {128, 128}};
+    rects[5] = {{640,0}, {128, 128}};
+    rects[6] = {{768,0}, {128, 128}};
+    rects[7] = {{896,0}, {128, 128}};
+    // int actualFrames = 6; // Take only the first 12 frames
+    // rects.resize(actualFrames);
+    std::cout << "[SpriteAtlas] Detected " << rects.size() << " frames\n";
+    Animation* walkingAnim = new Animation();
+    walkingAnim->m_loops = true;
+    walkingAnim->m_duration = static_cast<float>(rects.size()) * 0.1f;
+    walkingAnim->m_speedMultiplier = 2.0f;
+
+    for (const auto& r : rects) {
+      walkingAnim->m_frames.push_back({*walkingText, r});
+    }
+
+    playerAnimator->addAnimation(walkingAnim, "walking");
+    playerAnimator->play("walking");
+  }
+  else
+  {
+    std::cerr << "[SpriteAtlas] Failed to load playerwalking.png\n";
+    delete walkingText;
+  }
+  
 
   // InputSystem: Example of "Mapping Mode", you create a "Mapping", which
   // contains a "Map", a map contains "Actions", an action contains "Bindings",
