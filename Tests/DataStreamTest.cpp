@@ -7,6 +7,7 @@
 
 #include "core/platform/Prerequisites.h"
 #include "core/MemoryDataStream.h"
+#include "core/DataStreamTypes.h"  // UUID / Vector serialization overloads
 
 #include "TestRunner.h"
 
@@ -94,6 +95,38 @@ runDataStreamTests() {
   s.seek(s.size());
   uint32 nothing = 0;
   SFMX_CHECK(s.read(&nothing, sizeof(nothing)) == 0);
+
+  // -- Vector<T> (trivially-copyable) round-trip ----------------------------
+  MemoryDataStream vs;
+  const Vector<uint32> nums = {1u, 2u, 3u, 0xFFFFFFFFu, 42u};
+  const Vector<uint32> empty;
+  vs << nums << empty;
+
+  vs.seek(0);
+  Vector<uint32> rNums;
+  Vector<uint32> rEmpty;
+  vs >> rNums >> rEmpty;
+  SFMX_CHECK(rNums == nums);
+  SFMX_CHECK(rEmpty.empty());
+  SFMX_CHECK(vs.isAtEnd());
+  // Layout: [u64 count][5*u32] + [u64 count]
+  SFMX_CHECK(vs.size() == sizeof(uint64) + 5 * sizeof(uint32) + sizeof(uint64));
+
+  // -- UUID round-trips as 16 raw bytes -------------------------------------
+  // Qualify sfmx::UUID: on Windows <rpcdce.h> (pulled in by stduuid's system
+  // generator) defines a global ::UUID, so bare UUID is ambiguous here.
+  MemoryDataStream us;
+  const sfmx::UUID id = sfmx::UUID::createRandom();
+  const sfmx::UUID named = sfmx::UUID::createFromName("ParticleSystemComponent");
+  us << id << named;
+  SFMX_CHECK(us.size() == 32);  // 16 + 16, no string overhead
+
+  us.seek(0);
+  sfmx::UUID rId;
+  sfmx::UUID rNamed;
+  us >> rId >> rNamed;
+  SFMX_CHECK(rId == id);
+  SFMX_CHECK(rNamed == named);
 
   if (sfmxtest::g_checksFailed == failedBefore) {
     std::cout << "[DataStreamTest] passed\n";
