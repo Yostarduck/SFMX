@@ -189,13 +189,15 @@ int main()
   MemoryPoolHandler::startUp(4096);
 
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
-  pools.registerPool<Particle>(2048);
-  pools.registerPool<SceneNode>(1024);
-  pools.registerPool<CircleComponent>(64);
-  pools.registerPool<SourceComponent>(4);
-  pools.registerPool<ListenerComponent>(1);
-  pools.registerPool<CameraComponent>(1);
-  pools.registerPool<ScriptComponent>(8);
+  pools.registerPool<Particle>(1048576);
+  pools.registerPool<SceneNode>(1048576);
+  pools.registerPool<CircleComponent>(1048576);
+  pools.registerPool<SourceComponent>(1048576);
+  pools.registerPool<ListenerComponent>(1048576);
+  pools.registerPool<CameraComponent>(1048576);
+  pools.registerPool<ScriptComponent>(1048576);
+
+  std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
 
   Scene scene("Main");
 
@@ -489,6 +491,14 @@ int main()
     neptune->transform().rotate(sf::degrees(-1.f * deltaTime));
 
     scene.update(deltaTime);
+
+    for (uint32 i = 0; i < 1000; ++i) {
+      SceneNode* tmpnode = scene.createNode("temp");
+      tmpnode->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
+      tmpnode->addComponent<ParticleSystemComponent>();
+      tmpnode->addComponent<SourceComponent>();
+      scene.destroyNode(tmpnode);
+    }
 
     // call_lua_function(lua, deltaTime);
 
