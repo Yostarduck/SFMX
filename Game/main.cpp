@@ -9,7 +9,9 @@
 #include "input/Keyboard.h"
 #include "input/Mapping.h"
 #include "input/Mouse.h"
+#include "scene/CameraComponent.h"
 #include "scene/ListenerComponent.h"
+#include "scene/ParticleSystemComponent.h"
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
 #include "scene/SpriteComponent.h"
@@ -44,6 +46,7 @@ class CircleComponent : public ComponentT<CircleComponent>
 DECLARE_TYPE_TRAITS(CircleComponent)
 DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
+DECLARE_TYPE_TRAITS(CameraComponent)
 
 int main()
 {
@@ -62,16 +65,17 @@ int main()
   window.setVerticalSyncEnabled(enableVSync);
 
   InputSystem::startUp();
+  MemoryPoolHandler::startUp(4096);
 
-  // The MemoryPoolHandler owns all pooled storage process-wide. Start it up and
-  // register every pool (the SceneNode pool included) before creating a Scene.
-  MemoryPoolHandler::startUp(64);
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
+  pools.registerPool<Particle>(2048);
   pools.registerPool<SceneNode>(1024);
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<SpriteComponent>(8);
+  pools.registerPool<CameraComponent>(1);
+
 
   Scene scene("Main");
 
@@ -79,8 +83,52 @@ int main()
   sun->transform().setPosition(center);
   sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
   
+  auto* texture = new sf::Texture();
+  if (!texture->loadFromFile("Game/resources/particle.png"))
+  {
+    std::cerr << "Failed loading particle texture\n";
+    delete texture;
+    return -1;
+  }
+
+  // -- Sun: fiery corona (local space, follows the sun's rotation) --
+  EmitterConfig sunCfg;
+  sunCfg.emissionRate          = 40.f;
+  sunCfg.maxParticles          = 150;
+  sunCfg.direction             = sf::degrees(0.f);
+  sunCfg.directionVariance     = sf::degrees(360.f);
+  sunCfg.speed                 = 120.f;
+  sunCfg.speedVariance         = 40.f;
+  sunCfg.startRotation         = sf::degrees(0.f);
+  sunCfg.startRotationVariance = sf::degrees(360.f);
+  sunCfg.angularVelocity       = 90.f;
+  sunCfg.angularVelocityVariance = 45.f;
+  sunCfg.gravity               = {-40.f, 0.f};
+  sunCfg.startColor            = sf::Color(255, 200, 80);
+  sunCfg.endColor              = sf::Color(255, 50, 0, 0);
+  sunCfg.startSize             = {20.f, 20.f};
+  sunCfg.endSize               = {0.f, 0.f};
+  sunCfg.lifetime              = 5.0f;
+  sunCfg.lifetimeVariance      = 0.5f;
+  sunCfg.texture               = texture;
+  sunCfg.blendMode             = sf::BlendAlpha;
+  sunCfg.duration              = 0.f;
+  sunCfg.loop                  = false;
+
+  auto* sunParticles = sun->addComponent<ParticleSystemComponent>();
+  sunParticles->setConfig(sunCfg);
+  sunParticles->setSortMode(ParticleSortMode::BackToFront);
+  sunParticles->setWorldSpace(false);
+
   SceneNode* sun2 = scene.createNode("Sun2");
   sun2->transform().setPosition(center);
+
+  SceneNode* cameraNode = scene.createNode("Camera", sun);
+  auto* camera = cameraNode->addComponent<CameraComponent>();
+  camera->setSize({static_cast<float>(windowWidth) * 2.f,
+                   static_cast<float>(windowHeight) * 2.f});
+  camera->setFollowNode(true);
+  scene.setCamera(camera);
   
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
@@ -97,6 +145,33 @@ int main()
       std::cout << "[Audio] Failed to load background.mp3\n";
     }
   }
+  EmitterConfig earthCfg;
+  earthCfg.emissionRate          = 100.f;
+  earthCfg.maxParticles          = 1000;
+  earthCfg.direction             = sf::degrees(0.f);
+  earthCfg.directionVariance     = sf::degrees(360.f);
+  earthCfg.speed                 = 30.f;
+  earthCfg.speedVariance         = 10.f;
+  earthCfg.startRotation         = sf::degrees(0.f);
+  earthCfg.startRotationVariance = sf::degrees(360.f);
+  earthCfg.angularVelocity       = 30.f;
+  earthCfg.angularVelocityVariance = 15.f;
+  earthCfg.gravity               = {0.f, 0.f};
+  earthCfg.startColor            = sf::Color(100, 200, 255, 180);
+  earthCfg.endColor              = sf::Color(100, 200, 255, 0);
+  earthCfg.startSize             = {16.f, 16.f};
+  earthCfg.endSize               = {0.f, 0.f};
+  earthCfg.lifetime              = 3.0f;
+  earthCfg.lifetimeVariance      = 0.3f;
+  earthCfg.texture               = texture;
+  earthCfg.blendMode             = sf::BlendAlpha;
+  earthCfg.duration              = 0.f;
+  earthCfg.loop                  = false;
+
+  auto* earthParticles = earth->addComponent<ParticleSystemComponent>();
+  earthParticles->setConfig(earthCfg);
+  earthParticles->setSortMode(ParticleSortMode::BackToFront);
+  earthParticles->setWorldSpace(true);
 
   SceneNode* moon = scene.createNode("Moon", earth);
   moon->transform().setPosition({40.f, 0.f});

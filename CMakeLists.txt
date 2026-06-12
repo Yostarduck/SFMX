@@ -56,3 +56,4 @@ add_compile_definitions($<$<CONFIG:Debug>:DEBUG>
 add_subdirectory(SketchGfx)
 add_subdirectory(FrameworkGame)
 add_subdirectory(Game)
+add_subdirectory(Tests)
