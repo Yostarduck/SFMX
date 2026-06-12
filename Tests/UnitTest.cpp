@@ -4,8 +4,10 @@
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #define ANKERL_NANOBENCH_IMPLEMENT
-
 #include "utils/UnitTest.h"
+#include "utils/MemoryPoolHandler.h"
+
+using namespace sfmx;
 
 
 int
@@ -20,5 +22,10 @@ main(int argc, char* argv[]) {
   }
 
   context.clearFilters();
+
+  if (MemoryPoolHandler::isStarted()) {
+    MemoryPoolHandler::shutDown();
+  }
+
   return res + EXIT_SUCCESS;
 }
