@@ -160,7 +160,8 @@ int main()
   }
   sprite->setTexture(*texture);
   sprite->setScale(0.1f);
-  sprite->setOrigin({0.5f, 0.5f});
+  sprite->setOrigin({sprite->getPixelSize().x * 0.5f, 
+                     sprite->getPixelSize().y * 0.5f});
   sprite->setColor(sf::Color::White);
 
   // InputSystem: Example of "Mapping Mode", you create a "Mapping", which
@@ -281,7 +282,7 @@ int main()
     sun->transform().rotate(sf::degrees(45.f * deltaTime));
     sun2->transform().rotate(sf::degrees(10.f * deltaTime));
     earth->transform().rotate(sf::degrees(215.f * deltaTime));
-    neptune->transform().rotate(sf::degrees(-1.f * deltaTime));
+    neptune->transform().rotate(sf::degrees(-15.f * deltaTime));
 
     scene.update(deltaTime);
 

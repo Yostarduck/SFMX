@@ -112,46 +112,31 @@ SpriteComponent::getRotationDegrees() const
 void
 SpriteComponent::scale(float delta)
 {
-  m_baseScale.x *= delta;
-  m_baseScale.y *= delta;
-  syncScale();
+  activeSprite().scale({delta, delta});
 }
 
 void
 SpriteComponent::scale(const sf::Vector2f& delta)
 {
-  m_baseScale.x *= delta.x;
-  m_baseScale.y *= delta.y;
-  syncScale();
+  activeSprite().scale(delta);
 }
 
 void
 SpriteComponent::setScale(float newScale)
 {
-  m_baseScale = {newScale, newScale};
-  syncScale();
+  activeSprite().setScale({newScale, newScale});
 }
 
 void
 SpriteComponent::setScale(const sf::Vector2f& newScale)
 {
-  m_baseScale = newScale;
-  syncScale();
+  activeSprite().setScale(newScale);
 }
 
 sf::Vector2f
 SpriteComponent::getScale() const
 {
-  return m_baseScale;
-}
-
-void
-SpriteComponent::syncScale()
-{
-  sf::Vector2f effective = m_baseScale;
-  if (m_flipX) effective.x = -std::abs(effective.x);
-  if (m_flipY) effective.y = -std::abs(effective.y);
-  activeSprite().setScale(effective);
+  return activeSprite().getScale();
 }
 
 void
@@ -170,14 +155,12 @@ void
 SpriteComponent::flipX(bool flipped)
 {
   m_flipX = flipped;
-  syncScale();
 }
 
 void
 SpriteComponent::flipY(bool flipped)
 {
   m_flipY = flipped;
-  syncScale();
 }
 
 bool
@@ -218,13 +201,16 @@ SpriteComponent::getAsFrame() const
   return f;
 }
 
+sf::Vector2i
+SpriteComponent::getPixelSize()
+{
+  return activeSprite().getTextureRect().size;
+}
+
 void
 SpriteComponent::onUpdate(float /*deltaTime*/)
 {
-  if (m_followNode && m_sprite.has_value())
-  {
-    setPosition(m_owner->getWorldTransform().transformPoint({0.f, 0.f}));
-  }
+
 }
 
 void
@@ -232,7 +218,11 @@ SpriteComponent::onDraw(sf::RenderTarget& target,
                         sf::RenderStates states) const
 {
   if (m_sprite.has_value())
+  {
+    states.transform = m_owner->getWorldTransform();
+    states.transform.scale({ m_flipX ? 1 : -1, m_flipY ? 1 : -1 });
     target.draw(*m_sprite, states);
+  }
 }
 
 } // namespace sfmx

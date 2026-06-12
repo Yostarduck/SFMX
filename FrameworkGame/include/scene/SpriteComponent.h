@@ -57,6 +57,8 @@ public:
 
   NODISCARD sf::Vector2f getOrigin() const;
 
+  NODISCARD sf::Vector2i getPixelSize();
+
   void flipX(bool flipped);
   void flipY(bool flipped);
 
@@ -69,15 +71,14 @@ public:
   void onDraw(sf::RenderTarget& target, 
               sf::RenderStates states) const override;
 
-private:
-
   NODISCARD sf::Sprite& activeSprite();
   NODISCARD const sf::Sprite& activeSprite() const;
-  void syncScale();
+
+
+
+private:
 
   std::optional<sf::Sprite> m_sprite;
-  sf::Vector2f              m_baseScale  = {1.f, 1.f};
-  bool                      m_followNode = false;
   bool                      m_flipX      = false;
   bool                      m_flipY      = false;
 };
