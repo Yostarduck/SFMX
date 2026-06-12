@@ -104,7 +104,7 @@ AnimatorComponent::removeAnimation(const String& name) {
 void
 AnimatorComponent::onUpdate(float deltaTime) {
   checkAnimationState(deltaTime);
-  updateParamTriggers();
+  // updateParamTriggers();
   if (m_state != AnimationState::kStarted) return;
   if (!m_sprite || !m_currentAnimation) return;
 
@@ -122,15 +122,20 @@ AnimatorComponent::checkAnimationState(float /*deltaTime*/) {
     m_state = AnimationState::kStopped;
     return;
   }
-  if (m_state != AnimationState::kStarted) return;
+  if (m_state != AnimationState::kStarted) { return; }
 
   Animation* a = m_currentAnimation->animation;
 
   for (const auto& t : m_currentAnimation->transitions) {
-    if (!t->shouldTransition) continue;
-    if (t->hasExitTime && m_currentTime < a->m_duration) continue;
-    if (!evaluateTransitionConditions(t)) continue;
+    if (!t->shouldTransition) { continue; }
+    if (t->hasExitTime && m_currentTime < a->m_duration) { continue; } 
+    if (!evaluateTransitionConditions(t)) { continue; }
     transitionTo(t->exit);
+    for(auto& p : t->params) {
+      if (ParamType::kTrigger == p.second.t) {
+        m_params[p.first].v = false;
+      }
+    }
     return;
   }
 
@@ -145,7 +150,7 @@ AnimatorComponent::checkAnimationState(float /*deltaTime*/) {
 void
 AnimatorComponent::transitionTo(const String& name) {
   auto it = m_animations.find(name);
-  if (it == m_animations.end()) return;
+  if (it == m_animations.end()) { return; }
 
   m_currentAnimation = it->second;
   m_currentTime = 0.0f;
@@ -159,11 +164,11 @@ bool
 AnimatorComponent::evaluateTransitionConditions(const AnimationTransition* t) const {
   for (const auto& [key, required] : t->params) {
     auto it = m_params.find(key);
-    if (it == m_params.end()) return false;
-    if (required.t != it->second.t) return false;
+    if (it == m_params.end()) { return false; }
+    if (required.t != it->second.t) { return false; }
 
     if (required.t == ParamType::kTrigger) {
-      if (!std::any_cast<bool>(it->second.v)) return false;
+      if (!std::any_cast<bool>(it->second.v)) { return false; }
     } else if (required.t == ParamType::kBool) {
       if (std::any_cast<bool>(required.v) != std::any_cast<bool>(it->second.v)) return false;
     } else if (required.t == ParamType::kFloat) {
