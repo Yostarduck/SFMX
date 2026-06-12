@@ -16,6 +16,7 @@ add_library(FrameworkGame STATIC
     source/input/InputSystem.cpp
     source/scene/Component.cpp
     source/scene/Transform.cpp
+    source/scene/ParticleSystemComponent.cpp
     source/scene/SceneNode.cpp
     source/scene/Scene.cpp
     source/scene/SourceComponent.cpp
