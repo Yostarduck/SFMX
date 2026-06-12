@@ -1,5 +1,7 @@
 #include "scene/Scene.h"
 
+#include "utils/MemoryPoolHandler.h"
+
 #include <algorithm>
 #include <cstring>
 
@@ -195,6 +197,35 @@ Scene::draw(sf::RenderTarget& target) const {
     target.setView(cam->getView());
     m_root->draw(target, sf::RenderStates::Default);
   }
+}
+
+void
+Scene::clear() {
+  if (nullptr == m_root) {
+    return;
+  }
+
+  MemoryPoolHandler& pools = MemoryPoolHandler::instance();
+
+  // Destroy any components attached to the root itself.
+  for (Component* component = m_root->m_firstComponent; nullptr != component;) {
+    Component* next = component->getNextComponent();
+    pools.deallocate(component->getTypeId(), component);
+    component = next;
+  }
+  m_root->m_firstComponent = nullptr;
+  m_root->m_lastComponent = nullptr;
+
+  // Destroy every child subtree of the root. The root itself remains allocated
+  // so the scene object stays valid until the pools are torn down.
+  while (nullptr != m_root->m_firstChild) {
+    SceneNode* child = m_root->m_firstChild;
+    destroyNodeRecursive(child);
+  }
+
+  m_root->m_firstChild = nullptr;
+  m_root->m_lastChild = nullptr;
+  m_cameras.clear();
 }
 
 }  // namespace sfmx
