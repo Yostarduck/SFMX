@@ -1,6 +1,7 @@
 add_executable(UnitTests
     UnitTest.cpp
     FlagTest.cpp
+    DataStreamTest.cpp
 )
 
 target_link_libraries(UnitTests PRIVATE SFMX::FrameworkGame)
