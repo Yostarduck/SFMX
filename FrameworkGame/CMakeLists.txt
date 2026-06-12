@@ -21,11 +21,8 @@ add_library(FrameworkGame STATIC
     source/scene/Scene.cpp
     source/scene/SourceComponent.cpp
     source/scene/ListenerComponent.cpp
-<<<<<<< HEAD
     source/scene/SpriteComponent.cpp
-=======
     source/scene/CameraComponent.cpp
->>>>>>> main
     source/utils/MemoryPoolHandler.cpp
     source/utils/Random.cpp
     source/utils/UUID.cpp
