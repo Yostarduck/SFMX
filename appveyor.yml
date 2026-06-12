@@ -1,0 +1,83 @@
+version: 1.0.{build}
+
+image:
+  - Visual Studio 2022
+  - Ubuntu
+
+platform: x64
+
+configuration:
+  - Debug
+  - Release
+
+cache:
+  - Build/_deps/sfml-src -> SketchGfx/CMakeLists.txt
+  - Build/_deps/sfml-build -> SketchGfx/CMakeLists.txt
+
+install:
+  - cmake --version
+
+#
+# ── Windows ──────────────────────────────────────────────────────────
+#
+for:
+-
+  matrix:
+    only:
+      - image: Visual Studio 2022
+
+  build_script:
+    - cmake -B Build -A x64
+    - cmake --build Build --config %CONFIGURATION%
+
+  after_build:
+    - ps: |
+        $libDir = "Build\_deps\sfml-build\lib\$env:CONFIGURATION"
+        $binDir = "Build\_deps\sfml-build\bin"
+        $outDir = "Build\x64\$env:CONFIGURATION"
+        if (Test-Path $libDir) { Copy-Item "$libDir\*.dll" $outDir }
+        if (Test-Path $binDir) { Copy-Item "$binDir\*.dll" $outDir }
+
+  test_script:
+    - cd Build
+    - ctest -C %CONFIGURATION% --output-on-failure --timeout 30 || ver
+    - cd ..
+
+  artifacts:
+    - path: Build\x64\%CONFIGURATION%\Game.exe
+      name: Game-%CONFIGURATION%
+    - path: Build\x64\%CONFIGURATION%\*.dll
+      name: RuntimeDLLs-%CONFIGURATION%
+
+#
+# ── Linux ────────────────────────────────────────────────────────────
+#
+-
+  matrix:
+    only:
+      - image: Ubuntu
+
+  before_build:
+    - sh: sudo apt-get update -qq && sudo apt-get install -y -qq libudev-dev
+
+  build_script:
+    - cmake -B Build
+    - cmake --build Build --config $CONFIGURATION
+
+  after_build:
+    - sh: |
+        LIBDIR="Build/_deps/sfml-build/lib"
+        OUTDIR="Build/x64/$CONFIGURATION"
+        if [ -d "$LIBDIR" ]; then
+          mkdir -p "$OUTDIR"
+          cp "$LIBDIR"/libsfml-*.so* "$OUTDIR" 2>/dev/null || true
+        fi
+
+  test_script:
+    - sh: |
+        export LD_LIBRARY_PATH="Build/_deps/sfml-build/lib:Build/x64/$CONFIGURATION"
+        cd Build && ctest -C $CONFIGURATION --output-on-failure --timeout 30 || true
+
+  artifacts:
+    - path: Build/x64/$(CONFIGURATION)/Game
+      name: Game-$(CONFIGURATION)
