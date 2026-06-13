@@ -5,7 +5,6 @@
 #include "scene/SceneNode.h"
 #include "resource/Frame.h"
 
-
 namespace sfmx
 {
 
@@ -16,21 +15,30 @@ SpriteComponent::SpriteComponent(SceneNode* owner)
 sf::Sprite&
 SpriteComponent::activeSprite()
 {
-  SFMX_ASSERT(m_sprite.has_value());
+  SFMX_ASSERT(m_sprite);
   return *m_sprite;
 }
 
 const sf::Sprite&
 SpriteComponent::activeSprite() const
 {
-  SFMX_ASSERT(m_sprite.has_value());
+  SFMX_ASSERT(m_sprite);
   return *m_sprite;
 }
 
 void
 SpriteComponent::setTexture(const sf::Texture& texture)
 {
-  m_sprite.emplace(texture);
+  m_sprite = MakeShared<sf::Sprite>(texture);
+}
+
+void
+SpriteComponent::setTexture(SPtr<sf::Texture> texture)
+{
+  m_texture = texture;
+  if (m_texture) {
+    m_sprite = MakeShared<sf::Sprite>(*m_texture);
+  }
 }
 
 void
@@ -181,16 +189,19 @@ void
 SpriteComponent::setFrame(const Frame& frame)
 {
   if (frame.texture) {
-    m_sprite.emplace(*frame.texture, frame.framing);
-  }
-
-  else if (frame.framing.size.x > 0 && frame.framing.size.y > 0) {
+    m_texture = frame.texture;
+    m_sprite = MakeShared<sf::Sprite>(*m_texture, frame.framing);
+  } else if (frame.framing.size.x > 0 && frame.framing.size.y > 0) {
     setRect(frame.framing);
   }
 
   setColor(frame.color);
   flipX(frame.flippedX);
   flipY(frame.flippedY);
+
+  setScale(frame.scale);
+  setPosition(frame.position);
+  setRotation(frame.rotation);
 }
 
 const Frame
@@ -198,11 +209,14 @@ SpriteComponent::getAsFrame() const
 {
   Frame f;
   const sf::Sprite& s = activeSprite();
-  f.texture = const_cast<sf::Texture*>(&s.getTexture());
+  f.texture = m_texture;
   f.framing = s.getTextureRect();
   f.color = s.getColor();
   f.flippedX = m_flipX;
   f.flippedY = m_flipY;
+  f.scale = s.getScale();
+  f.position = s.getPosition();
+  f.rotation = s.getRotation();
   return f;
 }
 
@@ -222,7 +236,7 @@ void
 SpriteComponent::onDraw(sf::RenderTarget& target,
                         sf::RenderStates states) const
 {
-  if (m_sprite.has_value())
+  if (m_sprite)
   {
     states.transform = m_owner->getWorldTransform();
     states.transform.scale({ m_flipX ? -1 : 1, m_flipY ? -1 : 1 });

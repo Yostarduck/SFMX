@@ -4,6 +4,29 @@
 #include "resource/Frame.h"
 
 namespace sfmx {
+namespace {
+
+size_t computeFrameIndex(const Animation& anim, float currentTime) {
+  if (anim.m_frames.empty()) return 0;
+
+  const auto& durations = anim.m_frameDurations;
+  if (!durations.empty()) {
+    float accum = 0.0f;
+    for (size_t i = 0; i < durations.size(); ++i) {
+      accum += durations[i];
+      if (currentTime < accum) return i;
+    }
+    return durations.size() - 1;
+  }
+
+  if (anim.m_duration > 0.f) {
+    float frame = (currentTime / anim.m_duration) * static_cast<float>(anim.m_frames.size());
+    return std::min(static_cast<size_t>(frame), anim.m_frames.size() - 1);
+  }
+  return 0;
+}
+
+} // namespace
 
 AnimatorComponent::AnimatorComponent(SceneNode* owner)
 : ComponentT<AnimatorComponent>(owner) {
@@ -13,14 +36,7 @@ AnimatorComponent::AnimatorComponent(SceneNode* owner)
   setSprite(m_owner->getComponent<SpriteComponent>());
 }
 
-AnimatorComponent::~AnimatorComponent() {
-  for (auto& [_, node] : m_animations) {
-    for (auto* t : node->transitions) {
-      delete t;
-    }
-    delete node;
-  }
-}
+AnimatorComponent::~AnimatorComponent() = default;
 
 void
 AnimatorComponent::play(const String& animation) {
@@ -43,7 +59,7 @@ AnimatorComponent::setCurrentAnimation(const String& animation) {
   auto it = m_animations.find(animation);
   if (it != m_animations.end()) {
     stop();
-    m_currentAnimation = it->second;
+    m_currentAnimation = it->second.get();
     if (!m_currentAnimation->animation->m_frames.empty()) {
       m_sprite->setFrame(m_currentAnimation->animation->m_frames[0]);
     }
@@ -51,23 +67,23 @@ AnimatorComponent::setCurrentAnimation(const String& animation) {
 }
 
 void
-AnimatorComponent::addAnimation(Animation* newAnimation, const String& name) {
+AnimatorComponent::addAnimation(SPtr<Animation> newAnimation, const String& name) {
   String newName = name;
   if (m_animations.count(newName)) {
     newName += (name + std::to_string(m_animations.count(name)));
   }
-  AnimationNode* newNode = new AnimationNode();
+  auto newNode = MakeUnique<AnimationNode>();
   newNode->animation = newAnimation;
-  m_animations.try_emplace(newName, newNode);
+  m_animations.try_emplace(newName, std::move(newNode));
 }
 
 void
-AnimatorComponent::addAnimation(AnimationNode* newAnimation, const String& name) {
+AnimatorComponent::addAnimation(UniquePtr<AnimationNode> newAnimation, const String& name) {
   String newName = name;
   if (m_animations.count(newName)) {
     newName += (name + std::to_string(m_animations.count(name)));
   }
-  m_animations.try_emplace(newName, newAnimation);
+  m_animations.try_emplace(newName, std::move(newAnimation));
 }
 
 void
@@ -77,7 +93,7 @@ AnimatorComponent::addTransition(const String& fromAnim, const String& toAnim,
   auto it = m_animations.find(fromAnim);
   if (it == m_animations.end()) return;
 
-  AnimationTransition* t = new AnimationTransition();
+  auto t = MakeShared<AnimationTransition>();
   t->exit = toAnim;
   t->hasExitTime = hasExitTime;
   t->shouldTransition = shouldTransition;
@@ -90,28 +106,22 @@ AnimatorComponent::removeAnimation(const String& name) {
   auto it = m_animations.find(name);
   if (it == m_animations.end()) return;
 
-  if (it->second == m_currentAnimation) {
+  if (it->second.get() == m_currentAnimation) {
     stop();
     m_currentAnimation = nullptr;
   }
-  for (auto* t : it->second->transitions) {
-    delete t;
-  }
-  delete it->second;
   m_animations.erase(it);
 }
 
 void
 AnimatorComponent::onUpdate(float deltaTime) {
   checkAnimationState(deltaTime);
-  // updateParamTriggers();
-  if (m_state != AnimationState::kStarted) return;
+  updateParamTriggers();
+  if (m_state != AnimationState::kPlaying) return;
   if (!m_sprite || !m_currentAnimation) return;
 
-  Animation* a = m_currentAnimation->animation;
-  float frame = (a->m_duration > 0.f) ?
-                (m_currentTime / a->m_duration) * a->m_frames.size() : 0.f;
-  size_t idx = std::min(static_cast<size_t>(frame), a->m_frames.size() - 1);
+  Animation* a = m_currentAnimation->animation.get();
+  size_t idx = computeFrameIndex(*a, m_currentTime);
   m_sprite->setFrame(a->m_frames[idx]);
   m_currentTime += deltaTime * a->m_speedMultiplier;
 }
@@ -122,20 +132,15 @@ AnimatorComponent::checkAnimationState(float /*deltaTime*/) {
     m_state = AnimationState::kStopped;
     return;
   }
-  if (m_state != AnimationState::kStarted) { return; }
+  if (m_state != AnimationState::kPlaying) return;
 
-  Animation* a = m_currentAnimation->animation;
+  Animation* a = m_currentAnimation->animation.get();
 
   for (const auto& t : m_currentAnimation->transitions) {
-    if (!t->shouldTransition) { continue; }
-    if (t->hasExitTime && m_currentTime < a->m_duration) { continue; } 
-    if (!evaluateTransitionConditions(t)) { continue; }
+    if (!t->shouldTransition) continue;
+    if (t->hasExitTime && m_currentTime < a->m_duration) continue;
+    if (!evaluateTransitionConditions(t.get())) continue;
     transitionTo(t->exit);
-    for(auto& p : t->params) {
-      if (ParamType::kTrigger == p.second.t) {
-        m_params[p.first].v = false;
-      }
-    }
     return;
   }
 
@@ -150,11 +155,11 @@ AnimatorComponent::checkAnimationState(float /*deltaTime*/) {
 void
 AnimatorComponent::transitionTo(const String& name) {
   auto it = m_animations.find(name);
-  if (it == m_animations.end()) { return; }
+  if (it == m_animations.end()) return;
 
-  m_currentAnimation = it->second;
+  m_currentAnimation = it->second.get();
   m_currentTime = 0.0f;
-  m_state = AnimationState::kStarted;
+  m_state = AnimationState::kPlaying;
   if (!m_currentAnimation->animation->m_frames.empty()) {
     m_sprite->setFrame(m_currentAnimation->animation->m_frames[0]);
   }
@@ -164,17 +169,24 @@ bool
 AnimatorComponent::evaluateTransitionConditions(const AnimationTransition* t) const {
   for (const auto& [key, required] : t->params) {
     auto it = m_params.find(key);
-    if (it == m_params.end()) { return false; }
-    if (required.t != it->second.t) { return false; }
+    if (it == m_params.end()) return false;
+    if (required.type != it->second.type) return false;
 
-    if (required.t == ParamType::kTrigger) {
-      if (!std::any_cast<bool>(it->second.v)) { return false; }
-    } else if (required.t == ParamType::kBool) {
-      if (std::any_cast<bool>(required.v) != std::any_cast<bool>(it->second.v)) return false;
-    } else if (required.t == ParamType::kFloat) {
-      if (std::any_cast<float>(required.v) != std::any_cast<float>(it->second.v)) return false;
-    } else if (required.t == ParamType::kInt) {
-      if (std::any_cast<int>(required.v) != std::any_cast<int>(it->second.v)) return false;
+    if (required.type == ParamType::kTrigger) {
+      const auto* v = std::get_if<bool>(&it->second.value);
+      if (!v || !*v) return false;
+    } else if (required.type == ParamType::kBool) {
+      const auto* reqV = std::get_if<bool>(&required.value);
+      const auto* curV = std::get_if<bool>(&it->second.value);
+      if (!reqV || !curV || *reqV != *curV) return false;
+    } else if (required.type == ParamType::kFloat) {
+      const auto* reqV = std::get_if<float>(&required.value);
+      const auto* curV = std::get_if<float>(&it->second.value);
+      if (!reqV || !curV || *reqV != *curV) return false;
+    } else if (required.type == ParamType::kInt) {
+      const auto* reqV = std::get_if<int>(&required.value);
+      const auto* curV = std::get_if<int>(&it->second.value);
+      if (!reqV || !curV || *reqV != *curV) return false;
     }
   }
   return true;
@@ -183,8 +195,8 @@ AnimatorComponent::evaluateTransitionConditions(const AnimationTransition* t) co
 void
 AnimatorComponent::updateParamTriggers() {
   for (auto& p : m_params) {
-    if (ParamType::kTrigger == p.second.t) {
-      p.second.v = false;
+    if (ParamType::kTrigger == p.second.type) {
+      p.second.value = false;
     }
   }
 }

@@ -23,7 +23,7 @@ testEmptyTransparent()
 {
     sf::Image img(sz(16, 16), sf::Color::Transparent);
 
-    const auto rects = detectSpriteRects(img);
+    const auto rects = Atlas::detectSpriteRects(img);
     SFMX_CHECK(rects.empty());
 }
 
@@ -33,7 +33,7 @@ testSingleOpaquePixel()
     sf::Image img(sz(16, 16), sf::Color::Transparent);
     img.setPixel(uv(5, 7), sf::Color::White);
 
-    const auto rects = detectSpriteRects(img);
+    const auto rects = Atlas::detectSpriteRects(img);
     SFMX_CHECK(rects.size() == 1);
     if (rects.size() == 1) {
         SFMX_CHECK(rects[0].position.x == 5);
@@ -56,7 +56,7 @@ testTwoDisjointSquares()
         for (int x = 22; x < 28; ++x)
             img.setPixel(uv(x, y), sf::Color::White);
 
-    const auto rects = detectSpriteRects(img);
+    const auto rects = Atlas::detectSpriteRects(img);
     SFMX_CHECK(rects.size() == 2);
     if (rects.size() == 2) {
         SFMX_CHECK(rects[0].position.x == 3);
@@ -81,7 +81,7 @@ testLShapeOneBoundingRect()
     for (int y = 2; y < 10; ++y)
         img.setPixel(uv(2, y), sf::Color::White);
 
-    const auto rects = detectSpriteRects(img);
+    const auto rects = Atlas::detectSpriteRects(img);
     SFMX_CHECK(rects.size() == 1);
     if (rects.size() == 1) {
         SFMX_CHECK(rects[0].position.x == 2);
@@ -99,7 +99,7 @@ testDiagonalTouchSeparate()
     img.setPixel(uv(4, 4), sf::Color::White);
     img.setPixel(uv(5, 5), sf::Color::White);
 
-    const auto rects = detectSpriteRects(img);
+    const auto rects = Atlas::detectSpriteRects(img);
     SFMX_CHECK(rects.size() == 2);
 }
 
@@ -109,7 +109,7 @@ testPaddingExpandsRects()
     sf::Image img(sz(16, 16), sf::Color::Transparent);
     img.setPixel(uv(7, 7), sf::Color::White);
 
-    const auto rects = detectSpriteRects(img, 1, 2);
+    const auto rects = Atlas::detectSpriteRects(img, 1, 2);
     SFMX_CHECK(rects.size() == 1);
     if (rects.size() == 1) {
         SFMX_CHECK(rects[0].position.x == 5);
@@ -125,7 +125,7 @@ testPaddingClampedToBounds()
     sf::Image img(sz(8, 8), sf::Color::Transparent);
     img.setPixel(uv(0, 0), sf::Color::White);
 
-    const auto rects = detectSpriteRects(img, 1, 10);
+    const auto rects = Atlas::detectSpriteRects(img, 1, 10);
     SFMX_CHECK(rects.size() == 1);
     if (rects.size() == 1) {
         SFMX_CHECK(rects[0].position.x == 0);
@@ -143,10 +143,10 @@ testAlphaThreshold()
     img.setPixel(uv(2, 2), sf::Color(255, 255, 255, 3));
     img.setPixel(uv(5, 5), sf::Color::White);
 
-    const auto rectsLow = detectSpriteRects(img, 1);
+    const auto rectsLow = Atlas::detectSpriteRects(img, 1);
     SFMX_CHECK(rectsLow.size() == 2);
 
-    const auto rectsHigh = detectSpriteRects(img, 5);
+    const auto rectsHigh = Atlas::detectSpriteRects(img, 5);
     SFMX_CHECK(rectsHigh.size() == 1);
     if (rectsHigh.size() == 1) {
         SFMX_CHECK(rectsHigh[0].position.x == 5);
@@ -162,7 +162,7 @@ testSortedTopToBottom()
     img.setPixel(uv(4, 10), sf::Color::White);
     img.setPixel(uv(4, 2), sf::Color::White);
 
-    const auto rects = detectSpriteRects(img);
+    const auto rects = Atlas::detectSpriteRects(img);
     SFMX_CHECK(rects.size() == 2);
     if (rects.size() == 2) {
         SFMX_CHECK(rects[0].position.y == 2);
@@ -175,7 +175,7 @@ testZeroSizeImage()
 {
     sf::Image img;  // default-constructed: 0x0
 
-    const auto rects = detectSpriteRects(img);
+    const auto rects = Atlas::detectSpriteRects(img);
     SFMX_CHECK(rects.empty());
 }
 

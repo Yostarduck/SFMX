@@ -5,26 +5,14 @@
 #include "scene/SpriteComponent.h"
 #include "scene/Animation.h"
 
-
-namespace sfmx {
-// Forward declaration
-// class   SpriteComponent;
-// class   Animation;
-struct  AnimationNode;
-struct  AnimationTransition;
-} // namespace sfmx
-
 namespace sfmx {
 
-struct AnimationNode
-{
-  Animation*                    animation   = nullptr;
-  Vector<AnimationTransition*>  transitions = {};
-};
+struct AnimationNode;
+struct AnimationTransition;
 
 enum class AnimationState : uint32
 {
-  kStarted, kPaused, kStopped
+  kPlaying, kPaused, kStopped
 };
 
 enum class ParamType : uint32 {
@@ -35,20 +23,22 @@ enum class ParamType : uint32 {
 };
 
 struct Param {
-  ParamType t;
-  std::any  v;
+  ParamType type;
+  Variant<bool, float, int> value;
 };
 
 struct AnimationTransition {
-  // TODO: Add list of requirements for it to change. For now it this ok
-  Map<String, Param>  params  = {}; 
+  Map<String, Param>  params  = {};
   String              exit    = "";
   bool      shouldTransition  = true;
   bool      hasExitTime       = true;
 };
 
-
-
+struct AnimationNode
+{
+  SPtr<Animation>              animation   = nullptr;
+  Vector<SPtr<AnimationTransition>>  transitions = {};
+};
 
 class AnimatorComponent : public ComponentT<AnimatorComponent> {
  public:
@@ -56,10 +46,9 @@ class AnimatorComponent : public ComponentT<AnimatorComponent> {
   AnimatorComponent(SceneNode* owner);
   ~AnimatorComponent() override;
 
-
   void play(const String& animation);
   FORCEINLINE void
-  play() { m_state = AnimationState::kStarted; }
+  play() { m_state = AnimationState::kPlaying; }
   FORCEINLINE void
   pause() { m_state = AnimationState::kPaused; }
   void stop();
@@ -71,9 +60,9 @@ class AnimatorComponent : public ComponentT<AnimatorComponent> {
   }
 
   void
-  addAnimation(Animation* newAnimation, const String& name);
+  addAnimation(SPtr<Animation> newAnimation, const String& name);
   void
-  addAnimation(AnimationNode* newAnimation, const String& name);
+  addAnimation(UniquePtr<AnimationNode> newAnimation, const String& name);
   void
   removeAnimation(const String& name);
 
@@ -111,13 +100,12 @@ class AnimatorComponent : public ComponentT<AnimatorComponent> {
   bool
   evaluateTransitionConditions(const AnimationTransition* t) const;
 
-  Map<String, AnimationNode*> m_animations;
-  AnimationNode*              m_currentAnimation = nullptr;
-  Map<String, Param>          m_params;
-  SpriteComponent*  m_sprite  = nullptr;
-  float             m_currentTime = 0.0f;
-  AnimationState    m_state   = AnimationState::kStopped;
-
+  Map<String, UniquePtr<AnimationNode>>  m_animations;
+  AnimationNode*                         m_currentAnimation = nullptr;
+  Map<String, Param>                     m_params;
+  SpriteComponent*                       m_sprite  = nullptr;
+  float                                  m_currentTime = 0.0f;
+  AnimationState                         m_state   = AnimationState::kStopped;
 };
 
-} // sfmx
+} // namespace sfmx

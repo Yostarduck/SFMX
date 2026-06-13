@@ -5,7 +5,7 @@
 
 #include "core/platform/Prerequisites.h"
 
-namespace sfmx
+namespace sfmx::Atlas
 {
 
 /**
@@ -28,4 +28,36 @@ NODISCARD Vector<sf::IntRect> detectSpriteRects(
     uint8 alphaThreshold = 1,
     int32 padding = 0);
 
-} // namespace sfmx
+/**
+ * @brief Divide the atlas into a uniform @p columns x @p rows grid.
+ *
+ * All cells are the same size (atlasSize / columns / rows). Partial tiles
+ * at the right/bottom edge are discarded.
+ *
+ * @param atlasSize Width and height of the sprite sheet in pixels.
+ * @param columns   Number of columns to split into.
+ * @param rows      Number of rows to split into.
+ * @return @p columns x @p rows rectangles covering the full atlas.
+ */
+NODISCARD Vector<sf::IntRect> getSpriteRectsByGrid(
+    const sf::Vector2u& atlasSize,
+    uint32 columns,
+    uint32 rows);
+
+/**
+ * @brief Divide the atlas into fixed-size cells.
+ *
+ * Tiles are placed left-to-right, top-to-bottom. A partial tile at the
+ * right or bottom edge is included and clipped to the atlas bounds.
+ *
+ * @param atlasSize    Width and height of the sprite sheet in pixels.
+ * @param spriteWidth  Width of each sprite in pixels.
+ * @param spriteHeight Height of each sprite in pixels.
+ * @return All full and (where applicable) clipped partial tiles.
+ */
+NODISCARD Vector<sf::IntRect> getSpriteRectsByRectSize(
+    const sf::Vector2u& atlasSize,
+    uint32 spriteWidth,
+    uint32 spriteHeight);
+
+} // namespace sfmx::Atlas

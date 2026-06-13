@@ -2,12 +2,9 @@
 
 #include "core/platform/Prerequisites.h"
 
-#include <optional>
-
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include "scene/Component.h"
-
 
 namespace sfmx {
 class Frame;
@@ -18,6 +15,7 @@ public:
   explicit SpriteComponent(SceneNode* owner);
 
   void setTexture(const sf::Texture& txt);
+  void setTexture(SPtr<sf::Texture> texture);
 
   void setFrame(const Frame& f);
   NODISCARD const Frame getAsFrame() const;
@@ -69,19 +67,18 @@ public:
   /** @brief Drives auto position from the node's world transform when m_followNode is true */
   void onUpdate(float deltaTime) override;
 
-  void onDraw(sf::RenderTarget& target, 
+  void onDraw(sf::RenderTarget& target,
               sf::RenderStates states) const override;
 
   NODISCARD sf::Sprite& activeSprite();
   NODISCARD const sf::Sprite& activeSprite() const;
 
-
-
 private:
 
-  std::optional<sf::Sprite> m_sprite;
-  bool                      m_flipX      = false;
-  bool                      m_flipY      = false;
+  SPtr<sf::Sprite>   m_sprite;
+  SPtr<sf::Texture>    m_texture;
+  bool                 m_flipX      = false;
+  bool                 m_flipY      = false;
 };
 
 } // namespace sfmx

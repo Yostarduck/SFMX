@@ -9,38 +9,27 @@ namespace sfmx
 struct Frame
 {
   Frame() = default;
-  
-  Frame(sf::Texture& t,  
+
+  Frame(SPtr<sf::Texture> t,
         const sf::Color& c = sf::Color::White)
-    : color(c) {
-        texture = &t;
+    : texture(t), color(c) {
         sf::Vector2i size(texture->getSize().x, texture->getSize().y);
         framing = {{0,0}, size};
       }
-  
-  
-  Frame(sf::Texture& t, 
-        const sf::IntRect& f, 
+
+  Frame(SPtr<sf::Texture> t,
+        const sf::IntRect& f,
         const sf::Color& c = sf::Color::White)
-    : framing(f),
-      color(c) {
-        texture = &t;
-      }
-  
-  FORCEINLINE void flipX(bool flip) { flippedX = flip; }
-  FORCEINLINE void flipY(bool flip) { flippedY = flip; }
-  FORCEINLINE void toggleFlipX()    { flippedX = !flippedX; }
-  FORCEINLINE void toggleFlipY()    { flippedY = !flippedY; }
+    : texture(t), framing(f), color(c) {}
 
-  sf::Texture*  texture       = nullptr;
-  sf::IntRect   framing       = {{0,0},{0,0}};
-  sf::Vector2f  scale         = {1, 1};
-  sf::Vector2f  position      = {0, 0};
-  sf::Angle     rotation      = sf::degrees(0);
-  sf::Color     color         = sf::Color::White;
-  bool          flippedX      = false;
-  bool          flippedY      = false;
+  SPtr<sf::Texture> texture       = nullptr;
+  sf::IntRect       framing       = {{0,0},{0,0}};
+  sf::Vector2f      scale         = {1, 1};
+  sf::Vector2f      position      = {0, 0};
+  sf::Angle         rotation      = sf::degrees(0);
+  sf::Color         color         = sf::Color::White;
+  bool              flippedX      = false;
+  bool              flippedY      = false;
 };
-
 
 }

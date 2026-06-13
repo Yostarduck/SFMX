@@ -8,15 +8,13 @@ namespace sfmx
 {
 class Frame;
 
-class Animation
+struct Animation
 {
-public:
-
-  Vector<Frame> m_frames;
-  bool          m_loops;
-  float         m_speedMultiplier;
-  float         m_duration;
-
+  Vector<Frame>  m_frames;
+  Vector<float>  m_frameDurations;  // Per-frame durations (empty = even split)
+  bool           m_loops            = false;
+  float          m_speedMultiplier  = 1.0f;
+  float          m_duration         = 0.0f;
 };
 
 }
