@@ -403,6 +403,7 @@ template <typename T>
 using InitializerList = std::initializer_list<T>;
 
 using FileSystemPath = std::filesystem::path;
-namespace FileSystem = std::filesystem;
+// NOTE: std::filesystem is wrapped by the sfmx::FileSystem class (core/FileSystem.h);
+// do not re-add a `namespace FileSystem = std::filesystem` alias here (name clash).
 
 } // namespace chEngineSDK

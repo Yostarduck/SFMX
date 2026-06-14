@@ -4,6 +4,7 @@ add_executable(UnitTests
     DataStreamTest.cpp
     ParticleSystemTest.cpp
     BenchmarkTest.cpp
+    FileSystemTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE

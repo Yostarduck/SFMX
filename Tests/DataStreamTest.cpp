@@ -2,6 +2,7 @@
 
 #include "core/platform/Prerequisites.h"
 #include "core/MemoryDataStream.h"
+#include "core/DataStreamTypes.h"  // UUID / Vector serialization overloads
 
 using namespace sfmx;
 
