@@ -11,7 +11,7 @@ class Frame;
 struct Animation
 {
   Vector<Frame>  m_frames;
-  Vector<float>  m_frameDurations;  // Per-frame durations (empty = even split)
+  Vector<float>  m_frameDurations;  
   bool           m_loops            = false;
   float          m_speedMultiplier  = 1.0f;
   float          m_duration         = 0.0f;
