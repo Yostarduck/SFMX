@@ -16,6 +16,7 @@ add_library(FrameworkGame STATIC
     source/input/ActionMap.cpp
     source/input/Mapping.cpp
     source/input/InputSystem.cpp
+    source/resource/SpriteAtlas.cpp
     source/scene/Component.cpp
     source/scene/Transform.cpp
     source/scene/ParticleSystemComponent.cpp
@@ -24,6 +25,8 @@ add_library(FrameworkGame STATIC
     source/scene/SourceComponent.cpp
     source/scene/ListenerComponent.cpp
     source/scene/CameraComponent.cpp
+    source/scene/SpriteComponent.cpp
+    source/scene/AnimatorComponent.cpp
     source/utils/MemoryPoolHandler.cpp
     source/utils/Random.cpp
     source/utils/UUID.cpp

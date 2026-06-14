@@ -8,10 +8,13 @@
 #include "DataStreamTest.h"
 #include "FileSystemTest.h"
 
+#include "SpriteAtlasTest.h"
+
 int
 main() {
   runFlagTests();
   runDataStreamTests();
+  runSpriteAtlasTests();
   runFileSystemTests();
   // runFooTests();   // future test groups go here
 
