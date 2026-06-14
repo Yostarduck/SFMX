@@ -6,6 +6,7 @@
 
 #include "FlagTest.h"
 #include "DataStreamTest.h"
+#include "FileSystemTest.h"
 
 #include "SpriteAtlasTest.h"
 
@@ -14,6 +15,7 @@ main() {
   runFlagTests();
   runDataStreamTests();
   runSpriteAtlasTests();
+  runFileSystemTests();
   // runFooTests();   // future test groups go here
 
   return sfmxtest::report();

@@ -8,11 +8,22 @@ namespace sfmx
 
 /**
  * @brief How a @ref DataStream may be accessed. Combine via @ref AccessModeFlags.
+ *
+ * For files the combination maps to an open mode:
+ * - `kRead`                      → read-only (file must exist).
+ * - `kWrite`                     → write-only, truncating (creates the file).
+ * - `kRead | kWrite`             → read+write **in place**, preserving content
+ *                                  (file must exist) — edit large files without
+ *                                  loading them whole into memory.
+ * - `kRead | kWrite | kTruncate` → read+write starting empty (creates/truncates).
+ *
+ * @ref kTruncate is only meaningful together with `kRead | kWrite`.
  */
 enum class AccessMode : uint16 {
-  kNone  = 0x00,
-  kRead  = 0x01,
-  kWrite = 0x02,
+  kNone     = 0x00,
+  kRead     = 0x01,
+  kWrite    = 0x02,
+  kTruncate = 0x04,
 };
 SFMX_DECLARE_FLAGS_EXT(AccessModeFlags, AccessMode, uint16)
 
@@ -46,14 +57,14 @@ class SFMX_UTILITY_EXPORT DataStream
   DataStream(const DataStream&) = delete;
   DataStream& operator=(const DataStream&) = delete;
 
-  NODISCARD bool
+  NODISCARD FORCEINLINE bool
   isReadable() const { return m_mode.isSetAny(AccessMode::kRead); }
 
-  NODISCARD bool
+  NODISCARD FORCEINLINE bool
   isWriteable() const { return m_mode.isSetAny(AccessMode::kWrite); }
 
   /** @brief Total size of the backing store in bytes. */
-  NODISCARD size_t
+  NODISCARD FORCEINLINE size_t
   size() const { return m_size; }
 
   // -- Raw byte interface (implemented per backing store) --------------------
@@ -132,3 +143,6 @@ class SFMX_UTILITY_EXPORT DataStream
 };
 
 } // namespace sfmx
+
+// Serialization overloads for UUID / Vector / framework types live in
+// core/DataStreamTypes.h — include that to serialize those types.
