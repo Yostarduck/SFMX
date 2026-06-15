@@ -7,9 +7,6 @@
 
 namespace sfmx {
 
-struct AnimationNode;
-struct AnimationTransition;
-
 enum class AnimationState : uint32
 {
   kPlaying, kPaused, kStopped

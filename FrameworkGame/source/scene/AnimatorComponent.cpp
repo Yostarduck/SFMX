@@ -57,12 +57,10 @@ AnimatorComponent::setCurrentAnimation(const String& animation) {
   }
 
   auto it = m_animations.find(animation);
-  if (it != m_animations.end()) {
-    stop();
-    m_currentAnimation = it->second.get();
-    if (!m_currentAnimation->animation->m_frames.empty()) {
-      m_sprite->setFrame(m_currentAnimation->animation->m_frames[0]);
-    }
+  stop();
+  m_currentAnimation = it->second.get();
+  if (!m_currentAnimation->animation->m_frames.empty()) {
+    m_sprite->setFrame(m_currentAnimation->animation->m_frames[0]);
   }
 }
 
@@ -90,15 +88,16 @@ void
 AnimatorComponent::addTransition(const String& fromAnim, const String& toAnim,
                                   bool hasExitTime, bool shouldTransition,
                                   const Map<String, Param>& conditions) {
-  auto it = m_animations.find(fromAnim);
-  if (it == m_animations.end()) return;
+  auto itBeg = m_animations.find(fromAnim);
+  auto itEnd = m_animations.find(toAnim);
+  if (itBeg == m_animations.end() || itBeg == m_animations.end()) return;
 
   auto t = MakeShared<AnimationTransition>();
   t->exit = toAnim;
   t->hasExitTime = hasExitTime;
   t->shouldTransition = shouldTransition;
   t->params = conditions;
-  it->second->transitions.push_back(t);
+  itBeg->second->transitions.push_back(t);
 }
 
 void
