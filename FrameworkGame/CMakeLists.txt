@@ -5,6 +5,8 @@ add_library(FrameworkGame STATIC
     source/core/MemoryDataStream.cpp
     source/core/FileDataStream.cpp
     source/core/FileSystem.cpp
+    source/core/physics/Collider.cpp
+    source/core/physics/PhysicsSystem.cpp
     source/input/InputTypes.cpp
     source/input/Keyboard.cpp
     source/input/Mouse.cpp
@@ -27,6 +29,8 @@ add_library(FrameworkGame STATIC
     source/scene/CameraComponent.cpp
     source/scene/SpriteComponent.cpp
     source/scene/AnimatorComponent.cpp
+    source/scene/ColliderComponent.cpp
+    source/scene/RigidBodyComponent.cpp
     source/utils/MemoryPoolHandler.cpp
     source/utils/Random.cpp
     source/utils/UUID.cpp
