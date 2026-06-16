@@ -4,6 +4,7 @@ add_executable(UnitTests
     DataStreamTest.cpp
     ParticleSystemTest.cpp
     BenchmarkTest.cpp
+    SpriteAtlasTest.cpp
     FileSystemTest.cpp
 )
 

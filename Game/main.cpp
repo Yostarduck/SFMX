@@ -14,6 +14,10 @@
 #include "scene/ParticleSystemComponent.h"
 #include "scene/Scene.h"
 #include "scene/SourceComponent.h"
+#include "scene/SpriteComponent.h"
+#include "scene/AnimatorComponent.h"
+#include "resource/SpriteAtlas.h"
+#include "resource/Frame.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
@@ -46,6 +50,7 @@ DECLARE_TYPE_TRAITS(CircleComponent)
 DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
 DECLARE_TYPE_TRAITS(CameraComponent)
+DECLARE_TYPE_TRAITS(AnimatorComponent)
 
 int main()
 {
@@ -72,7 +77,10 @@ int main()
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
+  pools.registerPool<ParticleSystemComponent>(8);
+  pools.registerPool<SpriteComponent>(8);
   pools.registerPool<CameraComponent>(1);
+  pools.registerPool<AnimatorComponent>(8);
 
 
   Scene scene("Main");
@@ -135,7 +143,7 @@ int main()
   {
     if (bgm->loadMusicFromFile("Game/resources/background.mp3")) {
       bgm->setLooping(true);
-      bgm->setVolume(10.f);
+      bgm->setVolume(1.0f);
       bgm->setSpatializationEnabled(false);
       bgm->play();
     }
@@ -223,6 +231,119 @@ int main()
   neptune->transform().setPosition({280.f, 100.f});
   neptune->addComponent<CircleComponent>(12.f, sf::Color(80, 100, 200));
   neptune->addComponent<ListenerComponent>();
+  auto* sprite = neptune->addComponent<SpriteComponent>();
+  auto* texture2 = new sf::Texture();
+  if (!texture2->loadFromFile("Game/resources/aleka.png"))
+  {
+    std::cerr << "Failed loading particle texture\n";
+    delete texture2;
+    return -1;
+  }
+  sprite->setTexture(*texture2);
+  sprite->setScale(0.1f);
+  sprite->setOrigin({sprite->getPixelSize().x * 0.5f, 
+                     sprite->getPixelSize().y * 0.5f});
+  sprite->setColor(sf::Color::White);
+
+  // --- Mario atlas animation demo ---
+
+  SceneNode* marioNode = scene.createNode("Mario");
+  SPtr<sf::Texture> marioTex = MakeShared<sf::Texture>();
+  if (marioTex->loadFromFile("Game/resources/marioatlas.png"))
+  {
+    const sf::Image marioImg = marioTex->copyToImage();
+
+    auto rects = Atlas::detectSpriteRects(marioImg);
+    int actualFrames = 6; // Take only the first 12 frames
+    rects.resize(actualFrames);
+    std::cout << "[SpriteAtlas] Detected " << rects.size() << " frames\n";
+    SPtr<Animation> marioAnim = MakeShared<Animation>();
+    marioAnim->m_loops = true;
+    marioAnim->m_duration = static_cast<float>(rects.size()) * 0.1f;
+    marioAnim->m_speedMultiplier = 1.0f;
+
+    for (const auto& r : rects) {
+      marioAnim->m_frames.push_back({marioTex, r});
+    }
+
+    auto* marioAnimator = marioNode->addComponent<AnimatorComponent>();
+    marioAnimator->addAnimation(marioAnim, "run");
+    marioAnimator->play("run");
+  }
+  else
+  {
+    std::cerr << "[SpriteAtlas] Failed to load marioatlas.png\n";
+  }
+  
+  auto* marioSprite = marioNode->getComponent<SpriteComponent>();
+  // marioSprite->setOrigin({marioSprite->getPixelSize().x * 0.5f,
+  //                         marioSprite->getPixelSize().y * 0.5f});
+  marioNode->transform().setPosition({0,0});
+
+  auto* playerNode = scene.createNode("Player");
+  playerNode->transform().setPosition({256,256});
+  auto* playerAnimator = playerNode->addComponent<AnimatorComponent>();
+  SPtr<sf::Texture> idleText = MakeShared<sf::Texture>();
+  if (idleText->loadFromFile("Game/resources/playeridle.png"))
+  {
+    Vector<sf::IntRect> rects;
+    rects.resize(4);
+    rects[0] = {{0,0}, {128, 128}};
+    rects[1] = {{128,0}, {128, 128}};
+    rects[2] = {{256,0}, {128, 128}};
+    rects[3] = {{384,0}, {128, 128}};
+    // int actualFrames = 6; // Take only the first 12 frames
+    // rects.resize(actualFrames);
+    std::cout << "[SpriteAtlas] Detected " << rects.size() << " frames\n";
+    SPtr<Animation> idleAnim = MakeShared<Animation>();
+    idleAnim->m_loops = true;
+    idleAnim->m_duration = static_cast<float>(rects.size()) * 0.5f;
+    idleAnim->m_speedMultiplier = 1.0f;
+
+    for (const auto& r : rects) {
+      idleAnim->m_frames.push_back({idleText, r});
+    }
+
+    playerAnimator->addAnimation(idleAnim, "idle");
+    playerAnimator->play("idle");
+  }
+  else
+  {
+    std::cerr << "[SpriteAtlas] Failed to load playeridle.png\n";
+  }
+  SPtr<sf::Texture> walkingText = MakeShared<sf::Texture>();
+  if (walkingText->loadFromFile("Game/resources/playerwalking.png"))
+  {
+    Vector<sf::IntRect> rects;
+    rects.resize(8);
+    rects[0] = {{0,0}, {128, 128}};
+    rects[1] = {{128,0}, {128, 128}};
+    rects[2] = {{256,0}, {128, 128}};
+    rects[3] = {{384,0}, {128, 128}};
+    rects[4] = {{512,0}, {128, 128}};
+    rects[5] = {{640,0}, {128, 128}};
+    rects[6] = {{768,0}, {128, 128}};
+    rects[7] = {{896,0}, {128, 128}};
+    // int actualFrames = 6; // Take only the first 12 frames
+    // rects.resize(actualFrames);
+    std::cout << "[SpriteAtlas] Detected " << rects.size() << " frames\n";
+    SPtr<Animation> walkingAnim = MakeShared<Animation>();
+    walkingAnim->m_loops = true;
+    walkingAnim->m_duration = static_cast<float>(rects.size()) * 0.1f;
+    walkingAnim->m_speedMultiplier = 2.0f;
+
+    for (const auto& r : rects) {
+      walkingAnim->m_frames.push_back({walkingText, r});
+    }
+
+    playerAnimator->addAnimation(walkingAnim, "walking");
+    playerAnimator->play("walking");
+  }
+  else
+  {
+    std::cerr << "[SpriteAtlas] Failed to load playerwalking.png\n";
+  }
+  
 
   // InputSystem: Example of "Mapping Mode", you create a "Mapping", which
   // contains a "Map", a map contains "Actions", an action contains "Bindings",
@@ -342,7 +463,7 @@ int main()
     sun->transform().rotate(sf::degrees(45.f * deltaTime));
     sun2->transform().rotate(sf::degrees(10.f * deltaTime));
     earth->transform().rotate(sf::degrees(215.f * deltaTime));
-    neptune->transform().rotate(sf::degrees(-1.f * deltaTime));
+    neptune->transform().rotate(sf::degrees(-15.f * deltaTime));
 
     scene.update(deltaTime);
 
