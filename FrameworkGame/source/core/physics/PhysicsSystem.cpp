@@ -4,11 +4,12 @@
 #include "scene/RigidBodyComponent.h"
 #include "scene/SceneNode.h"
 
-namespace sfmx {
+namespace sfmx
+{
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Lifecycle
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
 PhysicsSystem::~PhysicsSystem() {
   m_colliders.clear();
@@ -16,9 +17,9 @@ PhysicsSystem::~PhysicsSystem() {
   m_prevContacts.clear();
 }
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Registration
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
 void
 PhysicsSystem::registerCollider(ColliderComponent* comp) {
@@ -44,21 +45,22 @@ PhysicsSystem::unregisterRigidBody(RigidBodyComponent* comp) {
                       m_rigidBodies.end());
 }
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Pair key
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
+/** @brief Normalised pair key so (a, b) == (b, a) */
 PhysicsSystem::PairKey
 PhysicsSystem::makeKey(ColliderComponent* a, ColliderComponent* b) {
-  // Normalise ordering so (a,b) == (b,a)
   if (a < b) return {a, b};
   return {b, a};
 }
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Layer filtering
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
+/** @brief Returns true if two colliders should be tested for overlap */
 bool
 PhysicsSystem::shouldCollide(const ColliderComponent* a, const ColliderComponent* b) const {
   if (a == b) return false;
@@ -67,10 +69,11 @@ PhysicsSystem::shouldCollide(const ColliderComponent* a, const ColliderComponent
   return (layerA & b->getCollisionMask()) && (layerB & a->getCollisionMask());
 }
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Narrow phase dispatch
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
+/** @brief Runs the narrow-phase intersection test for a collider pair */
 CollisionResult
 PhysicsSystem::testNarrow(ColliderComponent* a, ColliderComponent* b) const {
   Collider* ca = a->getCollider();
@@ -83,10 +86,18 @@ PhysicsSystem::testNarrow(ColliderComponent* a, ColliderComponent* b) const {
   return sfmx::intersect(*ca, wtA, *cb, wtB);
 }
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Separation
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
+/**
+ * @brief Separates two overlapping colliders and resolves velocity.
+ *
+ * Static bodies (no RigidBodyComponent) are treated as immovable.
+ * Triggers are skipped entirely (no separation).
+ * Velocity along the collision normal is removed to prevent
+ * objects from driving into each other on subsequent frames.
+ */
 void
 PhysicsSystem::separate(ColliderComponent* a, ColliderComponent* b, const CollisionResult& cr) {
   if (a->isTrigger() || b->isTrigger()) return;
@@ -127,18 +138,18 @@ PhysicsSystem::separate(ColliderComponent* a, ColliderComponent* b, const Collis
   }
 }
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Main step
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
 void
 PhysicsSystem::step(float dt) {
-  // ── 1. Integrate rigid bodies ────────────────────────────────────────
+  // 1. Integrate rigid bodies
   for (auto* rb : m_rigidBodies) {
     rb->integrate(dt, m_gravity);
   }
 
-  // ── 2. Detect collisions ─────────────────────────────────────────────
+  // 2. Detect collisions
   ContactSet currentContacts;
 
   for (size_t i = 0; i < m_colliders.size(); ++i) {
@@ -166,7 +177,7 @@ PhysicsSystem::step(float dt) {
     }
   }
 
-  // ── 3. Detect exits ─────────────────────────────────────────────────
+  // 3. Detect exits
   for (const auto& key : m_prevContacts) {
     if (!currentContacts.contains(key)) {
       if (m_onExit) m_onExit(key.a, key.b);

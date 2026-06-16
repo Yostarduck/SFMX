@@ -2,7 +2,12 @@
 #include "scene/SceneNode.h"
 #include "scene/Transform.h"
 
-namespace sfmx {
+namespace sfmx
+{
+
+// -----------------------------------------------------------------------------
+// Lifecycle
+// -----------------------------------------------------------------------------
 
 RigidBodyComponent::RigidBodyComponent(SceneNode* owner)
   : ComponentT<RigidBodyComponent>(owner)
@@ -15,6 +20,10 @@ RigidBodyComponent::~RigidBodyComponent() {
   if (PhysicsSystem::isStarted())
     PhysicsSystem::instance().unregisterRigidBody(this);
 }
+
+// -----------------------------------------------------------------------------
+// Integration
+// -----------------------------------------------------------------------------
 
 void
 RigidBodyComponent::integrate(float dt, sf::Vector2f gravity) {
