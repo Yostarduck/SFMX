@@ -123,6 +123,9 @@ class SceneNode
   template<typename T>
   void removeComponent();
 
+  /** @brief First component in the intrusive list (or nullptr). */
+  NODISCARD Component* getFirstComponent() const { return m_firstComponent; }
+
   // -- Traversal -------------------------------------------------------------
   /**
    * @brief Advance this node and its enabled subtree by @p deltaTime.

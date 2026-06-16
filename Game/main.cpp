@@ -26,6 +26,13 @@
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
 
+#include "ui/UITheme.h"
+#include "ui/UIWidget.h"
+#include "ui/UICanvasComponent.h"
+#include "ui/UIPanel.h"
+#include "ui/UILabel.h"
+#include "ui/UIButton.h"
+
 using namespace sfmx;
 
 class CircleComponent : public ComponentT<CircleComponent>
@@ -86,6 +93,10 @@ int main()
   pools.registerPool<AnimatorComponent>(8);
   pools.registerPool<ColliderComponent>(64);
   pools.registerPool<RigidBodyComponent>(64);
+  pools.registerPool<UICanvasComponent>(4);
+  pools.registerPool<UIPanel>(8);
+  pools.registerPool<UILabel>(16);
+  pools.registerPool<UIButton>(8);
 
 
   Scene scene("Main");
@@ -457,6 +468,49 @@ int main()
             << "Dice: "   << Random::diceThrow(2, 6)    << "\n"
             << "Dice: "   << Random::diceThrow(1, 6)    << "\n";
 
+  // ── UI Demo (Phase 1) ──────────────────────────────────────────────────
+  SceneNode* uiRoot = scene.createNode("UIRoot");
+  auto* canvas = uiRoot->addComponent<UICanvasComponent>();
+  canvas->setCanvasSize({static_cast<float>(windowWidth),
+                         static_cast<float>(windowHeight)});
+
+  SPtr<sf::Font> uiFont = MakeShared<sf::Font>();
+  if (!uiFont->openFromFile("/usr/share/fonts/TTF/Hack-Regular.ttf")) {
+    std::cerr << "[UI] Failed to load font\n";
+  }
+
+  SceneNode* bgNode = scene.createNode("UIBg", uiRoot);
+  auto* bg = bgNode->addComponent<UIPanel>();
+  bg->setSize({static_cast<float>(windowWidth), static_cast<float>(windowHeight)});
+  bg->setFillColor({30, 30, 35});
+  bg->setBorderWidth(0.f);
+
+  SceneNode* titleNode = scene.createNode("UITitle", uiRoot);
+  auto* title = titleNode->addComponent<UILabel>();
+  title->setAnchors(Anchors::center());
+  title->setSize({400.f, 60.f});
+  title->setPivot({0.5f, 0.5f});
+  title->setText("SFMX UI Demo");
+  title->setFont(uiFont);
+  title->setFontSize(36);
+  title->setTextColor({200, 200, 210});
+
+  SceneNode* btnNode = scene.createNode("UIButton", uiRoot);
+  auto* btn = btnNode->addComponent<UIButton>();
+  btn->setAnchors(Anchors::center());
+  btn->setSize({200.f, 50.f});
+  btn->setPivot({0.5f, 0.5f});
+  btn->setFont(uiFont);
+  btn->setFontSize(18);
+  btn->setText("Click Me");
+  btn->setFillColor({70, 100, 180});
+  btn->setHoverColor({90, 120, 210});
+  btn->setPressColor({50, 80, 160});
+  [[maybe_unused]] HEvent clickSub = btn->onClick().connect([btn] {
+    std::cout << "[UI] Button clicked!\n";
+    btn->setText("Clicked!");
+  });
+
   while (window.isOpen())
   {
     // InputSystem: snapshot device state before polling
@@ -507,7 +561,12 @@ int main()
     scene.update(deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
+
+    uiRoot->setVisible(false);
     scene.draw(window);
+    uiRoot->setVisible(true);
+    uiRoot->draw(window, sf::RenderStates::Default);
+
     window.display();
   }
 
