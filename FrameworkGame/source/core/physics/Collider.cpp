@@ -5,12 +5,14 @@
 #include <cmath>
 #include <limits>
 
-namespace sfmx {
-namespace {
+namespace sfmx
+{
+namespace
+{
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Internal world-space shape representations
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
 struct WorldCircle { sf::Vector2f center; float radius = 0.f; };
 struct WorldAABB   { sf::Vector2f min, max; };
@@ -31,11 +33,13 @@ struct WorldOOBB
 struct WorldPoint { sf::Vector2f point; };
 struct WorldLine  { sf::Vector2f start, end; };
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // World-shape builders from Collider + Transform
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
-WorldCircle buildWorldCircle(const CircleCollider& c, const sf::Transform& wt) {
+/** @brief Builds a world-space circle from a CircleCollider + transform */
+WorldCircle
+buildWorldCircle(const CircleCollider& c, const sf::Transform& wt) {
   const sf::Vector2f s = {
     length(wt.transformPoint({1.f, 0.f}) - wt.transformPoint({0.f, 0.f})),
     length(wt.transformPoint({0.f, 1.f}) - wt.transformPoint({0.f, 0.f}))
@@ -43,7 +47,9 @@ WorldCircle buildWorldCircle(const CircleCollider& c, const sf::Transform& wt) {
   return {wt.transformPoint(c.getCenter()), c.getRadius() * (s.x + s.y) * 0.5f};
 }
 
-WorldAABB buildWorldAABB(const AABBCollider& a, const sf::Transform& wt) {
+/** @brief Builds a world-space AABB from an AABBCollider + transform */
+WorldAABB
+buildWorldAABB(const AABBCollider& a, const sf::Transform& wt) {
   const auto hs = a.getHalfSize();
   const sf::Vector2f c[4] = {
     wt.transformPoint(a.getCenter() + sf::Vector2f{-hs.x, -hs.y}),
@@ -59,7 +65,9 @@ WorldAABB buildWorldAABB(const AABBCollider& a, const sf::Transform& wt) {
   return {mn, mx};
 }
 
-WorldOOBB buildWorldOOBB(const OOBBCollider& o, const sf::Transform& wt) {
+/** @brief Builds a world-space OOBB from an OOBBCollider + transform */
+WorldOOBB
+buildWorldOOBB(const OOBBCollider& o, const sf::Transform& wt) {
   const sf::Vector2f ori = wt.transformPoint({0.f, 0.f});
   const sf::Vector2f ax  = normalize(wt.transformPoint({1.f, 0.f}) - ori);
   const sf::Vector2f ay  = normalize(wt.transformPoint({0.f, 1.f}) - ori);
@@ -69,18 +77,23 @@ WorldOOBB buildWorldOOBB(const OOBBCollider& o, const sf::Transform& wt) {
   return {wt.transformPoint(o.getCenter()), {hs.x * sx, hs.y * sy}, ax, ay};
 }
 
-WorldPoint buildWorldPoint(const PointCollider& p, const sf::Transform& wt) {
+/** @brief Builds a world-space point from a PointCollider + transform */
+WorldPoint
+buildWorldPoint(const PointCollider& p, const sf::Transform& wt) {
   return {wt.transformPoint(p.getPoint())};
 }
 
-WorldLine buildWorldLine(const LineCollider& l, const sf::Transform& wt) {
+/** @brief Builds a world-space line from a LineCollider + transform */
+WorldLine
+buildWorldLine(const LineCollider& l, const sf::Transform& wt) {
   return {wt.transformPoint(l.getStart()), wt.transformPoint(l.getEnd())};
 }
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Math helpers
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
+/** @brief Closest point on an AABB to a given point */
 sf::Vector2f
 closestPointOnAABB(const WorldAABB& aabb, sf::Vector2f p) {
   return {
@@ -89,6 +102,7 @@ closestPointOnAABB(const WorldAABB& aabb, sf::Vector2f p) {
   };
 }
 
+/** @brief Closest point on a line segment to a given point */
 sf::Vector2f
 closestPointOnSegment(sf::Vector2f a, sf::Vector2f b, sf::Vector2f p) {
   const sf::Vector2f ab = b - a;
@@ -98,6 +112,7 @@ closestPointOnSegment(sf::Vector2f a, sf::Vector2f b, sf::Vector2f p) {
   return a + ab * t;
 }
 
+/** @brief Project polygon corners onto an axis, returning min/max dot values */
 void
 projectCorners(const sf::Vector2f* corners, int count, sf::Vector2f axis,
                float& outMin, float& outMax) {
@@ -110,12 +125,17 @@ projectCorners(const sf::Vector2f* corners, int count, sf::Vector2f axis,
   }
 }
 
+/** @brief Overlap amount of two intervals (negative → no overlap) */
 float
 axisOverlap(float minA, float maxA, float minB, float maxB) {
   return std::min(maxA, maxB) - std::max(minA, minB);
 }
 
-// SAT for OOBB vs OOBB
+// -----------------------------------------------------------------------------
+// SAT implementations
+// -----------------------------------------------------------------------------
+
+/** @brief Separating-axis test for OOBB vs OOBB */
 bool
 satOOBB(const WorldOOBB& a, const WorldOOBB& b,
         sf::Vector2f& outNormal, float& outPenetration) {
@@ -141,7 +161,7 @@ satOOBB(const WorldOOBB& a, const WorldOOBB& b,
   return true;
 }
 
-// SAT for AABB vs OOBB
+/** @brief Separating-axis test for AABB vs OOBB */
 bool
 satAABBOOBB(const WorldAABB& a, const WorldOOBB& b,
             sf::Vector2f& outNormal, float& outPenetration) {
@@ -172,11 +192,13 @@ satAABBOOBB(const WorldAABB& a, const WorldOOBB& b,
   return true;
 }
 
-// ===========================================================================
+// -----------------------------------------------------------------------------
 // Intersection functions (internal)
-// ===========================================================================
+// -----------------------------------------------------------------------------
 
-CollisionResult intersect(const WorldCircle& a, const WorldCircle& b) {
+/** @brief Circle vs Circle */
+CollisionResult
+intersect(const WorldCircle& a, const WorldCircle& b) {
   const sf::Vector2f diff = b.center - a.center;
   const float dist = length(diff);
   const float radSum = a.radius + b.radius;
@@ -189,7 +211,9 @@ CollisionResult intersect(const WorldCircle& a, const WorldCircle& b) {
   return res;
 }
 
-CollisionResult intersect(const WorldCircle& a, const WorldAABB& b) {
+/** @brief Circle vs AABB */
+CollisionResult
+intersect(const WorldCircle& a, const WorldAABB& b) {
   const sf::Vector2f closest = closestPointOnAABB(b, a.center);
   const sf::Vector2f diff = a.center - closest;
   const float dist = length(diff);
@@ -213,7 +237,9 @@ CollisionResult intersect(const WorldCircle& a, const WorldAABB& b) {
   return res;
 }
 
-CollisionResult intersect(const WorldCircle& a, const WorldOOBB& b) {
+/** @brief Circle vs OOBB (SAT in local space of the OOBB) */
+CollisionResult
+intersect(const WorldCircle& a, const WorldOOBB& b) {
   const sf::Vector2f lc = {dot(a.center - b.center, b.axisX),
                            dot(a.center - b.center, b.axisY)};
   const WorldAABB la = {{-b.halfSize.x, -b.halfSize.y}, {b.halfSize.x, b.halfSize.y}};
@@ -241,7 +267,9 @@ CollisionResult intersect(const WorldCircle& a, const WorldOOBB& b) {
   return res;
 }
 
-CollisionResult intersect(const WorldCircle& a, const WorldPoint& b) {
+/** @brief Circle vs Point */
+CollisionResult
+intersect(const WorldCircle& a, const WorldPoint& b) {
   const sf::Vector2f diff = b.point - a.center;
   const float dist = length(diff);
   CollisionResult res;
@@ -253,7 +281,9 @@ CollisionResult intersect(const WorldCircle& a, const WorldPoint& b) {
   return res;
 }
 
-CollisionResult intersect(const WorldCircle& a, const WorldLine& b) {
+/** @brief Circle vs Line */
+CollisionResult
+intersect(const WorldCircle& a, const WorldLine& b) {
   const sf::Vector2f closest = closestPointOnSegment(b.start, b.end, a.center);
   const sf::Vector2f diff = a.center - closest;
   const float dist = length(diff);
@@ -266,7 +296,9 @@ CollisionResult intersect(const WorldCircle& a, const WorldLine& b) {
   return res;
 }
 
-CollisionResult intersect(const WorldAABB& a, const WorldAABB& b) {
+/** @brief AABB vs AABB */
+CollisionResult
+intersect(const WorldAABB& a, const WorldAABB& b) {
   const float ox = axisOverlap(a.min.x, a.max.x, b.min.x, b.max.x);
   const float oy = axisOverlap(a.min.y, a.max.y, b.min.y, b.max.y);
   CollisionResult res;
@@ -279,13 +311,17 @@ CollisionResult intersect(const WorldAABB& a, const WorldAABB& b) {
   return res;
 }
 
-CollisionResult intersect(const WorldAABB& a, const WorldOOBB& b) {
+/** @brief AABB vs OOBB (delegates to SAT) */
+CollisionResult
+intersect(const WorldAABB& a, const WorldOOBB& b) {
   sf::Vector2f n; float p;
   if (satAABBOOBB(a, b, n, p)) return {true, n, p};
   return {};
 }
 
-CollisionResult intersect(const WorldAABB& a, const WorldPoint& b) {
+/** @brief AABB vs Point */
+CollisionResult
+intersect(const WorldAABB& a, const WorldPoint& b) {
   CollisionResult res;
   if (b.point.x >= a.min.x && b.point.x <= a.max.x &&
       b.point.y >= a.min.y && b.point.y <= a.max.y) {
@@ -299,7 +335,9 @@ CollisionResult intersect(const WorldAABB& a, const WorldPoint& b) {
   return res;
 }
 
-CollisionResult intersect(const WorldAABB& a, const WorldLine& b) {
+/** @brief AABB vs Line */
+CollisionResult
+intersect(const WorldAABB& a, const WorldLine& b) {
   auto inside = [&](sf::Vector2f p) {
     return p.x >= a.min.x && p.x <= a.max.x && p.y >= a.min.y && p.y <= a.max.y;
   };
@@ -335,24 +373,32 @@ CollisionResult intersect(const WorldAABB& a, const WorldLine& b) {
   return {};
 }
 
-CollisionResult intersect(const WorldOOBB& a, const WorldOOBB& b) {
+/** @brief OOBB vs OOBB (delegates to SAT) */
+CollisionResult
+intersect(const WorldOOBB& a, const WorldOOBB& b) {
   sf::Vector2f n; float p;
   if (satOOBB(a, b, n, p)) return {true, n, p};
   return {};
 }
 
-CollisionResult intersect(const WorldOOBB& a, const WorldPoint& b) {
+/** @brief OOBB vs Point (transform into OOBB local space, test as AABB) */
+CollisionResult
+intersect(const WorldOOBB& a, const WorldPoint& b) {
   const sf::Vector2f lp = {dot(b.point - a.center, a.axisX), dot(b.point - a.center, a.axisY)};
   return intersect(WorldAABB{{-a.halfSize.x, -a.halfSize.y}, {a.halfSize.x, a.halfSize.y}}, WorldPoint{lp});
 }
 
-CollisionResult intersect(const WorldOOBB& a, const WorldLine& b) {
+/** @brief OOBB vs Line (transform into OOBB local space, test as AABB-hit) */
+CollisionResult
+intersect(const WorldOOBB& a, const WorldLine& b) {
   const sf::Vector2f ls = {dot(b.start - a.center, a.axisX), dot(b.start - a.center, a.axisY)};
   const sf::Vector2f le = {dot(b.end   - a.center, a.axisX), dot(b.end   - a.center, a.axisY)};
   return intersect(WorldAABB{{-a.halfSize.x, -a.halfSize.y}, {a.halfSize.x, a.halfSize.y}}, WorldLine{ls, le});
 }
 
-CollisionResult intersect(const WorldPoint& a, const WorldPoint& b) {
+/** @brief Point vs Point (exact-position match) */
+CollisionResult
+intersect(const WorldPoint& a, const WorldPoint& b) {
   CollisionResult res;
   if (lengthSquared(b.point - a.point) < 1e-6f) {
     res.hit = true; res.normal = {1.f, 0.f}; res.penetration = 0.f;
@@ -360,7 +406,9 @@ CollisionResult intersect(const WorldPoint& a, const WorldPoint& b) {
   return res;
 }
 
-CollisionResult intersect(const WorldPoint& a, const WorldLine& b) {
+/** @brief Point vs Line (point lies exactly on segment) */
+CollisionResult
+intersect(const WorldPoint& a, const WorldLine& b) {
   const sf::Vector2f ab = b.end - b.start;
   const float abls = lengthSquared(ab);
   if (abls < 1e-6f) return {};
@@ -373,7 +421,9 @@ CollisionResult intersect(const WorldPoint& a, const WorldLine& b) {
   return {};
 }
 
-CollisionResult intersect(const WorldLine& a, const WorldLine& b) {
+/** @brief Line vs Line (segment intersection) */
+CollisionResult
+intersect(const WorldLine& a, const WorldLine& b) {
   const sf::Vector2f d1 = a.end - a.start, d2 = b.end - b.start;
   const float denom = cross(d1, d2);
   if (std::abs(denom) < 1e-8f) return {};
@@ -389,14 +439,14 @@ CollisionResult intersect(const WorldLine& a, const WorldLine& b) {
 
 } // namespace
 
-// ===========================================================================
-// Public dispatch: any Collider pair → intersection result
-// ===========================================================================
+// -----------------------------------------------------------------------------
+// Public dispatch
+// -----------------------------------------------------------------------------
 
+/** @brief Public entry point: any Collider pair → intersection result */
 CollisionResult
 intersect(const Collider& a, const sf::Transform& wtA,
           const Collider& b, const sf::Transform& wtB) {
-  // Build world shapes and dispatch
   switch (a.getType()) {
     case ColliderType::kCircle: {
       const auto& ca = static_cast<const CircleCollider&>(a);

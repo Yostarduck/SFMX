@@ -5,7 +5,12 @@
 #include <SFML/Graphics/VertexArray.hpp>
 #include <cmath>
 
-namespace sfmx {
+namespace sfmx
+{
+
+// -----------------------------------------------------------------------------
+// Lifecycle
+// -----------------------------------------------------------------------------
 
 ColliderComponent::ColliderComponent(SceneNode* owner)
   : ComponentT<ColliderComponent>(owner)
@@ -20,7 +25,9 @@ ColliderComponent::~ColliderComponent() {
     PhysicsSystem::instance().unregisterCollider(this);
 }
 
-// ── Shape setters ────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Shape setters
+// -----------------------------------------------------------------------------
 
 void
 ColliderComponent::setCircle(sf::Vector2f localCenter, float radius) {
@@ -47,14 +54,19 @@ ColliderComponent::setLine(sf::Vector2f localStart, sf::Vector2f localEnd) {
   m_collider = UniquePtr<Collider>(new LineCollider(localStart, localEnd));
 }
 
-// ── Accessors ────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Accessors
+// -----------------------------------------------------------------------------
 
+/** @brief Returns the type of the currently held collider shape */
 ColliderType
 ColliderComponent::getColliderType() const {
   return m_collider ? m_collider->getType() : ColliderType::kCircle;
 }
 
-// ── Debug rendering ──────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Debug rendering
+// -----------------------------------------------------------------------------
 
 void
 ColliderComponent::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
