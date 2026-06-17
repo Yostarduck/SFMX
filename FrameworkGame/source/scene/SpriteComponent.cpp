@@ -239,7 +239,7 @@ SpriteComponent::onDraw(sf::RenderTarget& target,
   if (m_sprite)
   {
     states.transform = m_owner->getWorldTransform();
-    states.transform.scale({ m_flipX ? -1 : 1, m_flipY ? -1 : 1 });
+    states.transform.scale({ m_flipX ? -1.f : 1.f, m_flipY ? -1.f : 1.f });
     target.draw(*m_sprite, states);
   }
 }
