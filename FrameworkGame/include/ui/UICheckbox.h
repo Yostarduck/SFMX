@@ -37,13 +37,13 @@ class UICheckbox : public ComponentT<UICheckbox>, public UIWidget
   /** @brief Set the checked state */
   void setChecked(bool v);
   /** @brief Whether the box is currently checked */
-  NODISCARD bool isChecked() const { return m_checked; }
+  NODISCARD FORCEINLINE bool isChecked() const { return m_checked; }
 
   // Label
 
   FORCEINLINE void 
   setText(const String& t)    { m_text = t; }
-  FORCEINLINE const String& 
+  NODISCARD FORCEINLINE const String& 
   getText() const             { return m_text; }
   FORCEINLINE void 
   setFont(SPtr<sf::Font> f)   { m_font = std::move(f); }

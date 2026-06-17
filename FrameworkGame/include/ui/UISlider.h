@@ -35,9 +35,9 @@ class UISlider : public ComponentT<UISlider>, public UIWidget
   // Range
 
   void  setRange(float min, float max);
-  FORCEINLINE float 
+  NODISCARD FORCEINLINE float 
   getMin() const { return m_min; }
-  FORCEINLINE float 
+  NODISCARD FORCEINLINE float 
   getMax() const { return m_max; }
 
   // Value

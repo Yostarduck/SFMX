@@ -44,8 +44,6 @@ struct Anchors {
   static Anchors stretchV(float t, float b) { return {0.f, t, 1.f, b}; }
 };
 
-// ── Navigation mode (Unity-style) ──────────────────────────────────────────
-
 enum class NavigationMode : uint8 {
   Automatic,  // geometric nearest neighbor (default)
   Explicit,   // manually assigned up/down/left/right targets
@@ -53,8 +51,6 @@ enum class NavigationMode : uint8 {
   Vertical,   // geometric, constrained to y-axis
   None        // keyboard/gamepad navigation disabled
 };
-
-// ── UIWidget base class (mixin for widget components) ──────────────────────
 
 /**
  * @brief  Mixin that adds interactivity, layout, and events to a Component.

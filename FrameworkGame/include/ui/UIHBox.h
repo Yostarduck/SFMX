@@ -31,12 +31,16 @@ class UIHBox : public ComponentT<UIHBox>, public UIWidget
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
   /** @brief Gap (pixels) between consecutive children */
-  void  setSpacing(float s)   { m_spacing = s; }
-  float getSpacing() const    { return m_spacing; }
+  FORCEINLINE void  
+  setSpacing(float s)   { m_spacing = s; }
+  NODISCARD FORCEINLINE float 
+  getSpacing() const    { return m_spacing; }
 
   /** @brief Padding inset from all edges */
-  void  setPadding(float p)   { m_padding = p; }
-  float getPadding() const    { return m_padding; }
+  FORCEINLINE void  
+  setPadding(float p)   { m_padding = p; }
+  NODISCARD FORCEINLINE float 
+  getPadding() const    { return m_padding; }
 
   /**
    * @brief How leftover horizontal space is distributed.
@@ -44,10 +48,10 @@ class UIHBox : public ComponentT<UIHBox>, public UIWidget
    */
   FORCEINLINE void  
   setChildAlign(float a)  { m_childAlign = a; }
-  FORCEINLINE float 
+  NODISCARD FORCEINLINE float 
   getChildAlign() const   { return m_childAlign; }
 
-  NODISCARD bool 
+  NODISCARD FORCEINLINE bool 
   isLayoutContainer() const override { return true; }
 
  private:

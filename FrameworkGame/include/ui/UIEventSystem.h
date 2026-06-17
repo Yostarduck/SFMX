@@ -43,15 +43,11 @@ class UIEventSystem : public Module<UIEventSystem>
   /** @brief Reset edge flags for a new frame. */
   void beginFrame();
 
-  // ── Submit / Cancel ─────────────────────────────────────────────────
-
   /** @brief Whether the "Submit" action started this frame (Enter / Space / Gamepad South) */
-  NODISCARD bool wasSubmitted() const { return m_submit; }
+  NODISCARD FORCEINLINE bool wasSubmitted() const { return m_submit; }
 
   /** @brief Whether the "Cancel" action started this frame (Escape / Gamepad East) */
-  NODISCARD bool wasCancelled() const { return m_cancel; }
-
-  // ── Navigation ──────────────────────────────────────────────────────
+  NODISCARD FORCEINLINE bool wasCancelled() const { return m_cancel; }
 
   /** @brief Run directional navigation (arrows / gamepad) for the registered canvas. */
   void handleNavigation();
@@ -60,9 +56,7 @@ class UIEventSystem : public Module<UIEventSystem>
   void setFocus(UIWidget* w);
 
   /** @brief Currently focused widget (or nullptr). */
-  NODISCARD UIWidget* getFocusedWidget() const { return m_focusedWidget; }
-
-  // Navigation config
+  NODISCARD FORCEINLINE UIWidget* getFocusedWidget() const { return m_focusedWidget; }
 
   /** @brief Widget that receives focus when the UI first becomes active. */
   FORCEINLINE void
@@ -79,7 +73,7 @@ class UIEventSystem : public Module<UIEventSystem>
   // Canvas registration
 
   /** @brief Register the active canvas so navigation can walk its scene tree. */
-  void registerCanvas(UICanvasComponent* canvas) { m_registeredCanvas = canvas; }
+  FORCEINLINE void registerCanvas(UICanvasComponent* canvas) { m_registeredCanvas = canvas; }
 
  protected:
   void onStartUp() override {}

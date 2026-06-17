@@ -43,17 +43,17 @@ class UIScrollView : public ComponentT<UIScrollView>, public UIWidget
 
   FORCEINLINE void  
   setScrollY(float sy)      { m_scrollY = sy; clampScroll(); }
-  FORCEINLINE float 
+  NODISCARD FORCEINLINE float 
   getScrollY() const        { return m_scrollY; }
   FORCEINLINE void  
   setContentHeight(float h) { m_contentHeight = h; }
-  FORCEINLINE float 
+  NODISCARD FORCEINLINE float 
   getContentHeight() const  { return m_contentHeight; }
 
   /** @brief Scroll speed multiplier for mouse wheel */
   FORCEINLINE void 
   setScrollSpeed(float s) { m_scrollSpeed = s; }
-  FORCEINLINE float
+  NODISCARD FORCEINLINE float
   getScrollSpeed() const  { return m_scrollSpeed; }
 
   // Visual

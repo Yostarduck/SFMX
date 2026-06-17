@@ -52,13 +52,13 @@ class UIImage : public ComponentT<UIImage>, public UIWidget
   /** @brief Tint colour (default = white / opaque) */
   FORCEINLINE void 
   setColor(sf::Color c)     { m_color = c; }
-  FORCEINLINE sf::Color 
+  NODISCARD FORCEINLINE sf::Color 
   getColor() const          { return m_color; }
 
   /** @brief How the image fits inside the widget rect */
   FORCEINLINE void 
   setFit(ImageFit fit)      { m_fit = fit; }
-  FORCEINLINE ImageFit 
+  NODISCARD FORCEINLINE ImageFit 
   getFit() const            { return m_fit; }
 
  private:

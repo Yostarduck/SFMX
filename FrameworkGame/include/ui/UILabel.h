@@ -35,9 +35,11 @@ class UILabel : public ComponentT<UILabel>, public UIWidget
   // Text
 
   /** @brief Set the displayed text */
-  FORCEINLINE void setText(const String& t)    { m_text = t; }
+  FORCEINLINE void 
+  setText(const String& t)    { m_text = t; }
   /** @brief Current displayed text */
-  FORCEINLINE const String& getText() const    { return m_text; }
+  NODISCARD FORCEINLINE const String& 
+  getText() const    { return m_text; }
   /** @brief Set the font */
   FORCEINLINE void setFont(SPtr<sf::Font> f)   { m_font = std::move(f); }
   /** @brief Set the font size in points */
