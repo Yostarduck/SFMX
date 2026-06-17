@@ -6,6 +6,7 @@ add_executable(UnitTests
     BenchmarkTest.cpp
     SpriteAtlasTest.cpp
     FileSystemTest.cpp
+    AssetFileTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE
