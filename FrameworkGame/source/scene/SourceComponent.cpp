@@ -14,7 +14,12 @@ SourceComponent::SourceComponent(SceneNode* owner)
 {
 }
 
-SourceComponent::~SourceComponent() = default;
+SourceComponent::~SourceComponent() {
+  // Stop any active audio before the SFML sound/music objects are destroyed.
+  stop();
+  m_source = nullptr;
+  m_backend = AudioBackend::kNone;
+}
 
 // -----------------------------------------------------------------------------
 // Loading

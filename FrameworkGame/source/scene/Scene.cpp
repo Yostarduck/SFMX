@@ -1,5 +1,7 @@
 #include "scene/Scene.h"
 
+#include "utils/MemoryPoolHandler.h"
+
 #include <algorithm>
 #include <cstring>
 
@@ -76,11 +78,15 @@ Scene::destroyNodeRecursive(SceneNode* node) {
   }
   node->m_firstChild = nullptr;
   node->m_lastChild = nullptr;
-
-  // Return every attached component to its pool (same capture-next dance).
+  
+  // Return every attached component to its pool (same capture-next dance). Drop
+  // any camera from the scene's draw list first so it never dangles there.
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
   for (Component* component = node->m_firstComponent; nullptr != component;) {
     Component* next = component->getNextComponent();
+    if (component->getTypeId() == componentTypeId<CameraComponent>()) {
+      removeCamera(static_cast<CameraComponent*>(component));
+    }
     pools.deallocate(component->getTypeId(), component);
     component = next;
   }
@@ -195,6 +201,42 @@ Scene::draw(sf::RenderTarget& target) const {
     target.setView(cam->getView());
     m_root->draw(target, sf::RenderStates::Default);
   }
+}
+
+void
+Scene::clear() {
+  if (nullptr == m_root) {
+    return;
+  }
+
+  MemoryPoolHandler& pools = MemoryPoolHandler::instance();
+
+  // Destroy any components attached to the root itself. Drop any camera from
+  // the scene's draw list first so it never dangles there.
+  for (Component* component = m_root->m_firstComponent; nullptr != component;) {
+    Component* next = component->getNextComponent();
+    if (component->getTypeId() == componentTypeId<CameraComponent>()) {
+      removeCamera(static_cast<CameraComponent*>(component));
+    }
+    pools.deallocate(component->getTypeId(), component);
+    component = next;
+  }
+  m_root->m_firstComponent = nullptr;
+  m_root->m_lastComponent = nullptr;
+
+  // Destroy every child subtree of the root. The root itself remains allocated
+  // so the scene object stays valid until the pools are torn down. Capture the
+  // next sibling before recursing, since the child is about to be deallocated;
+  // the root's child-list ends are reset below once the list is fully dead.
+  for (SceneNode* child = m_root->m_firstChild; nullptr != child;) {
+    SceneNode* next = child->m_nextSibling;
+    destroyNodeRecursive(child);
+    child = next;
+  }
+
+  m_root->m_firstChild = nullptr;
+  m_root->m_lastChild = nullptr;
+  m_cameras.clear();
 }
 
 }  // namespace sfmx
