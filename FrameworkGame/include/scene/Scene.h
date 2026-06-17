@@ -76,6 +76,10 @@ class Scene
 
   void update(float deltaTime);
   void draw(sf::RenderTarget& target) const;
+  
+  /** @brief Destroy every node and component owned by this scene, keeping the
+   * root alive until pool shutdown. */
+  void clear();
 
  private:
   NodeId allocateId() { return m_nextId++; }
