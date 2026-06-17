@@ -31,11 +31,18 @@ add_library(FrameworkGame STATIC
     source/scene/AnimatorComponent.cpp
     source/scene/ColliderComponent.cpp
     source/scene/RigidBodyComponent.cpp
+    source/scene/UICanvasComponent.cpp
     source/ui/UIWidget.cpp
-    source/ui/UICanvasComponent.cpp
+    source/ui/UIEventSystem.cpp
     source/ui/UIPanel.cpp
     source/ui/UILabel.cpp
     source/ui/UIButton.cpp
+    source/ui/UIImage.cpp
+    source/ui/UICheckbox.cpp
+    source/ui/UISlider.cpp
+    source/ui/UITextBox.cpp
+    source/ui/UIHBox.cpp
+    source/ui/UIVBox.cpp
     source/utils/MemoryPoolHandler.cpp
     source/utils/Random.cpp
     source/utils/UUID.cpp

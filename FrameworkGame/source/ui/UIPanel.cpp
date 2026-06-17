@@ -3,12 +3,21 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 
-namespace sfmx {
+namespace sfmx
+{
+
+// -----------------------------------------------------------------------------
+// Lifecycle
+// -----------------------------------------------------------------------------
 
 UIPanel::UIPanel(SceneNode* owner)
   : ComponentT<UIPanel>(owner), UIWidget(owner)
 {
 }
+
+// -----------------------------------------------------------------------------
+// Draw
+// -----------------------------------------------------------------------------
 
 void
 UIPanel::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {

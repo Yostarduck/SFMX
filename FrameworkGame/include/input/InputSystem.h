@@ -57,6 +57,16 @@ class InputSystem : public Module<InputSystem>
   NODISCARD float
   sampleControl(const InputControl& control) const;
 
+  /** @brief Buffer one character from sf::Event::TextEntered */
+  FORCEINLINE void
+  pushTextCharacter(char32_t ch) { m_textInput.push_back(ch); }
+  /** @brief Claim and clear the text-input buffer */
+  NODISCARD Vector<char32_t> consumeTextCharacters() {
+    Vector<char32_t> result = std::move(m_textInput);
+    m_textInput.clear();
+    return result;
+  }
+
   /** @brief Create and own a new (empty) mapping; returns a non-owning pointer. */
   Mapping*
   createMapping(StringView name);
@@ -82,6 +92,7 @@ class InputSystem : public Module<InputSystem>
 
   InputSystem() = default;
 
+  Vector<char32_t>       m_textInput;
   Vector<UniquePtr<Mapping>> m_mappings;
   Mapping* m_activeMapping = nullptr;
 };

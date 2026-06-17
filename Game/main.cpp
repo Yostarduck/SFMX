@@ -28,10 +28,21 @@
 
 #include "ui/UITheme.h"
 #include "ui/UIWidget.h"
-#include "ui/UICanvasComponent.h"
+#include "scene/UICanvasComponent.h"
 #include "ui/UIPanel.h"
 #include "ui/UILabel.h"
 #include "ui/UIButton.h"
+#include "ui/UIImage.h"
+#include "ui/UICheckbox.h"
+#include "ui/UISlider.h"
+#include "ui/UITextBox.h"
+#include "ui/UIHBox.h"
+#include "ui/UIVBox.h"
+#include "ui/UIEventSystem.h"
+#include "input/Mapping.h"
+#include "input/ActionMap.h"
+#include "input/InputAction.h"
+#include "input/InputControl.h"
 
 using namespace sfmx;
 
@@ -78,6 +89,7 @@ int main()
   window.setVerticalSyncEnabled(enableVSync);
 
   InputSystem::startUp();
+  UIEventSystem::startUp();
   PhysicsSystem::startUp();
   MemoryPoolHandler::startUp(4096);
 
@@ -97,7 +109,36 @@ int main()
   pools.registerPool<UIPanel>(8);
   pools.registerPool<UILabel>(16);
   pools.registerPool<UIButton>(8);
+  pools.registerPool<UIImage>(8);
+  pools.registerPool<UICheckbox>(8);
+  pools.registerPool<UISlider>(8);
+  pools.registerPool<UITextBox>(8);
+  pools.registerPool<UIHBox>(8);
+  pools.registerPool<UIVBox>(8);
 
+
+  // ── UI Mapping ───────────────────────────────────────────────────────
+  {
+    Mapping* uiMapping = InputSystem::instance().createMapping("UI");
+    InputSystem::instance().setActiveMapping(uiMapping);
+
+    ActionMap* uiMap = uiMapping->addMap("UI");
+
+    // Submit: Enter, Space, Gamepad South
+    InputAction* submit = uiMap->addAction("Submit", ActionValueType::kButton);
+    submit->addBinding({DeviceType::kKeyboard, Key::kEnter, -1, false});
+    submit->addBinding({DeviceType::kKeyboard, Key::kSpace, -1, false});
+
+    // Cancel: Escape, Gamepad East
+    InputAction* cancel = uiMap->addAction("Cancel", ActionValueType::kButton);
+    cancel->addBinding({DeviceType::kKeyboard, Key::kEscape, -1, false});
+
+    // Tab: Tab key
+    InputAction* tab = uiMap->addAction("Tab", ActionValueType::kButton);
+    tab->addBinding({DeviceType::kKeyboard, Key::kTab, -1, false});
+
+    UIEventSystem::instance().init(uiMapping);
+  }
 
   Scene scene("Main");
 
@@ -291,7 +332,6 @@ int main()
     std::cerr << "[SpriteAtlas] Failed to load marioatlas.png\n";
   }
   
-  // ── Physics debug draw demo: colliders ────────────────────────────────
   SceneNode* ground = scene.createNode("Ground");
   ground->transform().setPosition({center.x, windowHeight - 5.f});
   auto* groundCollider = ground->addComponent<ColliderComponent>();
@@ -468,23 +508,21 @@ int main()
             << "Dice: "   << Random::diceThrow(2, 6)    << "\n"
             << "Dice: "   << Random::diceThrow(1, 6)    << "\n";
 
-  // ── UI Demo (Phase 1) ──────────────────────────────────────────────────
   SceneNode* uiRoot = scene.createNode("UIRoot");
   auto* canvas = uiRoot->addComponent<UICanvasComponent>();
   canvas->setCanvasSize({static_cast<float>(windowWidth),
                          static_cast<float>(windowHeight)});
-
   SPtr<sf::Font> uiFont = MakeShared<sf::Font>();
   if (!uiFont->openFromFile("/usr/share/fonts/TTF/Hack-Regular.ttf")) {
     std::cerr << "[UI] Failed to load font\n";
   }
 
-  SceneNode* bgNode = scene.createNode("UIBg", uiRoot);
-  auto* bg = bgNode->addComponent<UIPanel>();
-  bg->setSize({static_cast<float>(windowWidth), static_cast<float>(windowHeight)});
-  bg->setFillColor({30, 30, 35});
-  bg->setBorderWidth(0.f);
-
+  // SceneNode* bgNode = scene.createNode("UIBg", uiRoot);
+  // auto* bg = bgNode->addComponent<UIPanel>();
+  // bg->setSize({static_cast<float>(windowWidth), static_cast<float>(windowHeight)});
+  // bg->setFillColor({30, 30, 35});
+  // bg->setBorderWidth(0.f);
+// 
   SceneNode* titleNode = scene.createNode("UITitle", uiRoot);
   auto* title = titleNode->addComponent<UILabel>();
   title->setAnchors(Anchors::center());
@@ -494,27 +532,192 @@ int main()
   title->setFont(uiFont);
   title->setFontSize(36);
   title->setTextColor({200, 200, 210});
-
+  title->setOffset({0.f, -60.f});
+// 
   SceneNode* btnNode = scene.createNode("UIButton", uiRoot);
   auto* btn = btnNode->addComponent<UIButton>();
   btn->setAnchors(Anchors::center());
   btn->setSize({200.f, 50.f});
-  btn->setPivot({0.5f, 0.5f});
+  btn->setPivot({0.5f, 1.0f});
   btn->setFont(uiFont);
   btn->setFontSize(18);
   btn->setText("Click Me");
   btn->setFillColor({70, 100, 180});
   btn->setHoverColor({90, 120, 210});
   btn->setPressColor({50, 80, 160});
+  btn->setOffset({0.f, 60.f});
+  btn->setFocusable(true);
   [[maybe_unused]] HEvent clickSub = btn->onClick().connect([btn] {
     std::cout << "[UI] Button clicked!\n";
     btn->setText("Clicked!");
   });
 
+  // ── Checkbox ───────────────────────────────────────────────────────────
+  SceneNode* chkNode = scene.createNode("UICheckbox", uiRoot);
+  auto* chk = chkNode->addComponent<UICheckbox>();
+  chk->setAnchors(Anchors::center());
+  chk->setSize({200.f, 30.f});
+  chk->setPivot({0.5f, 0.5f});
+  chk->setOffset({0.f, 130.f});
+  chk->setFont(uiFont);
+  chk->setText("Enable feature");
+  chk->setFontSize(16);
+  [[maybe_unused]] HEvent toggleSub = chk->onToggle().connect([](bool v) {
+    std::cout << "[UI] Checkbox toggled: " << (v ? "ON" : "OFF") << "\n";
+  });
+
+  // ── Slider ─────────────────────────────────────────────────────────────
+  SceneNode* sldNode = scene.createNode("UISlider", uiRoot);
+  auto* sld = sldNode->addComponent<UISlider>();
+  sld->setAnchors(Anchors::center());
+  sld->setSize({250.f, 30.f});
+  sld->setPivot({0.5f, 0.5f});
+  sld->setOffset({0.f, 180.f});
+  sld->setRange(0.f, 100.f);
+  sld->setValue(50.f);
+  [[maybe_unused]] HEvent sliderSub = sld->onValueChanged().connect([](float v) {
+    std::cout << "[UI] Slider value: " << v << "\n";
+  });
+
+  // ── TextBox ────────────────────────────────────────────────────────────
+  SceneNode* tbNode = scene.createNode("UITextBox", uiRoot);
+  auto* tb = tbNode->addComponent<UITextBox>();
+  tb->setAnchors(Anchors::center());
+  tb->setSize({300.f, 36.f});
+  tb->setPivot({0.5f, 0.5f});
+  tb->setOffset({0.f, 230.f});
+  tb->setFont(uiFont);
+  tb->setFontSize(16);
+  tb->setPlaceholder("Type here...");
+  [[maybe_unused]] HEvent textSub = tb->onTextChanged().connect([](const sf::String& t) {
+    std::cout << "[UI] TextBox: \"" << t.toAnsiString() << "\"\n";
+  });
+
+  SceneNode* tb2Node = scene.createNode("UITextBox2", uiRoot);
+  auto* tb2 = tb2Node->addComponent<UITextBox>();
+  tb2->setAnchors(Anchors::center());
+  tb2->setSize({300.f, 36.f});
+  tb2->setPivot({0.5f, 0.5f});
+  tb2->setOffset({0.f, 280.f});
+  tb2->setFont(uiFont);
+  tb2->setFontSize(16);
+  tb2->setPlaceholder("Second field... (Tab here)");
+
+  // ── Image ──────────────────────────────────────────────────────────────
+  // Build a small checkerboard texture to demonstrate UIImage.
+  auto imgTex = MakeShared<sf::Texture>();
+  {
+    sf::Image img(sf::Vector2u{64, 64}, sf::Color::White);
+    for (unsigned y = 0; y < 64; ++y)
+      for (unsigned x = 0; x < 64; ++x)
+        if ((x / 8 + y / 8) % 2 == 0)
+          img.setPixel({x, y}, sf::Color{100, 140, 220});
+    [[maybe_unused]] bool loaded = imgTex->loadFromImage(img);
+    (void)loaded;
+  }
+
+  SceneNode* imgNode = scene.createNode("UIImage", uiRoot);
+  auto* img = imgNode->addComponent<UIImage>();
+  img->setAnchors(Anchors::center());
+  img->setSize({80.f, 80.f});
+  img->setPivot({0.5f, 0.5f});
+  img->setOffset({0.f, -140.f});
+  img->setTexture(imgTex);
+
+  // ── HBox container: 3 buttons in a row ───────────────────────────────
+  SceneNode* hboxNode = scene.createNode("UIHBox", uiRoot);
+  auto* hbox = hboxNode->addComponent<UIHBox>();
+  hbox->setAnchors(Anchors::bottomLeft());
+  hbox->setSize({static_cast<float>(windowWidth), 50.f});
+  hbox->setPivot({0.f, 1.f});
+  hbox->setOffset({0.f, -10.f});
+  hbox->setPadding(10.f);
+  hbox->setSpacing(12.f);
+  hbox->setChildAlign(0.5f);
+
+  auto makeBoxBtn = [&](const char* label, sf::Color fill, sf::Color hover, sf::Color press) -> UIButton* {
+    SceneNode* n = scene.createNode("HBoxBtn", hboxNode);
+    auto* b = n->addComponent<UIButton>();
+    b->setSize({120.f, 36.f});
+    b->setFont(uiFont);
+    b->setFontSize(15);
+    b->setText(label);
+    b->setFillColor(fill);
+    b->setHoverColor(hover);
+    b->setPressColor(press);
+    return b;
+  };
+
+  [[maybe_unused]] UIButton* hBtn1 = makeBoxBtn("Play",    {70, 160, 80},  {90, 180, 100}, {50, 140, 60});
+  [[maybe_unused]] UIButton* hBtn2 = makeBoxBtn("Settings", {70, 100, 180}, {90, 120, 210}, {50, 80, 160});
+  [[maybe_unused]] UIButton* hBtn3 = makeBoxBtn("Quit",    {180, 70, 70},  {210, 90, 90},  {150, 50, 50});
+
+  // Explicit navigation between HBox buttons
+  hBtn1->setNavigationMode(NavigationMode::Explicit);
+  hBtn1->setNavRight(hBtn2);
+  hBtn2->setNavigationMode(NavigationMode::Explicit);
+  hBtn2->setNavLeft(hBtn1);
+  hBtn2->setNavRight(hBtn3);
+  hBtn3->setNavigationMode(NavigationMode::Explicit);
+  hBtn3->setNavLeft(hBtn2);
+
+  // ── VBox container: label + slider + checkbox ─────────────────────────
+  SceneNode* vboxNode = scene.createNode("UIVBox", uiRoot);
+  auto* vbox = vboxNode->addComponent<UIVBox>();
+  vbox->setAnchors(Anchors::topRight());
+  vbox->setSize({220.f, 160.f});
+  vbox->setPivot({1.f, 0.f});
+  vbox->setOffset({-10.f, 10.f});
+  vbox->setPadding(8.f);
+  vbox->setSpacing(6.f);
+  vbox->setChildAlign(0.f); // top-align
+
+  {
+    SceneNode* vlblNode = scene.createNode("VBoxLabel", vboxNode);
+    auto* vlbl = vlblNode->addComponent<UILabel>();
+    vlbl->setSize({0.f, 24.f});
+    vlbl->setFont(uiFont);
+    vlbl->setFontSize(14);
+    vlbl->setText("Volume Settings");
+    vlbl->setTextColor({200, 200, 210});
+
+    SceneNode* vsldNode = scene.createNode("VBoxSlider", vboxNode);
+    auto* vsld = vsldNode->addComponent<UISlider>();
+    vsld->setSize({0.f, 24.f});
+    vsld->setRange(0.f, 100.f);
+    vsld->setValue(75.f);
+
+    SceneNode* vchkNode = scene.createNode("VBoxCheck", vboxNode);
+    auto* vchk = vchkNode->addComponent<UICheckbox>();
+    vchk->setSize({0.f, 24.f});
+    vchk->setFont(uiFont);
+    vchk->setFontSize(14);
+    vchk->setText("Mute");
+  }
+
+  // ── Instructions ──────────────────────────────────────────────────────
+  {
+    SceneNode* hintNode = scene.createNode("UIHint", uiRoot);
+    auto* hint = hintNode->addComponent<UILabel>();
+    hint->setAnchors(Anchors::center());
+    hint->setSize({600.f, 24.f});
+    hint->setPivot({0.5f, 0.5f});
+    hint->setOffset({0.f, 340.f});
+    hint->setFont(uiFont);
+    hint->setFontSize(13);
+    hint->setText("Tab / Shift+Tab \xE2\x86\x94 cycle     Arrow keys navigate     Enter / Space activate     Click unfocus");
+    hint->setTextColor({140, 140, 150});
+  }
+
+  // ── UI navigation setup ──────────────────────────────────────────────
+  canvas->setFirstSelected(hBtn1);
+  canvas->setNavigationWrap(true);
+
   while (window.isOpen())
   {
     // InputSystem: snapshot device state before polling
     InputSystem::instance().beginFrame();
+    UIEventSystem::instance().beginFrame();
 
     while (const Optional<sf::Event> event = window.pollEvent())
     {
@@ -524,14 +727,15 @@ int main()
       }
 
       InputSystem::instance().onEvent(*event);
+
+      if (const auto* text = event->getIf<sf::Event::TextEntered>())
+        InputSystem::instance().pushTextCharacter(text->unicode);
     }
 
     const float deltaTime = clock.restart().asSeconds();
     
-    // InputSystem: here is where the mappings are being executed
     InputSystem::instance().update(deltaTime, window);
 
-    // InputSystem: example of "Direct Mode".
     if (Keyboard::instance().wasPressedThisFrame(Key::kEscape)) {
       window.close();
     }
@@ -570,6 +774,7 @@ int main()
     window.display();
   }
 
+  UIEventSystem::shutDown();
   InputSystem::shutDown();
   PhysicsSystem::shutDown();
   // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes

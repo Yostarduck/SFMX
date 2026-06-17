@@ -3,12 +3,21 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Text.hpp>
 
-namespace sfmx {
+namespace sfmx
+{
+
+// -----------------------------------------------------------------------------
+// Lifecycle
+// -----------------------------------------------------------------------------
 
 UILabel::UILabel(SceneNode* owner)
   : ComponentT<UILabel>(owner), UIWidget(owner)
 {
 }
+
+// -----------------------------------------------------------------------------
+// Draw
+// -----------------------------------------------------------------------------
 
 void
 UILabel::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
