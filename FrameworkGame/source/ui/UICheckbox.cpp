@@ -42,6 +42,7 @@ UICheckbox::currentBoxColor() const {
   if (m_pressed) return m_pressBoxColor;
   if (m_checked) return m_checkedBoxColor;
   if (m_hovered) return m_hoverBoxColor;
+  if (m_focused) return m_focusBoxColor;
   return m_boxColor;
 }
 

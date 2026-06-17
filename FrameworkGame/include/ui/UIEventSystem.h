@@ -3,15 +3,18 @@
  * @file UIEventSystem.h
  * @author Swampertor
  * @date 2026/06/16
- * @brief  Central input manager for the UI system.
+ * @brief  Central input manager and focus controller for the UI system.
  *
- * Replaces the per-canvas UIInputAdapter with a single Module singleton
- * that reads input from a Mapping (for submit/cancel/tab) and from
- * Mouse/Keyboard directly (for pointer/navigation).  This decouples UI
- * event handling from the device while keeping the pointer path simple.
+ * Combines the role of Unity's EventSystem: owns the focused widget,
+ * manages navigation (arrow keys, gamepad), and reads Submit/Cancel
+ * actions from a Mapping.  A single Module singleton serves the entire
+ * application; the active canvas registers itself for navigation queries.
  */
 /************************************************************************/
 #pragma once
+
+#include <SFML/Graphics/Rect.hpp>
+#include <SFML/System/Vector2.hpp>
 
 #include "core/platform/Prerequisites.h"
 #include "utils/EventSystem.h"
@@ -21,18 +24,20 @@ namespace sfmx
 {
 
 class Mapping;
+class UIWidget;
+class UICanvasComponent;
 
 /**
- * @brief Module singleton that provides UI-relevant input state each frame.
+ * @brief Module singleton that owns UI focus and processes navigation input.
  *
  * Call @ref init once after creating the UI Mapping, then call @ref beginFrame
- * at the start of each frame (after InputSystem::beginFrame) and read the
- * getters from UICanvasComponent::onUpdate.
+ * at the start of each frame (after InputSystem::beginFrame).  The active
+ * canvas calls @ref handleNavigation once per frame from its onUpdate.
  */
 class UIEventSystem : public Module<UIEventSystem>
 {
  public:
-  /** @brief Subscribe to actions from a Mapping (returns the action map). */
+  /** @brief Subscribe to Submit / Cancel actions from a Mapping. */
   void init(Mapping* uiMapping);
 
   /** @brief Reset edge flags for a new frame. */
@@ -46,13 +51,35 @@ class UIEventSystem : public Module<UIEventSystem>
   /** @brief Whether the "Cancel" action started this frame (Escape / Gamepad East) */
   NODISCARD bool wasCancelled() const { return m_cancel; }
 
-  // ── Tab ─────────────────────────────────────────────────────────────
+  // ── Navigation ──────────────────────────────────────────────────────
 
-  /** @brief Whether the "Tab" action started this frame */
-  NODISCARD bool wasTabPressed() const { return m_tab; }
+  /** @brief Run directional navigation (arrows / gamepad) for the registered canvas. */
+  void handleNavigation();
 
-  /** @brief Whether Shift is held (for Tab cycling direction) */
-  NODISCARD bool isShiftHeld() const { return m_shift; }
+  /** @brief Set the currently focused widget (may be nullptr). */
+  void setFocus(UIWidget* w);
+
+  /** @brief Currently focused widget (or nullptr). */
+  NODISCARD UIWidget* getFocusedWidget() const { return m_focusedWidget; }
+
+  // Navigation config
+
+  /** @brief Widget that receives focus when the UI first becomes active. */
+  FORCEINLINE void
+  setFirstSelected(UIWidget* w) { m_firstSelected = w; }
+  NODISCARD FORCEINLINE UIWidget*
+  getFirstSelected() const { return m_firstSelected; }
+
+  /** @brief Whether directional navigation wraps around when no candidate is found. */
+  FORCEINLINE void
+  setNavigationWrap(bool v) { m_navigationWrap = v; }
+  NODISCARD FORCEINLINE bool
+  getNavigationWrap() const { return m_navigationWrap; }
+
+  // Canvas registration
+
+  /** @brief Register the active canvas so navigation can walk its scene tree. */
+  void registerCanvas(UICanvasComponent* canvas) { m_registeredCanvas = canvas; }
 
  protected:
   void onStartUp() override {}
@@ -62,14 +89,21 @@ class UIEventSystem : public Module<UIEventSystem>
   friend class Module<UIEventSystem>;
   UIEventSystem() = default;
 
+  void focusDirectional(int dx, int dy);
+  sf::Vector2f widgetCenter(const UIWidget& w) const;
+
   HEvent m_submitSub;
   HEvent m_cancelSub;
-  HEvent m_tabSub;
 
   bool m_submit = false;
   bool m_cancel = false;
-  bool m_tab    = false;
-  bool m_shift  = false;
+
+  // Focus / navigation state
+  UIWidget*          m_focusedWidget    = nullptr;
+  UIWidget*          m_firstSelected    = nullptr;
+  bool               m_hasEverFocused   = false;
+  bool               m_navigationWrap   = true;
+  UICanvasComponent* m_registeredCanvas = nullptr;
 };
 
 } // namespace sfmx

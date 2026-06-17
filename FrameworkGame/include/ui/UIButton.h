@@ -54,6 +54,8 @@ class UIButton : public ComponentT<UIButton>, public UIWidget
   FORCEINLINE void setHoverColor(sf::Color c)   { m_hoverColor = c; }
   /** @brief Set the pressed fill colour */
   FORCEINLINE void setPressColor(sf::Color c)   { m_pressColor = c; }
+  /** @brief Set the focus fill colour (shown when focused but not hovered/pressed) */
+  FORCEINLINE void setFocusColor(sf::Color c)   { m_focusColor = c; }
   /** @brief Set the focus outline colour */
   FORCEINLINE void setFocusOutlineColor(sf::Color c) { m_focusOutlineColor = c; }
   /** @brief Set the corner radius (not yet implemented) */
@@ -69,6 +71,7 @@ class UIButton : public ComponentT<UIButton>, public UIWidget
   sf::Color        m_fillColor          = {60, 60, 65};
   sf::Color        m_hoverColor         = {75, 75, 80};
   sf::Color        m_pressColor         = {90, 90, 95};
+  sf::Color        m_focusColor         = {85, 85, 92};
   sf::Color        m_focusOutlineColor  = {100, 150, 220};
   float            m_cornerRadius       = 0.f;
 };

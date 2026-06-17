@@ -47,6 +47,7 @@ class Keyboard : public Module<Keyboard>
 
   BitSet<Key::kCount> m_current;
   BitSet<Key::kCount> m_previous;
+  BitSet<Key::kCount> m_pendingRelease;
 };
 
 } // namespace sfmx

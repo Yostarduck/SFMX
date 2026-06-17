@@ -42,13 +42,15 @@ Keyboard::onEvent(const sf::Event& event) {
   else if (const auto* released = event.getIf<sf::Event::KeyReleased>()) {
     const Key::E key = keyFromSfml(released->code);
     if (key >= 0 && key < Key::kCount) {
-      m_current.set(static_cast<size_t>(key), false);
+      m_pendingRelease.set(static_cast<size_t>(key), true);
     }
   }
 }
 
 void
 Keyboard::beginFrame() {
+  m_current &= ~m_pendingRelease;
+  m_pendingRelease.reset();
   m_previous = m_current;
 }
 

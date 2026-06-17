@@ -25,6 +25,7 @@ sf::Color
 UIButton::currentFillColor() const {
   if (m_pressed) return m_pressColor;
   if (m_hovered) return m_hoverColor;
+  if (m_focused) return m_focusColor;
   return m_fillColor;
 }
 

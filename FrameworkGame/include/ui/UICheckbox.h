@@ -65,6 +65,8 @@ class UICheckbox : public ComponentT<UICheckbox>, public UIWidget
   FORCEINLINE void 
   setCheckedBoxColor(sf::Color c)   { m_checkedBoxColor = c; }
   FORCEINLINE void 
+  setFocusBoxColor(sf::Color c)     { m_focusBoxColor = c; }
+  FORCEINLINE void 
   setFocusOutlineColor(sf::Color c) { m_focusOutlineColor = c; }
 
   // Events
@@ -86,6 +88,7 @@ class UICheckbox : public ComponentT<UICheckbox>, public UIWidget
   sf::Color       m_hoverBoxColor     = {110, 150, 230};
   sf::Color       m_pressBoxColor     = {80, 120, 210};
   sf::Color       m_checkedBoxColor   = {60, 130, 220};
+  sf::Color       m_focusBoxColor     = {80, 85, 95};
   sf::Color       m_focusOutlineColor = {100, 150, 220};
   bool            m_checked          = false;
   float           m_boxSize          = 20.f;

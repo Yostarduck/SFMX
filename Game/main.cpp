@@ -26,6 +26,7 @@
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
 
+#include "ui/UIEventSystem.h"
 #include "ui/UITheme.h"
 #include "ui/UIWidget.h"
 #include "scene/UICanvasComponent.h"
@@ -132,10 +133,6 @@ int main()
     // Cancel: Escape, Gamepad East
     InputAction* cancel = uiMap->addAction("Cancel", ActionValueType::kButton);
     cancel->addBinding({DeviceType::kKeyboard, Key::kEscape, -1, false});
-
-    // Tab: Tab key
-    InputAction* tab = uiMap->addAction("Tab", ActionValueType::kButton);
-    tab->addBinding({DeviceType::kKeyboard, Key::kTab, -1, false});
 
     UIEventSystem::instance().init(uiMapping);
   }
@@ -510,6 +507,7 @@ int main()
 
   SceneNode* uiRoot = scene.createNode("UIRoot");
   auto* canvas = uiRoot->addComponent<UICanvasComponent>();
+  UIEventSystem::instance().registerCanvas(canvas);
   canvas->setCanvasSize({static_cast<float>(windowWidth),
                          static_cast<float>(windowHeight)});
   SPtr<sf::Font> uiFont = MakeShared<sf::Font>();
@@ -705,13 +703,13 @@ int main()
     hint->setOffset({0.f, 340.f});
     hint->setFont(uiFont);
     hint->setFontSize(13);
-    hint->setText("Tab / Shift+Tab \xE2\x86\x94 cycle     Arrow keys navigate     Enter / Space activate     Click unfocus");
+    hint->setText("Arrow keys / gamepad navigate     Enter / Space activate     Click unfocus");
     hint->setTextColor({140, 140, 150});
   }
 
   // ── UI navigation setup ──────────────────────────────────────────────
-  canvas->setFirstSelected(hBtn1);
-  canvas->setNavigationWrap(true);
+  UIEventSystem::instance().setFirstSelected(hBtn1);
+  UIEventSystem::instance().setNavigationWrap(true);
 
   while (window.isOpen())
   {

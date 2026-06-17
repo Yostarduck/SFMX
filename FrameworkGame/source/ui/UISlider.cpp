@@ -113,7 +113,9 @@ UISlider::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
 
   sf::RectangleShape thumb(thumbRect().size);
   thumb.setPosition(thumbRect().position);
-  thumb.setFillColor(m_hovered ? m_thumbHoverColor : m_thumbColor);
+  thumb.setFillColor(m_hovered  ? m_thumbHoverColor :
+                     m_focused  ? m_thumbFocusColor :
+                                  m_thumbColor);
   if (m_focused) {
     thumb.setOutlineThickness(2.f);
     thumb.setOutlineColor(m_focusOutlineColor);

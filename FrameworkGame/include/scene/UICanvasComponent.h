@@ -27,13 +27,14 @@ class UIWidget;
  *
  *  - Manages an orthographic view matching the canvas resolution.
  *  - In onDraw() it sets this view so children render in screen-space coords.
- *  - In onUpdate() it resolves layout for all descendant UIWidgets and
- *    processes pointer input (hover / press / click / focus).
+ *  - In onUpdate() it resolves layout for all descendant UIWidgets,
+ *    processes pointer input (hover / press / click / focus), and
+ *    delegates navigation to UIEventSystem.
  *
  * Input is read from Mouse (pointer position/click) directly and from
- * UIEventSystem (Submit/Cancel/Tab actions).  Overlapping widgets are
- * resolved top-to-bottom by draw order; a widget can opt to consume
- * input and block all widgets below it.
+ * UIEventSystem (Submit/Cancel).  Overlapping widgets are resolved
+ * top-to-bottom by draw order; a widget can opt to consume input and
+ * block all widgets below it.
  */
 class UICanvasComponent : public ComponentT<UICanvasComponent>
 {
@@ -61,28 +62,11 @@ class UICanvasComponent : public ComponentT<UICanvasComponent>
 
   // Focus
 
-  /** @brief Set the currently focused widget (may be nullptr) */
-  void           setFocus(UIWidget* w);
   /** @brief Currently focused widget (or nullptr) */
-  NODISCARD UIWidget* getFocus() const { return m_focusedWidget; }
-  /** @brief Move focus to the next focusable widget (Tab) */
-  void focusNext();
-  /** @brief Move focus to the previous focusable widget (Shift+Tab) */
-  void focusPrevious();
+  NODISCARD UIWidget* getFocus() const;
 
-  // Navigation config
-
-  /** @brief Set the first widget to receive focus on scene start */
-  FORCEINLINE void
-  setFirstSelected(UIWidget* w) { m_firstSelected = w; }
-  NODISCARD FORCEINLINE UIWidget*
-  getFirstSelected() const { return m_firstSelected; }
-
-  /** @brief Whether Tab / directional navigation wraps around */
-  FORCEINLINE void
-  setNavigationWrap(bool v) { m_navigationWrap = v; }
-  NODISCARD FORCEINLINE bool
-  getNavigationWrap() const { return m_navigationWrap; }
+  /** @brief Collect all focusable widgets in the canvas subtree. */
+  void collectFocusable(Vector<UIWidget*>& out) const;
 
   // Component hooks
 
@@ -95,9 +79,6 @@ class UICanvasComponent : public ComponentT<UICanvasComponent>
   void resolveWidgetLayout(SceneNode* node, sf::FloatRect parentRect);
   void collectAllHit(SceneNode* node, const sf::Vector2f& mp,
                      Vector<UIWidget*>& outHits) const;
-  void collectFocusable(Vector<UIWidget*>& out) const;
-  void focusDirectional(int dx, int dy);
-  sf::Vector2f widgetCenter(const UIWidget& w) const;
 
   sf::View     m_uiView;
   sf::Vector2f m_canvasSize = {1920.f, 1080.f};
@@ -105,10 +86,6 @@ class UICanvasComponent : public ComponentT<UICanvasComponent>
 
   Vector<UIWidget*> m_hoveredWidgets;
   Vector<UIWidget*> m_pressedWidgets;
-  UIWidget*         m_focusedWidget    = nullptr;
-  UIWidget*         m_firstSelected    = nullptr;
-  bool              m_navigationWrap   = true;
-  bool              m_hasEverFocused   = false;
 };
 
 } // namespace sfmx

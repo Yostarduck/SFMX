@@ -47,8 +47,8 @@ InputSystem::update(float deltaTime, const sf::WindowBase& window) {
   Mouse::instance().pollPosition(window);
   Gamepad::instance().poll();
 
-  if (nullptr != m_activeMapping) {
-    m_activeMapping->evaluate(*this, deltaTime);
+  for (UniquePtr<Mapping>& mapping : m_mappings) {
+    mapping->evaluate(*this, deltaTime);
   }
 }
 

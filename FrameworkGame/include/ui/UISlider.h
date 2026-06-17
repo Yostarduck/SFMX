@@ -56,6 +56,8 @@ class UISlider : public ComponentT<UISlider>, public UIWidget
   FORCEINLINE void 
   setThumbHoverColor(sf::Color c) { m_thumbHoverColor = c; }
   FORCEINLINE void 
+  setThumbFocusColor(sf::Color c) { m_thumbFocusColor = c; }
+  FORCEINLINE void 
   setThumbSize(float s)           { m_thumbSize = s; }
   FORCEINLINE void 
   setFocusOutlineColor(sf::Color c) { m_focusOutlineColor = c; }
@@ -82,6 +84,7 @@ class UISlider : public ComponentT<UISlider>, public UIWidget
   sf::Color m_fillColor          = {70, 100, 180};
   sf::Color m_thumbColor         = {200, 200, 210};
   sf::Color m_thumbHoverColor    = {220, 220, 230};
+  sf::Color m_thumbFocusColor    = {210, 210, 220};
   sf::Color m_focusOutlineColor  = {100, 150, 220};
 
   Event<void(float)> m_onValueChanged;
