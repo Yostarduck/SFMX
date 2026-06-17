@@ -11,4 +11,4 @@ if not "%~1"=="" (
 
 echo Selected Build Type: !BUILD_TYPE!
 
-cmake --build Build --config !BUILD_TYPE%
+cmake --build Build --config !BUILD_TYPE!
