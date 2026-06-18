@@ -30,8 +30,8 @@ constexpr size_t kAssetSourcePathLength = 256;
 
 /** @brief On-disk size of @ref AssetMetadata, serialized field-by-field. */
 constexpr size_t kAssetMetadataBytes =
-    sizeof(UUID) +   // uuid
-    sizeof(UUID) +   // assetType
+    kUuidBytes +     // uuid       (serialized size, NOT sizeof(UUID))
+    kUuidBytes +     // assetType
     sizeof(uint64) + // creationTime
     sizeof(uint32) + // version
     kAssetTypeNameLength +
