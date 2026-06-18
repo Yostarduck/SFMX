@@ -443,14 +443,14 @@ int main()
   ActionMap* gameplay = controls->addMap("Gameplay");
 
   InputAction* jump = gameplay->addAction("Jump", ActionValueType::kButton);
-  jump->addBinding(InputControl{DeviceType::kKeyboard, Key::kSpace, -1, false});
+  jump->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kSpace), -1, false});
   Interaction tap;
   tap.m_type = InteractionType::kTap;
   tap.m_duration = 0.2f;
   jump->setInteraction(tap);
 
   InputAction* crouch = gameplay->addAction("Crouch", ActionValueType::kButton);
-  crouch->addBinding(InputControl{DeviceType::kKeyboard, Key::kLControl, -1, false});
+  crouch->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kLControl), -1, false});
   Interaction hold;
   hold.m_type = InteractionType::kHold;
   hold.m_duration = 0.4f;
@@ -459,13 +459,13 @@ int main()
   InputAction* move = gameplay->addAction("Move", ActionValueType::kAxis2D);
   CompositeBinding& moveComposite = move->addComposite(CompositeType::kVector2D);
   moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, Key::kA, -1, false}, CompositeRole::kNegativeX, {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kA), -1, false}, CompositeRole::kNegativeX, {}});
   moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, Key::kD, -1, false}, CompositeRole::kPositiveX, {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kD), -1, false}, CompositeRole::kPositiveX, {}});
   moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, Key::kS, -1, false}, CompositeRole::kNegativeY, {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kS), -1, false}, CompositeRole::kNegativeY, {}});
   moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, Key::kW, -1, false}, CompositeRole::kPositiveY, {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kW), -1, false}, CompositeRole::kPositiveY, {}});
   move->addProcessor(Processor{ProcessorType::kNormalize, {}, {}});
 
   InputSystem::instance().setActiveMapping(controls);

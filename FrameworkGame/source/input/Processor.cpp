@@ -9,7 +9,7 @@ namespace sfmx
 namespace {
 
 float
-magnitudeOf(Vector2f value, ActionValueType::E type) {
+magnitudeOf(Vector2f value, ActionValueType type) {
   if (ActionValueType::kAxis2D == type) {
     return std::sqrt(value.x * value.x + value.y * value.y);
   }
@@ -17,7 +17,7 @@ magnitudeOf(Vector2f value, ActionValueType::E type) {
 }
 
 Vector2f
-applyOne(const Processor& processor, Vector2f value, ActionValueType::E type) {
+applyOne(const Processor& processor, Vector2f value, ActionValueType type) {
   switch (processor.m_type) {
     case ProcessorType::kInvert: {
       if (0.f != processor.m_paramA.x) { value.x = -value.x; }
@@ -66,7 +66,7 @@ applyOne(const Processor& processor, Vector2f value, ActionValueType::E type) {
 Vector2f
 applyProcessors(const Vector<Processor>& processors,
                 Vector2f value,
-                ActionValueType::E type) {
+                ActionValueType type) {
   for (const Processor& processor : processors) {
     value = applyOne(processor, value, type);
   }

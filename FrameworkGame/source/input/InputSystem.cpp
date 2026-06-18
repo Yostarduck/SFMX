@@ -56,18 +56,18 @@ float
 InputSystem::sampleControl(const InputControl& control) const {
   switch (control.m_device) {
     case DeviceType::kKeyboard:
-      return Keyboard::instance().isPressed(static_cast<Key::E>(control.m_code))
+      return Keyboard::instance().isPressed(static_cast<Key>(control.m_code))
                ? 1.f : 0.f;
     case DeviceType::kMouse:
       return Mouse::instance().isPressed(
-               static_cast<MouseButton::E>(control.m_code)) ? 1.f : 0.f;
+               static_cast<MouseButton>(control.m_code)) ? 1.f : 0.f;
     case DeviceType::kGamepad: {
       const int index = control.m_gamepadIndex < 0 ? 0 : control.m_gamepadIndex;
       GamepadDevice& pad = Gamepad::instance().get(index);
       if (control.m_isAxis) {
-        return pad.getAxis(static_cast<Axis::E>(control.m_code));
+        return pad.getAxis(static_cast<Axis>(control.m_code));
       }
-      return pad.isPressed(static_cast<GamepadButton::E>(control.m_code))
+      return pad.isPressed(static_cast<GamepadButton>(control.m_code))
                ? 1.f : 0.f;
     }
     default:

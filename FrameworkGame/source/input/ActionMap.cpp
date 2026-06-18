@@ -7,7 +7,7 @@ ActionMap::ActionMap(StringView name)
   : m_name(name) {}
 
 InputAction*
-ActionMap::addAction(StringView name, ActionValueType::E valueType) {
+ActionMap::addAction(StringView name, ActionValueType valueType) {
   m_actions.push_back(MakeUnique<InputAction>(name, valueType));
   return m_actions.back().get();
 }

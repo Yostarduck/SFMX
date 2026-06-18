@@ -6,16 +6,16 @@ namespace sfmx
 {
 
 bool
-Keyboard::isPressed(Key::E key) const {
-  if (key < 0 || key >= Key::kCount) {
+Keyboard::isPressed(Key key) const {
+  if (static_cast<int32>(key) < 0 || key >= Key::kCount) {
     return false;
   }
   return m_current.test(static_cast<size_t>(key));
 }
 
 bool
-Keyboard::wasPressedThisFrame(Key::E key) const {
-  if (key < 0 || key >= Key::kCount) {
+Keyboard::wasPressedThisFrame(Key key) const {
+  if (static_cast<int32>(key) < 0 || key >= Key::kCount) {
     return false;
   }
   const size_t index = static_cast<size_t>(key);
@@ -23,8 +23,8 @@ Keyboard::wasPressedThisFrame(Key::E key) const {
 }
 
 bool
-Keyboard::wasReleasedThisFrame(Key::E key) const {
-  if (key < 0 || key >= Key::kCount) {
+Keyboard::wasReleasedThisFrame(Key key) const {
+  if (static_cast<int32>(key) < 0 || key >= Key::kCount) {
     return false;
   }
   const size_t index = static_cast<size_t>(key);
@@ -34,14 +34,14 @@ Keyboard::wasReleasedThisFrame(Key::E key) const {
 void
 Keyboard::onEvent(const sf::Event& event) {
   if (const auto* pressed = event.getIf<sf::Event::KeyPressed>()) {
-    const Key::E key = keyFromSfml(pressed->code);
-    if (key >= 0 && key < Key::kCount) {
+    const Key key = keyFromSfml(pressed->code);
+    if (static_cast<int32>(key) >= 0 && key < Key::kCount) {
       m_current.set(static_cast<size_t>(key), true);
     }
   }
   else if (const auto* released = event.getIf<sf::Event::KeyReleased>()) {
-    const Key::E key = keyFromSfml(released->code);
-    if (key >= 0 && key < Key::kCount) {
+    const Key key = keyFromSfml(released->code);
+    if (static_cast<int32>(key) >= 0 && key < Key::kCount) {
       m_pendingRelease.set(static_cast<size_t>(key), true);
     }
   }

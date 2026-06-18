@@ -18,7 +18,7 @@ struct InputContext
 {
   const InputAction* m_action = nullptr;
   InputValue m_value;
-  ActionPhase::E m_phase = ActionPhase::kWaiting;
+  ActionPhase m_phase = ActionPhase::kWaiting;
   float m_deltaTime = 0.f;
 };
 
@@ -33,18 +33,18 @@ struct InputContext
 class InputAction
 {
  public:
-  InputAction(StringView name, ActionValueType::E valueType);
+  InputAction(StringView name, ActionValueType valueType);
 
-  NODISCARD const String&
+  NODISCARD FORCEINLINE const String&
   getName() const { return m_name; }
 
-  NODISCARD ActionValueType::E
+  NODISCARD FORCEINLINE ActionValueType
   getValueType() const { return m_valueType; }
 
-  NODISCARD const InputValue&
+  NODISCARD FORCEINLINE const InputValue&
   getValue() const { return m_value; }
 
-  NODISCARD ActionPhase::E
+  NODISCARD FORCEINLINE ActionPhase
   getPhase() const { return m_phase; }
 
   /** @brief Add a simple binding and return it for further configuration. */
@@ -53,7 +53,7 @@ class InputAction
 
   /** @brief Add a composite binding and return it for further configuration. */
   CompositeBinding&
-  addComposite(CompositeType::E type);
+  addComposite(CompositeType type);
 
   /** @brief Append an action-level processor (applied after combination). */
   void
@@ -85,7 +85,7 @@ class InputAction
   void
   disable() { m_enabled = false; }
 
-  NODISCARD bool
+  NODISCARD FORCEINLINE bool
   isEnabled() const { return m_enabled; }
 
   /** @brief (Internal) Sample bindings, run the phase machine, fire events. */
@@ -97,13 +97,13 @@ class InputAction
   computeValue(InputSystem& system) const;
 
   String m_name;
-  ActionValueType::E m_valueType;
+  ActionValueType m_valueType;
   Vector<Binding> m_bindings;
   Vector<CompositeBinding> m_composites;
   Vector<Processor> m_processors;
   Interaction m_interaction;
   bool m_enabled = true;
-  ActionPhase::E m_phase = ActionPhase::kWaiting;
+  ActionPhase m_phase = ActionPhase::kWaiting;
   InputValue m_value;
 
   Event<void(const InputContext&)> m_onStarted;

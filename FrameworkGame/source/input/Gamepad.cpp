@@ -26,24 +26,24 @@ normalizeAxis(float rawPosition, float deadZone) {
 } // namespace
 
 float
-GamepadDevice::getAxis(Axis::E axis) const {
-  if (axis < 0 || axis >= Axis::kCount) {
+GamepadDevice::getAxis(Axis axis) const {
+  if (static_cast<int32>(axis) < 0 || axis >= Axis::kCount) {
     return 0.f;
   }
   return m_axes[static_cast<size_t>(axis)];
 }
 
 bool
-GamepadDevice::isPressed(GamepadButton::E button) const {
-  if (button < 0 || button >= GamepadButton::kCount) {
+GamepadDevice::isPressed(GamepadButton button) const {
+  if (static_cast<int32>(button) < 0 || button >= GamepadButton::kCount) {
     return false;
   }
   return m_current.test(static_cast<size_t>(button));
 }
 
 bool
-GamepadDevice::wasPressedThisFrame(GamepadButton::E button) const {
-  if (button < 0 || button >= GamepadButton::kCount) {
+GamepadDevice::wasPressedThisFrame(GamepadButton button) const {
+  if (static_cast<int32>(button) < 0 || button >= GamepadButton::kCount) {
     return false;
   }
   const size_t index = static_cast<size_t>(button);
@@ -51,8 +51,8 @@ GamepadDevice::wasPressedThisFrame(GamepadButton::E button) const {
 }
 
 bool
-GamepadDevice::wasReleasedThisFrame(GamepadButton::E button) const {
-  if (button < 0 || button >= GamepadButton::kCount) {
+GamepadDevice::wasReleasedThisFrame(GamepadButton button) const {
+  if (static_cast<int32>(button) < 0 || button >= GamepadButton::kCount) {
     return false;
   }
   const size_t index = static_cast<size_t>(button);
@@ -74,14 +74,14 @@ GamepadDevice::poll(int index) {
     return;
   }
 
-  for (int button = 0; button < GamepadButton::kCount; ++button) {
+  for (int button = 0; button < static_cast<int32>(GamepadButton::kCount); ++button) {
     const bool down = sf::Joystick::isButtonPressed(
-      joystick, static_cast<unsigned int>(toSfmlButton(static_cast<GamepadButton::E>(button))));
+      joystick, static_cast<unsigned int>(toSfmlButton(static_cast<GamepadButton>(button))));
     m_current.set(static_cast<size_t>(button), down);
   }
 
-  for (int axis = 0; axis < Axis::kCount; ++axis) {
-    const sf::Joystick::Axis sfAxis = toSfml(static_cast<Axis::E>(axis));
+  for (int axis = 0; axis < static_cast<int32>(Axis::kCount); ++axis) {
+    const sf::Joystick::Axis sfAxis = toSfml(static_cast<Axis>(axis));
     const float raw = sf::Joystick::getAxisPosition(joystick, sfAxis);
     m_axes[static_cast<size_t>(axis)] = normalizeAxis(raw, m_deadZone);
   }
