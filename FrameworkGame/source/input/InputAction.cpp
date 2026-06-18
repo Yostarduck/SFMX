@@ -6,7 +6,7 @@
 namespace sfmx
 {
 
-InputAction::InputAction(StringView name, ActionValueType::E valueType)
+InputAction::InputAction(StringView name, ActionValueType valueType)
   : m_name(name),
     m_valueType(valueType) {
   m_value.m_type = valueType;
@@ -19,7 +19,7 @@ InputAction::addBinding(const InputControl& control) {
 }
 
 CompositeBinding&
-InputAction::addComposite(CompositeType::E type) {
+InputAction::addComposite(CompositeType type) {
   m_composites.push_back(CompositeBinding{type, {}});
   return m_composites.back();
 }
@@ -73,8 +73,8 @@ InputAction::evaluate(InputSystem& system, float deltaTime) {
   m_value = computeValue(system);
   const bool actuated = m_value.magnitude() > 0.f;
 
-  const ActionPhase::E previous = m_phase;
-  const ActionPhase::E current = m_interaction.step(actuated, deltaTime);
+  const ActionPhase previous = m_phase;
+  const ActionPhase current = m_interaction.step(actuated, deltaTime);
   m_phase = current;
 
   const bool wasActuated =

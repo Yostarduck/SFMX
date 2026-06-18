@@ -25,7 +25,7 @@ class ActionMap
 
   /** @brief Create and register an action; returns a non-owning pointer. */
   InputAction*
-  addAction(StringView name, ActionValueType::E valueType);
+  addAction(StringView name, ActionValueType valueType);
 
   /** @brief Find an action by name, or nullptr. */
   NODISCARD InputAction*

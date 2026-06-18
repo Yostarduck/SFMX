@@ -8,16 +8,16 @@ namespace sfmx
 {
 
 bool
-Mouse::isPressed(MouseButton::E button) const {
-  if (button < 0 || button >= MouseButton::kCount) {
+Mouse::isPressed(MouseButton button) const {
+  if (static_cast<int32>(button) < 0 || button >= MouseButton::kCount) {
     return false;
   }
   return m_current.test(static_cast<size_t>(button));
 }
 
 bool
-Mouse::wasPressedThisFrame(MouseButton::E button) const {
-  if (button < 0 || button >= MouseButton::kCount) {
+Mouse::wasPressedThisFrame(MouseButton button) const {
+  if (static_cast<int32>(button) < 0 || button >= MouseButton::kCount) {
     return false;
   }
   const size_t index = static_cast<size_t>(button);
@@ -25,8 +25,8 @@ Mouse::wasPressedThisFrame(MouseButton::E button) const {
 }
 
 bool
-Mouse::wasReleasedThisFrame(MouseButton::E button) const {
-  if (button < 0 || button >= MouseButton::kCount) {
+Mouse::wasReleasedThisFrame(MouseButton button) const {
+  if (static_cast<int32>(button) < 0 || button >= MouseButton::kCount) {
     return false;
   }
   const size_t index = static_cast<size_t>(button);
@@ -46,11 +46,11 @@ Mouse::getWheelDelta() const {
 void
 Mouse::onEvent(const sf::Event& event) {
   if (const auto* pressed = event.getIf<sf::Event::MouseButtonPressed>()) {
-    const MouseButton::E button = mouseButtonFromSfml(pressed->button);
+    const MouseButton button = mouseButtonFromSfml(pressed->button);
     m_current.set(static_cast<size_t>(button), true);
   }
   else if (const auto* released = event.getIf<sf::Event::MouseButtonReleased>()) {
-    const MouseButton::E button = mouseButtonFromSfml(released->button);
+    const MouseButton button = mouseButtonFromSfml(released->button);
     m_current.set(static_cast<size_t>(button), false);
   }
   else if (const auto* scrolled = event.getIf<sf::Event::MouseWheelScrolled>()) {

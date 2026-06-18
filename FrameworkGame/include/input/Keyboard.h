@@ -22,15 +22,15 @@ class Keyboard : public Module<Keyboard>
  public:
   /** @brief True while @p key is held this frame. */
   NODISCARD bool
-  isPressed(Key::E key) const;
+  isPressed(Key key) const;
 
   /** @brief True only on the frame @p key transitions from up to down. */
   NODISCARD bool
-  wasPressedThisFrame(Key::E key) const;
+  wasPressedThisFrame(Key key) const;
 
   /** @brief True only on the frame @p key transitions from down to up. */
   NODISCARD bool
-  wasReleasedThisFrame(Key::E key) const;
+  wasReleasedThisFrame(Key key) const;
 
   /** @brief (Internal, driven by InputSystem) Apply one SFML event. */
   void
@@ -45,8 +45,8 @@ class Keyboard : public Module<Keyboard>
 
   Keyboard() = default;
 
-  BitSet<Key::kCount> m_current;
-  BitSet<Key::kCount> m_previous;
+  BitSet<static_cast<size_t>(Key::kCount)> m_current;
+  BitSet<static_cast<size_t>(Key::kCount)> m_previous;
 };
 
 } // namespace sfmx

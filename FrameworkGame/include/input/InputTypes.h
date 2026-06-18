@@ -24,15 +24,13 @@ using Vector2f = sf::Vector2f;
 using Vector2i = sf::Vector2i;
 
 /** @brief Which physical device a control belongs to. */
-namespace DeviceType { enum E { kKeyboard, kMouse, kGamepad, kCount }; }
+enum class DeviceType : int32 { kKeyboard, kMouse, kGamepad, kCount };
 
 /**
  * @brief Keyboard keys, mirroring the order of sf::Keyboard::Key so conversion
  *        at the boundary is a checked cast. @c kCount equals SFML's KeyCount.
  */
-namespace Key
-{
-enum E
+enum class Key : int32
 {
   kUnknown = -1,
   kA = 0, kB, kC, kD, kE, kF, kG, kH, kI, kJ, kK, kL, kM,
@@ -51,31 +49,28 @@ enum E
   kF11, kF12, kF13, kF14, kF15, kPause,
   kCount
 };
-} // namespace Key
 
 /** @brief Mouse buttons, mirroring sf::Mouse::Button. */
-namespace MouseButton { enum E { kLeft, kRight, kMiddle, kExtra1, kExtra2, kCount }; }
+enum class MouseButton : int32 { kLeft, kRight, kMiddle, kExtra1, kExtra2, kCount };
 
 /**
  * @brief Semantic gamepad axes. Mapped to concrete sf::Joystick::Axis at the
  *        boundary; the trigger / right-stick mapping is pad-dependent and may
  *        need per-device tuning (see toSfml in InputTypes.cpp).
  */
-namespace Axis
-{
-enum E { kLeftX, kLeftY, kRightX, kRightY, kLeftTrigger, kRightTrigger,
-         kPovX, kPovY, kCount };
-} // namespace Axis
+enum class Axis : int32 {
+  kLeftX, kLeftY, kRightX, kRightY, kLeftTrigger, kRightTrigger,
+  kPovX, kPovY, kCount
+};
 
 /**
  * @brief Semantic gamepad buttons. Mapped to raw SFML button indices (0-based)
  *        in declaration order; concrete layout varies by controller.
  */
-namespace GamepadButton
-{
-enum E { kSouth, kEast, kWest, kNorth, kL1, kR1,
-         kSelect, kStart, kLStick, kRStick, kCount };
-} // namespace GamepadButton
+enum class GamepadButton : int32 {
+  kSouth, kEast, kWest, kNorth, kL1, kR1,
+  kSelect, kStart, kLStick, kRStick, kCount
+};
 
 /** @brief Maximum number of simultaneously tracked gamepads (sf::Joystick::Count). */
 constexpr int kMaxGamepads = 8;
@@ -90,34 +85,34 @@ constexpr float kDefaultTapSpacing = 0.2f;
 /* SFML boundary conversions (defined in InputTypes.cpp)                */
 /************************************************************************/
 
-NODISCARD sf::Keyboard::Key toSfml(Key::E key);
-NODISCARD Key::E            keyFromSfml(sf::Keyboard::Key key);
+NODISCARD sf::Keyboard::Key toSfml(Key key);
+NODISCARD Key               keyFromSfml(sf::Keyboard::Key key);
 
-NODISCARD sf::Mouse::Button toSfml(MouseButton::E button);
-NODISCARD MouseButton::E    mouseButtonFromSfml(sf::Mouse::Button button);
+NODISCARD sf::Mouse::Button toSfml(MouseButton button);
+NODISCARD MouseButton       mouseButtonFromSfml(sf::Mouse::Button button);
 
-NODISCARD sf::Joystick::Axis toSfml(Axis::E axis);
+NODISCARD sf::Joystick::Axis toSfml(Axis axis);
 
-NODISCARD int           toSfmlButton(GamepadButton::E button);
-NODISCARD GamepadButton::E gamepadButtonFromSfml(int button);
+NODISCARD int           toSfmlButton(GamepadButton button);
+NODISCARD GamepadButton gamepadButtonFromSfml(int button);
 
 /************************************************************************/
 /* Stable string names for serialization (defined in InputTypes.cpp)    */
 /************************************************************************/
 
-NODISCARD String toString(Key::E key);
-NODISCARD Key::E keyFromString(StringView name);
+NODISCARD String toString(Key key);
+NODISCARD Key keyFromString(StringView name);
 
-NODISCARD String toString(MouseButton::E button);
-NODISCARD MouseButton::E mouseButtonFromString(StringView name);
+NODISCARD String toString(MouseButton button);
+NODISCARD MouseButton mouseButtonFromString(StringView name);
 
-NODISCARD String toString(Axis::E axis);
-NODISCARD Axis::E axisFromString(StringView name);
+NODISCARD String toString(Axis axis);
+NODISCARD Axis axisFromString(StringView name);
 
-NODISCARD String toString(GamepadButton::E button);
-NODISCARD GamepadButton::E gamepadButtonFromString(StringView name);
+NODISCARD String toString(GamepadButton button);
+NODISCARD GamepadButton gamepadButtonFromString(StringView name);
 
-NODISCARD String toString(DeviceType::E device);
-NODISCARD DeviceType::E deviceTypeFromString(StringView name);
+NODISCARD String toString(DeviceType device);
+NODISCARD DeviceType deviceTypeFromString(StringView name);
 
 } // namespace sfmx

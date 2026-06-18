@@ -39,16 +39,16 @@ String
 InputControl::toPath() const {
   switch (m_device) {
     case DeviceType::kKeyboard:
-      return "Keyboard/" + toString(static_cast<Key::E>(m_code));
+      return "Keyboard/" + toString(static_cast<Key>(m_code));
     case DeviceType::kMouse:
-      return "Mouse/" + toString(static_cast<MouseButton::E>(m_code));
+      return "Mouse/" + toString(static_cast<MouseButton>(m_code));
     case DeviceType::kGamepad: {
       const int index = m_gamepadIndex < 0 ? 0 : m_gamepadIndex;
       const String prefix = "Gamepad" + std::to_string(index);
       if (m_isAxis) {
-        return prefix + "/Axis/" + toString(static_cast<Axis::E>(m_code));
+        return prefix + "/Axis/" + toString(static_cast<Axis>(m_code));
       }
-      return prefix + "/Button/" + toString(static_cast<GamepadButton::E>(m_code));
+      return prefix + "/Button/" + toString(static_cast<GamepadButton>(m_code));
     }
     default:
       return "Keyboard/Unknown";
