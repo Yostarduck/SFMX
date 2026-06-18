@@ -25,19 +25,19 @@ class GamepadDevice
 
   /** @brief Normalized, dead-zoned axis value in [-1, 1]. */
   NODISCARD float
-  getAxis(Axis::E axis) const;
+  getAxis(Axis axis) const;
 
   /** @brief True while @p button is held this frame. */
   NODISCARD bool
-  isPressed(GamepadButton::E button) const;
+  isPressed(GamepadButton button) const;
 
   /** @brief True only on the frame @p button transitions from up to down. */
   NODISCARD bool
-  wasPressedThisFrame(GamepadButton::E button) const;
+  wasPressedThisFrame(GamepadButton button) const;
 
   /** @brief True only on the frame @p button transitions from down to up. */
   NODISCARD bool
-  wasReleasedThisFrame(GamepadButton::E button) const;
+  wasReleasedThisFrame(GamepadButton button) const;
 
   /** @brief Whether this pad was connected as of the last poll. */
   NODISCARD bool
@@ -61,9 +61,9 @@ class GamepadDevice
   void
   poll(int index);
 
-  BitSet<GamepadButton::kCount> m_current;
-  BitSet<GamepadButton::kCount> m_previous;
-  Array<float, Axis::kCount> m_axes{};
+  BitSet<static_cast<size_t>(GamepadButton::kCount)> m_current;
+  BitSet<static_cast<size_t>(GamepadButton::kCount)> m_previous;
+  Array<float, static_cast<size_t>(Axis::kCount)> m_axes{};
   float m_deadZone = kDefaultDeadZone;
   bool m_connected = false;
 };

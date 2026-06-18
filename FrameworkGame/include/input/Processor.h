@@ -8,10 +8,7 @@ namespace sfmx
 {
 
 /** @brief Kind of value transform a @ref Processor performs. */
-namespace ProcessorType
-{
-enum E { kInvert, kScale, kDeadZone, kNormalize, kClamp };
-} // namespace ProcessorType
+enum class ProcessorType : int32 { kInvert, kScale, kDeadZone, kNormalize, kClamp };
 
 /**
  * @brief A single value transform in a binding/action processor chain.
@@ -26,7 +23,7 @@ enum E { kInvert, kScale, kDeadZone, kNormalize, kClamp };
  */
 struct Processor
 {
-  ProcessorType::E m_type = ProcessorType::kScale;
+  ProcessorType m_type = ProcessorType::kScale;
   Vector2f m_paramA{1.f, 1.f};
   Vector2f m_paramB{0.f, 0.f};
 };
@@ -39,6 +36,6 @@ struct Processor
 NODISCARD Vector2f
 applyProcessors(const Vector<Processor>& processors,
                 Vector2f value,
-                ActionValueType::E type);
+                ActionValueType type);
 
 } // namespace sfmx

@@ -27,15 +27,15 @@ class Mouse : public Module<Mouse>
  public:
   /** @brief True while @p button is held this frame. */
   NODISCARD bool
-  isPressed(MouseButton::E button) const;
+  isPressed(MouseButton button) const;
 
   /** @brief True only on the frame @p button transitions from up to down. */
   NODISCARD bool
-  wasPressedThisFrame(MouseButton::E button) const;
+  wasPressedThisFrame(MouseButton button) const;
 
   /** @brief True only on the frame @p button transitions from down to up. */
   NODISCARD bool
-  wasReleasedThisFrame(MouseButton::E button) const;
+  wasReleasedThisFrame(MouseButton button) const;
 
   /** @brief Window-relative cursor position, as of the last @ref pollPosition. */
   NODISCARD Vector2i
@@ -62,8 +62,8 @@ class Mouse : public Module<Mouse>
 
   Mouse() = default;
 
-  BitSet<MouseButton::kCount> m_current;
-  BitSet<MouseButton::kCount> m_previous;
+  BitSet<static_cast<size_t>(MouseButton::kCount)> m_current;
+  BitSet<static_cast<size_t>(MouseButton::kCount)> m_previous;
   Vector2i m_position;
   float m_wheelDelta = 0.f;
 };

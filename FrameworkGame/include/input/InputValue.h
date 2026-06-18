@@ -9,7 +9,7 @@ namespace sfmx
 {
 
 /** @brief The dimensionality / interpretation of an action's value. */
-namespace ActionValueType { enum E { kButton, kAxis1D, kAxis2D }; }
+enum class ActionValueType : int32 { kButton, kAxis1D, kAxis2D };
 
 /**
  * @brief A small POD value carried by actions and contexts; holds bool, float,
@@ -19,7 +19,7 @@ namespace ActionValueType { enum E { kButton, kAxis1D, kAxis2D }; }
  */
 struct InputValue
 {
-  ActionValueType::E m_type = ActionValueType::kButton;
+  ActionValueType m_type = ActionValueType::kButton;
   Vector2f m_value{0.f, 0.f};
 
   NODISCARD bool

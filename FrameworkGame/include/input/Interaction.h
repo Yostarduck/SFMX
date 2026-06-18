@@ -7,16 +7,10 @@ namespace sfmx
 {
 
 /** @brief State-machine phase of an action this frame (Unity/Unreal parity). */
-namespace ActionPhase
-{
-enum E { kDisabled, kWaiting, kStarted, kPerformed, kCanceled };
-} // namespace ActionPhase
+enum class ActionPhase : int32 { kDisabled, kWaiting, kStarted, kPerformed, kCanceled };
 
 /** @brief Timing model that decides when an action's phases fire. */
-namespace InteractionType
-{
-enum E { kPassThrough, kPress, kHold, kTap, kMultiTap };
-} // namespace InteractionType
+enum class InteractionType : int32 { kPassThrough, kPress, kHold, kTap, kMultiTap };
 
 /**
  * @brief Decides, from the actuation flag and elapsed time, which phase an
@@ -28,7 +22,7 @@ enum E { kPassThrough, kPress, kHold, kTap, kMultiTap };
  */
 struct Interaction
 {
-  InteractionType::E m_type = InteractionType::kPassThrough;
+  InteractionType m_type = InteractionType::kPassThrough;
   float m_duration = kDefaultHoldTime;       //!< Hold threshold / tap max time.
   float m_tapSpacing = kDefaultTapSpacing;   //!< Max gap between multi-taps.
   int m_tapCount = 2;                        //!< Taps required (kMultiTap).
@@ -45,7 +39,7 @@ struct Interaction
    * @param deltaTime Seconds since the previous step.
    * @return The phase for this frame.
    */
-  ActionPhase::E
+  ActionPhase
   step(bool actuated, float deltaTime);
 };
 

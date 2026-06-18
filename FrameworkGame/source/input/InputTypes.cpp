@@ -9,7 +9,7 @@ namespace sfmx
 
 namespace {
 
-// Key names, indexed by Key::E value (0 .. Key::kCount - 1), in the exact order
+// Key names, indexed by Key value (0 .. Key::kCount - 1), in the exact order
 // of the Key enum. kUnknown is handled separately.
 const ansichar* const kKeyNames[] = {
   "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
@@ -62,38 +62,38 @@ indexOfName(const ansichar* const* names, int count, StringView name) {
 /************************************************************************/
 
 sf::Keyboard::Key
-toSfml(Key::E key) {
-  if (key < 0 || key >= Key::kCount) {
+toSfml(Key key) {
+  if (static_cast<int32>(key) < 0 || key >= Key::kCount) {
     return sf::Keyboard::Key::Unknown;
   }
   return static_cast<sf::Keyboard::Key>(static_cast<int>(key));
 }
 
-Key::E
+Key
 keyFromSfml(sf::Keyboard::Key key) {
   const int value = static_cast<int>(key);
-  if (value < 0 || value >= Key::kCount) {
+  if (value < 0 || value >= static_cast<int32>(Key::kCount)) {
     return Key::kUnknown;
   }
-  return static_cast<Key::E>(value);
+  return static_cast<Key>(value);
 }
 
 sf::Mouse::Button
-toSfml(MouseButton::E button) {
+toSfml(MouseButton button) {
   return static_cast<sf::Mouse::Button>(static_cast<int>(button));
 }
 
-MouseButton::E
+MouseButton
 mouseButtonFromSfml(sf::Mouse::Button button) {
   const int value = static_cast<int>(button);
-  if (value < 0 || value >= MouseButton::kCount) {
+  if (value < 0 || value >= static_cast<int32>(MouseButton::kCount)) {
     return MouseButton::kLeft;
   }
-  return static_cast<MouseButton::E>(value);
+  return static_cast<MouseButton>(value);
 }
 
 sf::Joystick::Axis
-toSfml(Axis::E axis) {
+toSfml(Axis axis) {
   // Best-effort semantic-to-physical mapping; distinct physical axis per
   // semantic axis. Trigger / right-stick layout is controller dependent.
   switch (axis) {
@@ -110,16 +110,16 @@ toSfml(Axis::E axis) {
 }
 
 int
-toSfmlButton(GamepadButton::E button) {
+toSfmlButton(GamepadButton button) {
   return static_cast<int>(button);
 }
 
-GamepadButton::E
+GamepadButton
 gamepadButtonFromSfml(int button) {
-  if (button < 0 || button >= GamepadButton::kCount) {
+  if (button < 0 || button >= static_cast<int32>(GamepadButton::kCount)) {
     return GamepadButton::kCount;
   }
-  return static_cast<GamepadButton::E>(button);
+  return static_cast<GamepadButton>(button);
 }
 
 /************************************************************************/
@@ -127,73 +127,76 @@ gamepadButtonFromSfml(int button) {
 /************************************************************************/
 
 String
-toString(Key::E key) {
-  if (key < 0 || key >= Key::kCount) {
+toString(Key key) {
+  if (static_cast<int32>(key) < 0 || key >= Key::kCount) {
     return "Unknown";
   }
   return kKeyNames[static_cast<int>(key)];
 }
 
-Key::E
+Key
 keyFromString(StringView name) {
-  const int index = indexOfName(kKeyNames, Key::kCount, name);
-  return index < 0 ? Key::kUnknown : static_cast<Key::E>(index);
+  const int index = indexOfName(kKeyNames, static_cast<int32>(Key::kCount), name);
+  return index < 0 ? Key::kUnknown : static_cast<Key>(index);
 }
 
 String
-toString(MouseButton::E button) {
-  if (button < 0 || button >= MouseButton::kCount) {
+toString(MouseButton button) {
+  if (static_cast<int32>(button) < 0 || button >= MouseButton::kCount) {
     return "Left";
   }
   return kMouseButtonNames[static_cast<int>(button)];
 }
 
-MouseButton::E
+MouseButton
 mouseButtonFromString(StringView name) {
-  const int index = indexOfName(kMouseButtonNames, MouseButton::kCount, name);
-  return index < 0 ? MouseButton::kLeft : static_cast<MouseButton::E>(index);
+  const int index = indexOfName(kMouseButtonNames,
+                                static_cast<int32>(MouseButton::kCount), name);
+  return index < 0 ? MouseButton::kLeft : static_cast<MouseButton>(index);
 }
 
 String
-toString(Axis::E axis) {
-  if (axis < 0 || axis >= Axis::kCount) {
+toString(Axis axis) {
+  if (static_cast<int32>(axis) < 0 || axis >= Axis::kCount) {
     return "LeftX";
   }
   return kAxisNames[static_cast<int>(axis)];
 }
 
-Axis::E
+Axis
 axisFromString(StringView name) {
-  const int index = indexOfName(kAxisNames, Axis::kCount, name);
-  return index < 0 ? Axis::kLeftX : static_cast<Axis::E>(index);
+  const int index = indexOfName(kAxisNames, static_cast<int32>(Axis::kCount), name);
+  return index < 0 ? Axis::kLeftX : static_cast<Axis>(index);
 }
 
 String
-toString(GamepadButton::E button) {
-  if (button < 0 || button >= GamepadButton::kCount) {
+toString(GamepadButton button) {
+  if (static_cast<int32>(button) < 0 || button >= GamepadButton::kCount) {
     return "South";
   }
   return kGamepadButtonNames[static_cast<int>(button)];
 }
 
-GamepadButton::E
+GamepadButton
 gamepadButtonFromString(StringView name) {
-  const int index = indexOfName(kGamepadButtonNames, GamepadButton::kCount, name);
-  return index < 0 ? GamepadButton::kCount : static_cast<GamepadButton::E>(index);
+  const int index = indexOfName(kGamepadButtonNames,
+                                static_cast<int32>(GamepadButton::kCount), name);
+  return index < 0 ? GamepadButton::kCount : static_cast<GamepadButton>(index);
 }
 
 String
-toString(DeviceType::E device) {
-  if (device < 0 || device >= DeviceType::kCount) {
+toString(DeviceType device) {
+  if (static_cast<int32>(device) < 0 || device >= DeviceType::kCount) {
     return "Keyboard";
   }
   return kDeviceNames[static_cast<int>(device)];
 }
 
-DeviceType::E
+DeviceType
 deviceTypeFromString(StringView name) {
-  const int index = indexOfName(kDeviceNames, DeviceType::kCount, name);
-  return index < 0 ? DeviceType::kKeyboard : static_cast<DeviceType::E>(index);
+  const int index = indexOfName(kDeviceNames,
+                                static_cast<int32>(DeviceType::kCount), name);
+  return index < 0 ? DeviceType::kKeyboard : static_cast<DeviceType>(index);
 }
 
 } // namespace sfmx
