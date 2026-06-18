@@ -11,13 +11,10 @@ namespace sfmx
 class InputSystem;
 
 /** @brief Which output channel a composite part contributes to. */
-namespace CompositeRole
-{
-enum E { kPositiveX, kNegativeX, kPositiveY, kNegativeY, kAxisX, kAxisY };
-} // namespace CompositeRole
+enum class CompositeRole : int32 { kPositiveX, kNegativeX, kPositiveY, kNegativeY, kAxisX, kAxisY };
 
 /** @brief Shape of a composite binding's combined value. */
-namespace CompositeType { enum E { kAxis1D, kVector2D }; }
+enum class CompositeType : int32 { kAxis1D, kVector2D };
 
 /**
  * @brief Addresses one concrete physical control (the leaf that sampling reads).
@@ -27,7 +24,7 @@ namespace CompositeType { enum E { kAxis1D, kVector2D }; }
  */
 struct InputControl
 {
-  DeviceType::E m_device = DeviceType::kKeyboard;
+  DeviceType m_device = DeviceType::kKeyboard;
   int m_code = 0;
   int m_gamepadIndex = -1;
   bool m_isAxis = false;
@@ -56,14 +53,14 @@ struct Binding
 struct BindingPart
 {
   InputControl m_control;
-  CompositeRole::E m_role = CompositeRole::kPositiveX;
+  CompositeRole m_role = CompositeRole::kPositiveX;
   Vector<Processor> m_processors;
 };
 
 /** @brief Builds a higher-dimensional value from several controls. */
 struct CompositeBinding
 {
-  CompositeType::E m_type = CompositeType::kVector2D;
+  CompositeType m_type = CompositeType::kVector2D;
   Vector<BindingPart> m_parts;
 
   /** @brief Combine the parts into a single value (x = pos - neg, etc.). */

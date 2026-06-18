@@ -6,7 +6,7 @@ namespace sfmx
 namespace {
 
 // PassThrough: actuated => performed every frame; release => canceled once.
-ActionPhase::E
+ActionPhase
 stepPassThrough(Interaction& it, bool actuated) {
   if (actuated) {
     it.m_wasActuated = true;
@@ -20,7 +20,7 @@ stepPassThrough(Interaction& it, bool actuated) {
 }
 
 // Press: performed once on the press edge, canceled on release.
-ActionPhase::E
+ActionPhase
 stepPress(Interaction& it, bool actuated) {
   if (actuated) {
     if (!it.m_wasActuated) {
@@ -37,7 +37,7 @@ stepPress(Interaction& it, bool actuated) {
 }
 
 // Hold: started on press; performed once after m_duration; canceled on release.
-ActionPhase::E
+ActionPhase
 stepHold(Interaction& it, bool actuated, float dt) {
   if (actuated) {
     if (!it.m_wasActuated) {
@@ -63,7 +63,7 @@ stepHold(Interaction& it, bool actuated, float dt) {
 
 // Tap: started on press; performed if released within m_duration; canceled if
 // held too long.
-ActionPhase::E
+ActionPhase
 stepTap(Interaction& it, bool actuated, float dt) {
   if (actuated) {
     if (!it.m_wasActuated) {
@@ -89,7 +89,7 @@ stepTap(Interaction& it, bool actuated, float dt) {
 }
 
 // MultiTap: performed after m_tapCount presses, each within m_tapSpacing.
-ActionPhase::E
+ActionPhase
 stepMultiTap(Interaction& it, bool actuated, float dt) {
   // Press edge.
   if (actuated && !it.m_wasActuated) {
@@ -119,7 +119,7 @@ stepMultiTap(Interaction& it, bool actuated, float dt) {
 
 } // namespace
 
-ActionPhase::E
+ActionPhase
 Interaction::step(bool actuated, float deltaTime) {
   switch (m_type) {
     case InteractionType::kPress:    return stepPress(*this, actuated);
