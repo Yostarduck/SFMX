@@ -8,6 +8,7 @@
 #include "utils/Arithmetic.h"
 
 #include <SFML/Graphics/Texture.hpp>
+#include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/Graphics/Transform.hpp>
 
 namespace sfmx
@@ -37,9 +38,12 @@ ParticleSystemComponent::setConfig(const EmitterConfig& config) {
   SFMX_ASSERT(MemoryPoolHandler::instance().pool<Particle>().getCapacity() >= m_capacity &&
     "Shared particle pool too small. Call registerPool<Particle>(budget) with a larger budget.");
 
-  if (m_vertexBuffer.create(m_capacity * 6)) {
-    m_vertexBuffer.setUsage(sf::VertexBuffer::Usage::Stream);
-    m_vertexBuffer.setPrimitiveType(sf::PrimitiveType::Triangles);
+  if (!m_vertexBuffer) {
+    m_vertexBuffer = MakeUnique<sf::VertexBuffer>();
+  }
+  if (m_vertexBuffer->create(m_capacity * 6)) {
+    m_vertexBuffer->setUsage(sf::VertexBuffer::Usage::Stream);
+    m_vertexBuffer->setPrimitiveType(sf::PrimitiveType::Triangles);
   }
 
   m_elapsed = 0.f;
@@ -58,12 +62,15 @@ ParticleSystemComponent::emit(size_t count) {
 void
 ParticleSystemComponent::clear() {
   if (MemoryPoolHandler::instancePtr()) {
-    auto& pool = MemoryPoolHandler::instance().pool<Particle>();
-    Particle* p = m_firstParticle;
-    while (p) {
-      Particle* next = p->next;
-      pool.deallocate(p);
-      p = next;
+    auto& handler = MemoryPoolHandler::instance();
+    if (handler.template hasPool<Particle>()) {
+      auto& pool = handler.pool<Particle>();
+      Particle* p = m_firstParticle;
+      while (p) {
+        Particle* next = p->next;
+        pool.deallocate(p);
+        p = next;
+      }
     }
   }
   m_firstParticle = nullptr;
@@ -262,7 +269,7 @@ ParticleSystemComponent::onDraw(sf::RenderTarget& target,
   states.blendMode = m_config.blendMode;
   states.texture   = m_config.texture;
 
-  target.draw(m_vertexBuffer, 0, m_count * 6, states);
+  target.draw(*m_vertexBuffer, 0, m_count * 6, states);
 }
 
 void
@@ -327,7 +334,7 @@ ParticleSystemComponent::rebuildVertices() const {
     batchFilled += 6;
 
     if (batchFilled + 6 > BATCH_VERTS || p == m_lastParticle) {
-      if (!m_vertexBuffer.update(batch, batchFilled, uploadOffset))
+      if (!m_vertexBuffer->update(batch, batchFilled, uploadOffset))
         return;
       uploadOffset += batchFilled;
       batchFilled = 0;
