@@ -18,6 +18,7 @@
 #include "scene/SourceComponent.h"
 #include "scene/SpriteComponent.h"
 #include "scene/AnimatorComponent.h"
+#include "scene/ScriptComponent.h"
 
 #include "resource/SpriteAtlas.h"
 #include "resource/Frame.h"
