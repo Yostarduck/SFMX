@@ -30,7 +30,13 @@ constexpr size_t kAssetSourcePathLength = 256;
 
 /** @brief On-disk size of @ref AssetMetadata, serialized field-by-field. */
 constexpr size_t kAssetMetadataBytes =
-    16 + 16 + 8 + 4 + kAssetTypeNameLength + kAssetNameLength + kAssetSourcePathLength;
+    sizeof(UUID) +   // uuid
+    sizeof(UUID) +   // assetType
+    sizeof(uint64) + // creationTime
+    sizeof(uint32) + // version
+    kAssetTypeNameLength +
+    kAssetNameLength +
+    kAssetSourcePathLength;
 
 /**
  * @brief Fixed-size descriptor at the head of every `.sfmxasset`, cheap to scan
