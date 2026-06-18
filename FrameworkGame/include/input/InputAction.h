@@ -35,16 +35,16 @@ class InputAction
  public:
   InputAction(StringView name, ActionValueType valueType);
 
-  NODISCARD const String&
+  NODISCARD FORCEINLINE const String&
   getName() const { return m_name; }
 
-  NODISCARD ActionValueType
+  NODISCARD FORCEINLINE ActionValueType
   getValueType() const { return m_valueType; }
 
-  NODISCARD const InputValue&
+  NODISCARD FORCEINLINE const InputValue&
   getValue() const { return m_value; }
 
-  NODISCARD ActionPhase
+  NODISCARD FORCEINLINE ActionPhase
   getPhase() const { return m_phase; }
 
   /** @brief Add a simple binding and return it for further configuration. */
@@ -85,7 +85,7 @@ class InputAction
   void
   disable() { m_enabled = false; }
 
-  NODISCARD bool
+  NODISCARD FORCEINLINE bool
   isEnabled() const { return m_enabled; }
 
   /** @brief (Internal) Sample bindings, run the phase machine, fire events. */
