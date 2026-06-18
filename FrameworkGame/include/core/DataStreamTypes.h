@@ -23,7 +23,7 @@ namespace sfmx
 FORCEINLINE DataStream&
 operator<<(DataStream& stream, const UUID& id) {
   SFMX_ASSERT(stream.isWriteable());
-  const Array<uint8, 16> bytes = id.toBytes();
+  const Array<uint8, kUuidBytes> bytes = id.toBytes();
   stream.write(bytes.data(), bytes.size());
   return stream;
 }
@@ -31,7 +31,7 @@ operator<<(DataStream& stream, const UUID& id) {
 FORCEINLINE DataStream&
 operator>>(DataStream& stream, UUID& id) {
   SFMX_ASSERT(stream.isReadable());
-  Array<uint8, 16> bytes{};
+  Array<uint8, kUuidBytes> bytes{};
   stream.read(bytes.data(), bytes.size());
   id = UUID::fromBytes(bytes);
   return stream;

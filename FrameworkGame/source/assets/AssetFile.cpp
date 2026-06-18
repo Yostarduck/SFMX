@@ -10,9 +10,24 @@ namespace sfmx
 namespace
 {
 
-// On-disk sizes of the fixed regions (serialized field-by-field, not blitted).
-constexpr uint64 kHeaderBytes     = 4 + 4 + 8 + 8 + 8 + 4;  // magic,ver,3*offset,count
-constexpr uint64 kChunkEntryBytes = 4 + 8 + 8 + 8 + 2 + 2;  // id,offset,size,raw,fmt,comp
+// On-disk sizes of the fixed regions (serialized field-by-field, not blitted —
+// so they're summed per field by type, never sizeof(struct) which would include
+// padding).
+constexpr uint64 kHeaderBytes =
+    sizeof(kAssetMagic) +          // magic "SFMX"
+    sizeof(kAssetFormatVersion) +  // format version (uint32)
+    sizeof(uint64) +               // metadataOffset
+    sizeof(uint64) +               // referencesOffset
+    sizeof(uint64) +               // directoryOffset
+    sizeof(uint32);                // chunkCount
+
+constexpr uint64 kChunkEntryBytes =
+    sizeof(uint32) +  // id
+    sizeof(uint64) +  // offset
+    sizeof(uint64) +  // size
+    sizeof(uint64) +  // rawSize
+    sizeof(uint16) +  // format      (ChunkFormat written as uint16)
+    sizeof(uint16);   // compression (ChunkCompression written as uint16)
 
 void
 writeMetadata(DataStream& s, const AssetMetadata& m) {
@@ -105,7 +120,8 @@ AssetFileWriter::writeTo(DataStream& out) const {
   // up front and write in one forward pass (no seek-back to patch the header).
   const uint64 metadataOffset   = kHeaderBytes;
   const uint64 referencesOffset = metadataOffset + kAssetMetadataBytes;
-  const uint64 refsBytes        = sizeof(uint32) + static_cast<uint64>(refCount) * 16u;
+  const uint64 refsBytes        = sizeof(uint32) /*count*/ +
+                                  static_cast<uint64>(refCount) * kUuidBytes;
   const uint64 directoryOffset  = referencesOffset + refsBytes;
   const uint64 dirBytes         = static_cast<uint64>(chunkCount) * kChunkEntryBytes;
   uint64 chunkCursor            = directoryOffset + dirBytes;
@@ -204,7 +220,8 @@ AssetFileReader::open(const SPtr<DataStream>& stream) {
   uint32 refCount = 0;
   *stream >> refCount;
   if (!spanFits(referencesOffset,
-                sizeof(uint32) + static_cast<uint64>(refCount) * 16u, fileSize)) {
+                sizeof(uint32) + static_cast<uint64>(refCount) * kUuidBytes,
+                fileSize)) {
     return false;
   }
   m_references.reserve(refCount);
