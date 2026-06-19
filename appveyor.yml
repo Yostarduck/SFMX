@@ -101,17 +101,7 @@ for:
         COMMIT_MSG=$(echo "$APPVEYOR_REPO_COMMIT_MESSAGE" | head -1)
         CONTENT="[$APPVEYOR_PROJECT_NAME]($APPVEYOR_URL/project/$APPVEYOR_ACCOUNT_NAME/$APPVEYOR_PROJECT_SLUG/build/$APPVEYOR_BUILD_VERSION) build **$APPVEYOR_BUILD_STATUS** on **$APPVEYOR_REPO_BRANCH** ($APPVEYOR_REPO_COMMIT)"
         export URL COLOR COMMIT_MSG CONTENT
-        python3 -c "
-import json, os
-url=os.environ['URL']
-color=int(os.environ['COLOR'])
-msg=os.environ.get('COMMIT_MSG','')
-ct=os.environ['CONTENT']
-body=json.dumps({'content':ct,'embeds':[{'title':msg,'color':color}]})
-import urllib.request
-req=urllib.request.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST')
-urllib.request.urlopen(req)
-" 2>/dev/null || true
+        python3 -c "import json,os;u=os.environ['URL'];c=int(os.environ['COLOR']);m=os.environ.get('COMMIT_MSG','');t=os.environ['CONTENT'];b=json.dumps({'content':t,'embeds':[{'title':m,'color':c}]});import urllib.request as r;r.urlopen(r.Request(u,data=b.encode(),headers={'Content-Type':'application/json'},method='POST'))" 2>/dev/null || true
 
   artifacts:
     - path: Build/x64/$(CONFIGURATION)/Game
