@@ -2,6 +2,16 @@
 
 #include "scripts/registerAll.h"
 
+#include "scripts/registerAngle.h"
+#include "scripts/registerColor.h"
+#include "scripts/registerVector2i.h"
+#include "scripts/registerVector2f.h"
+#include "scripts/registerVector3i.h"
+#include "scripts/registerVector3f.h"
+#include "scripts/registerIntRect.h"
+#include "scripts/registerFloatRect.h"
+#include "scripts/registerTransform.h"
+
 #include "scene/SceneNode.h"
 #include "scene/SpriteComponent.h"
 
@@ -17,6 +27,16 @@ RegisterAll(sol::state_view lua) {
                      sol::lib::math,
                      sol::lib::string,
                      sol::lib::table);
+  // Value types.
+  RegisterAngle(lua);
+  RegisterColor(lua);
+  RegisterVector2i(lua);
+  RegisterVector2f(lua);
+  RegisterVector3i(lua);
+  RegisterVector3f(lua);
+  RegisterIntRect(lua);
+  RegisterFloatRect(lua);
+  RegisterTransform(lua);
 }
 
 }
