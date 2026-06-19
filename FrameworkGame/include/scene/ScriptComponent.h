@@ -19,13 +19,13 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   void
   onUpdate(float deltaTime) override;
 
-  NODISCARD bool
+  NODISCARD FORCEINLINE bool
   isInitialized() const { return m_initialized; }
 
  private:
   friend ScriptEngine;
 
-  std::string m_scriptName;
+  String m_scriptName;
   sol::protected_function m_script;
   bool m_initialized = false;
 };

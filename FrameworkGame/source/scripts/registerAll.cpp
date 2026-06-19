@@ -12,7 +12,7 @@ namespace script
 {
 
 void
-registerAll(sol::state_view lua) {
+RegisterAll(sol::state_view lua) {
   lua.open_libraries(sol::lib::base,
                      sol::lib::math,
                      sol::lib::string,

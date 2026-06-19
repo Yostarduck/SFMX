@@ -9,7 +9,7 @@ namespace script
 {
 
 void
-registerAll(sol::state_view lua);
+RegisterAll(sol::state_view lua);
 
 }
 
