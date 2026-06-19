@@ -63,7 +63,7 @@ void
 ParticleSystemComponent::clear() {
   if (MemoryPoolHandler::instancePtr()) {
     auto& handler = MemoryPoolHandler::instance();
-    if (handler.template hasPool<Particle>()) {
+    if (handler.hasPool<Particle>()) {
       auto& pool = handler.pool<Particle>();
       Particle* p = m_firstParticle;
       while (p) {
