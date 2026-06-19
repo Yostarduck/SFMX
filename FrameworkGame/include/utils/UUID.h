@@ -9,6 +9,15 @@
 
 namespace sfmx {
 
+/**
+ * @brief Canonical on-disk size of a serialized UUID, in bytes.
+ *
+ * A UUID always serializes to its raw 128-bit value (see @ref UUID::toBytes),
+ * independent of @c sizeof(UUID) in memory. Use this — never @c sizeof(UUID) —
+ * to size on-disk layouts.
+ */
+constexpr size_t kUuidBytes = 16;
+
 class SFMX_UTILITY_EXPORT UUID  {
  public:
   UUID() = default;
@@ -34,12 +43,12 @@ class SFMX_UTILITY_EXPORT UUID  {
   getHash() const noexcept { return Hash<uuids::uuid>{}(m_uuid); }
 
   /** @brief The raw 16-byte value, for compact binary serialization. */
-  NODISCARD Array<uint8, 16>
+  NODISCARD Array<uint8, kUuidBytes>
   toBytes() const;
 
   /** @brief Rebuild a UUID from its raw 16 bytes (see @ref toBytes). */
   NODISCARD static UUID
-  fromBytes(const Array<uint8, 16>& bytes);
+  fromBytes(const Array<uint8, kUuidBytes>& bytes);
 
   NODISCARD static UUID
   createRandom();

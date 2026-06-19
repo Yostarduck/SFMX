@@ -76,8 +76,8 @@ PhysicsSystem::shouldCollide(const ColliderComponent* a, const ColliderComponent
 /** @brief Runs the narrow-phase intersection test for a collider pair */
 CollisionResult
 PhysicsSystem::testNarrow(ColliderComponent* a, ColliderComponent* b) const {
-  Collider* ca = a->getCollider();
-  Collider* cb = b->getCollider();
+  ICollider* ca = a->getCollider();
+  ICollider* cb = b->getCollider();
   if (!ca || !cb) return {};
 
   const sf::Transform& wtA = a->getOwner()->transform().getWorldTransform();
@@ -126,13 +126,13 @@ PhysicsSystem::separate(ColliderComponent* a, ColliderComponent* b, const Collis
   // driving into each other on subsequent frames.
   if (dynA) {
     const sf::Vector2f velA = rbA->getVelocity();
-    const float vDotN = dot(velA, cr.normal);
+    const float vDotN = velA.dot(cr.normal);
     if (vDotN > 0.f)
       rbA->setVelocity(velA - cr.normal * vDotN);
   }
   if (dynB) {
     const sf::Vector2f velB = rbB->getVelocity();
-    const float vDotN = dot(velB, cr.normal);
+    const float vDotN = velB.dot(cr.normal);
     if (vDotN < 0.f)
       rbB->setVelocity(velB - cr.normal * vDotN);
   }
@@ -167,9 +167,9 @@ PhysicsSystem::step(float dt) {
 
         const bool wasInContact = m_prevContacts.contains(key);
         if (wasInContact) {
-          if (m_onStay) m_onStay(a, b);
+          m_onStay(a, b);
         } else {
-          if (m_onEnter) m_onEnter(a, b);
+          m_onEnter(a, b);
         }
 
         separate(a, b, cr);
@@ -180,7 +180,7 @@ PhysicsSystem::step(float dt) {
   // 3. Detect exits
   for (const auto& key : m_prevContacts) {
     if (!currentContacts.contains(key)) {
-      if (m_onExit) m_onExit(key.a, key.b);
+      m_onExit(key.a, key.b);
     }
   }
 

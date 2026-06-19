@@ -1,5 +1,8 @@
 version: 1.0.{build}
 
+# Only build pull requests, skip duplicate branch builds
+skip_branch_with_pr: true
+
 image:
   - Visual Studio 2022
   - Ubuntu
@@ -16,6 +19,20 @@ cache:
 
 install:
   - cmake --version
+  
+notifications:
+  - provider: Webhook
+    url: https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2
+    headers:
+      Content-Type: application/json
+    body: >
+      {
+        "content": "[{{projectName}}]({{appUrl}}/project/{{accountName}}/{{projectName}}/build/{{buildVersion}}) build **{{status}}** on **{{branch}}** ({{commitId}})",
+        "embeds": [{
+          "title": "{{message}}",
+          "color": {{#jobs}}{{#passed}}65280{{/passed}}{{#failed}}16711680{{/failed}}{{/jobs}}
+        }]
+      }
 
 #
 # ── Windows ──────────────────────────────────────────────────────────
