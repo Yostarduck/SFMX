@@ -33,6 +33,8 @@ add_library(FrameworkGame STATIC
     source/core/FileDataStream.cpp
     source/core/FileSystem.cpp
 
+    source/assets/AssetFile.cpp
+
     source/input/InputTypes.cpp
     source/input/Keyboard.cpp
     source/input/Mouse.cpp

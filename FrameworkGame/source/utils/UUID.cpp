@@ -10,9 +10,9 @@ uuids::uuid_name_generator UUID::UUID_NAME_GENERATOR(uuids::uuid::from_string(SF
 
 /*
 */
-Array<uint8, 16>
+Array<uint8, kUuidBytes>
 UUID::toBytes() const {
-  Array<uint8, 16> out{};
+  Array<uint8, kUuidBytes> out{};
   const auto bytes = m_uuid.as_bytes();  // std::span<const std::byte, 16>
   std::memcpy(out.data(), bytes.data(), out.size());
   return out;
@@ -21,7 +21,7 @@ UUID::toBytes() const {
 /*
 */
 UUID
-UUID::fromBytes(const Array<uint8, 16>& bytes) {
+UUID::fromBytes(const Array<uint8, kUuidBytes>& bytes) {
   // Array<uint8,16> is std::array<uint8_t,16>, which uuids::uuid accepts directly.
   return UUID(uuids::uuid(bytes));
 }
