@@ -23,8 +23,6 @@ install:
 notifications:
   - provider: Webhook
     url: https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2
-    headers:
-      Content-Type: application/json
     body: >
       {
         "content": "[{{projectName}}]({{appUrl}}/project/{{accountName}}/{{projectName}}/build/{{buildVersion}}) build **{{status}}** on **{{branch}}** ({{commitId}})",
