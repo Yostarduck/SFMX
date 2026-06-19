@@ -30,28 +30,28 @@ ColliderComponent::~ColliderComponent() {
 // -----------------------------------------------------------------------------
 
 void
-ColliderComponent::setCircle(sf::Vector2f localCenter, float radius) {
-  m_collider = UniquePtr<Collider>(new CircleCollider(localCenter, radius));
+ColliderComponent::setCircle(const sf::Vector2f& localCenter, float radius) {
+  m_collider = UniquePtr<ICollider>(new CircleCollider(localCenter, radius));
 }
 
 void
-ColliderComponent::setAABB(sf::Vector2f localCenter, sf::Vector2f halfSize) {
-  m_collider = UniquePtr<Collider>(new AABBCollider(localCenter, halfSize));
+ColliderComponent::setAABB(const sf::Vector2f& localCenter, const sf::Vector2f& halfSize) {
+  m_collider = UniquePtr<ICollider>(new AABBCollider(localCenter, halfSize));
 }
 
 void
-ColliderComponent::setOOBB(sf::Vector2f localCenter, sf::Vector2f halfSize) {
-  m_collider = UniquePtr<Collider>(new OOBBCollider(localCenter, halfSize));
+ColliderComponent::setOBB(const sf::Vector2f& localCenter, const sf::Vector2f& halfSize) {
+  m_collider = UniquePtr<ICollider>(new OBBCollider(localCenter, halfSize));
 }
 
 void
-ColliderComponent::setPoint(sf::Vector2f localPos) {
-  m_collider = UniquePtr<Collider>(new PointCollider(localPos));
+ColliderComponent::setPoint(const sf::Vector2f& localPos) {
+  m_collider = UniquePtr<ICollider>(new PointCollider(localPos));
 }
 
 void
-ColliderComponent::setLine(sf::Vector2f localStart, sf::Vector2f localEnd) {
-  m_collider = UniquePtr<Collider>(new LineCollider(localStart, localEnd));
+ColliderComponent::setLine(const sf::Vector2f& localStart, const sf::Vector2f& localEnd) {
+  m_collider = UniquePtr<ICollider>(new LineCollider(localStart, localEnd));
 }
 
 // -----------------------------------------------------------------------------
@@ -79,8 +79,8 @@ ColliderComponent::onDraw(sf::RenderTarget& target, sf::RenderStates states) con
     case ColliderType::kCircle: {
       const auto* c  = static_cast<CircleCollider*>(m_collider.get());
       const sf::Vector2f origin = wt.transformPoint({0.f, 0.f});
-      const float sx = length(wt.transformPoint({1.f, 0.f}) - origin);
-      const float sy = length(wt.transformPoint({0.f, 1.f}) - origin);
+      const float sx = (wt.transformPoint({1.f, 0.f}) - origin).length();
+      const float sy = (wt.transformPoint({0.f, 1.f}) - origin).length();
       const sf::Vector2f center = wt.transformPoint(c->getCenter());
       const float radius = c->getRadius() * (sx + sy) * 0.5f;
       constexpr int segs = 32;
@@ -90,10 +90,7 @@ ColliderComponent::onDraw(sf::RenderTarget& target, sf::RenderStates states) con
         va[i].position = center + sf::Vector2f{std::cos(a) * radius, std::sin(a) * radius};
         va[i].color    = m_debugColor;
       }
-      sf::RenderStates id = states;
-      id.transform = sf::Transform::Identity;
-      target.draw(va, id);
-      return;
+      break;
     }
     case ColliderType::kAABB: {
       const auto* a  = static_cast<AABBCollider*>(m_collider.get());
@@ -109,13 +106,13 @@ ColliderComponent::onDraw(sf::RenderTarget& target, sf::RenderStates states) con
       va[4] = va[0];
       break;
     }
-    case ColliderType::kOOBB: {
-      const auto* o  = static_cast<OOBBCollider*>(m_collider.get());
+    case ColliderType::kOBB: {
+      const auto* o  = static_cast<OBBCollider*>(m_collider.get());
       const sf::Vector2f ori = wt.transformPoint({0.f, 0.f});
-      const sf::Vector2f ax  = normalize(wt.transformPoint({1.f, 0.f}) - ori);
-      const sf::Vector2f ay  = normalize(wt.transformPoint({0.f, 1.f}) - ori);
-      const float sx = length(wt.transformPoint({1.f, 0.f}) - ori);
-      const float sy = length(wt.transformPoint({0.f, 1.f}) - ori);
+      const sf::Vector2f ax  = (wt.transformPoint({1.f, 0.f}) - ori).normalized();
+      const sf::Vector2f ay  = (wt.transformPoint({0.f, 1.f}) - ori).normalized();
+      const float sx = (wt.transformPoint({1.f, 0.f}) - ori).length();
+      const float sy = (wt.transformPoint({0.f, 1.f}) - ori).length();
       const sf::Vector2f center = wt.transformPoint(o->getCenter());
       const auto hs = o->getHalfSize();
       const sf::Vector2f ex = ax * hs.x * sx, ey = ay * hs.y * sy;

@@ -10,6 +10,7 @@
 
 #include "core/physics/Collider.h"
 #include "core/platform/Prerequisites.h"
+#include "utils/EventSystem.h"
 #include "utils/Module.h"
 
 #include <SFML/System/Vector2.hpp>
@@ -53,10 +54,10 @@ namespace Physics
   inline constexpr sf::Vector2f kDefaultGravity = {0.f, 980.f};
 } // namespace Physics
 
-// Collision callback
+// Collision callbacks (Event-based, see InputAction::onStarted for example)
 
 /** @brief Signature for collision-event callbacks (enter / stay / exit) */
-using CollisionEvent = Function<void(ColliderComponent*, ColliderComponent*)>;
+using CollisionEvent = void(ColliderComponent*, ColliderComponent*);
 
 // Physics System
 
@@ -88,21 +89,26 @@ class PhysicsSystem : public Module<PhysicsSystem>
   /** @brief Unregister a rigid body */
   void unregisterRigidBody(RigidBodyComponent* comp);
 
-  // Callbacks
+  // Callbacks (Event-based RAII handles)
 
-  /** @brief Called when two colliders first make contact */
-  void setOnCollisionEnter(CollisionEvent cb) { m_onEnter = std::move(cb); }
-  /** @brief Called each frame while two colliders stay in contact */
-  void setOnCollisionStay(CollisionEvent cb)  { m_onStay  = std::move(cb); }
-  /** @brief Called when two colliders cease to overlap */
-  void setOnCollisionExit(CollisionEvent cb)  { m_onExit  = std::move(cb); }
+  /** @brief Called when two colliders first make contact. Returns RAII handle. */
+  NODISCARD FORCEINLINE HEvent
+  onCollisionEnter(Function<CollisionEvent> cb) const { return m_onEnter.connect(std::move(cb)); }
+  /** @brief Called each frame while two colliders stay in contact. Returns RAII handle. */
+  NODISCARD FORCEINLINE HEvent
+  onCollisionStay(Function<CollisionEvent> cb) const  { return m_onStay.connect(std::move(cb)); }
+  /** @brief Called when two colliders cease to overlap. Returns RAII handle. */
+  NODISCARD FORCEINLINE HEvent
+  onCollisionExit(Function<CollisionEvent> cb) const  { return m_onExit.connect(std::move(cb)); }
 
   // Gravity
 
   /** @brief Set the global gravity vector (default: 980 px/s² downward) */
-  void setGravity(sf::Vector2f g) { m_gravity = g; }
+  FORCEINLINE void 
+  setGravity(const sf::Vector2f& g) { m_gravity = g; }
   /** @brief Current gravity vector */
-  sf::Vector2f getGravity() const { return m_gravity; }
+  FORCEINLINE sf::Vector2f 
+  getGravity() const { return m_gravity; }
 
  protected:
   friend class Module<PhysicsSystem>;
@@ -114,34 +120,36 @@ class PhysicsSystem : public Module<PhysicsSystem>
     ColliderComponent* a;
     ColliderComponent* b;
 
-    bool operator==(const PairKey& o) const {
-      return a == o.a && b == o.b;
-    }
+    FORCEINLINE bool 
+    operator==(const PairKey& o) const 
+    { return a == o.a && b == o.b; }
   };
 
   struct PairHash {
-    size_t operator()(const PairKey& k) const {
-      return reinterpret_cast<size_t>(k.a) ^
-             (reinterpret_cast<size_t>(k.b) << 16);
-    }
+    FORCEINLINE size_t 
+    operator()(const PairKey& k) const { return reinterpret_cast<size_t>(k.a) ^ (reinterpret_cast<size_t>(k.b) << 16); }
   };
 
   using ContactSet = UnorderedSet<PairKey, PairHash>;
 
-  static PairKey makeKey(ColliderComponent* a, ColliderComponent* b);
+  static PairKey 
+  makeKey(ColliderComponent* a, ColliderComponent* b);
 
-  bool shouldCollide(const ColliderComponent* a, const ColliderComponent* b) const;
-  CollisionResult testNarrow(ColliderComponent* a, ColliderComponent* b) const;
-  void separate(ColliderComponent* a, ColliderComponent* b, const CollisionResult& cr);
+  bool 
+  shouldCollide(const ColliderComponent* a, const ColliderComponent* b) const;
+  CollisionResult 
+  testNarrow(ColliderComponent* a, ColliderComponent* b) const;
+  void 
+  separate(ColliderComponent* a, ColliderComponent* b, const CollisionResult& cr);
 
   Vector<ColliderComponent*>   m_colliders;
   Vector<RigidBodyComponent*>  m_rigidBodies;
   ContactSet                   m_prevContacts;
   sf::Vector2f                 m_gravity = Physics::kDefaultGravity;
 
-  CollisionEvent m_onEnter;
-  CollisionEvent m_onStay;
-  CollisionEvent m_onExit;
+  Event<CollisionEvent> mutable m_onEnter;
+  Event<CollisionEvent> mutable m_onStay;
+  Event<CollisionEvent> mutable m_onExit;
 };
 
 } // namespace sfmx
