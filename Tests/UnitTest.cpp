@@ -23,8 +23,12 @@ main(int argc, char* argv[]) {
 
   context.clearFilters();
 
+  // Don't shut down MemoryPoolHandler here — static destruction that follows
+  // may trigger component/SceneNode destructors that still reference pools.
+  // reset() destroys remaining elements while keeping pools registered so any
+  // late cleanup during static teardown can still deallocate safely.
   if (MemoryPoolHandler::isStarted()) {
-    MemoryPoolHandler::shutDown();
+    MemoryPoolHandler::instance().reset();
   }
 
   return res + EXIT_SUCCESS;

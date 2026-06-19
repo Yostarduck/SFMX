@@ -20,17 +20,9 @@ cache:
 install:
   - cmake --version
   
-notifications:
-  - provider: Webhook
-    url: https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2
-    body: >
-      {
-        "content": "[{{projectName}}]({{appUrl}}/project/{{accountName}}/{{projectName}}/build/{{buildVersion}}) build **{{status}}** on **{{branch}}** ({{commitId}})",
-        "embeds": [{
-          "title": "{{message}}",
-          "color": {{#jobs}}{{#passed}}65280{{/passed}}{{#failed}}16711680{{/failed}}{{/jobs}}
-        }]
-      }
+# Webhook sent via on_finish build scripts (not the notifications provider)
+# because Appveyor's .NET client rejects Content-Type as a request header,
+# and Discord requires Content-Type: application/json.
 
 #
 # ── Windows ──────────────────────────────────────────────────────────
@@ -57,6 +49,15 @@ for:
     - cd Build
     - ctest -C %CONFIGURATION% --output-on-failure --timeout 30 || ver
     - cd ..
+
+  on_finish:
+    - ps: |
+        $url = "https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2"
+        $color = if ($env:APPVEYOR_BUILD_STATUS -eq "success") { 65280 } else { 16711680 }
+        $commitMsg = "$env:APPVEYOR_REPO_COMMIT_MESSAGE".Split("`n")[0]
+        $content = "[$env:APPVEYOR_PROJECT_NAME]($env:APPVEYOR_URL/project/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/build/$env:APPVEYOR_BUILD_VERSION) build **$env:APPVEYOR_BUILD_STATUS** on **$env:APPVEYOR_REPO_BRANCH** ($env:APPVEYOR_REPO_COMMIT)"
+        $body = @{ content = $content; embeds = @(@{ title = $commitMsg; color = $color }) } | ConvertTo-Json -Compress -Depth 3
+        Invoke-RestMethod -Uri $url -Method Post -Body $body -ContentType "application/json"
 
   artifacts:
     - path: Build\x64\%CONFIGURATION%\Game.exe
@@ -92,6 +93,25 @@ for:
     - sh: |
         export LD_LIBRARY_PATH="Build/_deps/sfml-build/lib:Build/x64/$CONFIGURATION"
         cd Build && ctest -C $CONFIGURATION --output-on-failure --timeout 30 || true
+
+  on_finish:
+    - sh: |
+        URL="https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2"
+        if [ "$APPVEYOR_BUILD_STATUS" = "success" ]; then COLOR=65280; else COLOR=16711680; fi
+        COMMIT_MSG=$(echo "$APPVEYOR_REPO_COMMIT_MESSAGE" | head -1)
+        CONTENT="[$APPVEYOR_PROJECT_NAME]($APPVEYOR_URL/project/$APPVEYOR_ACCOUNT_NAME/$APPVEYOR_PROJECT_SLUG/build/$APPVEYOR_BUILD_VERSION) build **$APPVEYOR_BUILD_STATUS** on **$APPVEYOR_REPO_BRANCH** ($APPVEYOR_REPO_COMMIT)"
+        export URL COLOR COMMIT_MSG CONTENT
+        python3 -c "
+import json, os
+url=os.environ['URL']
+color=int(os.environ['COLOR'])
+msg=os.environ.get('COMMIT_MSG','')
+ct=os.environ['CONTENT']
+body=json.dumps({'content':ct,'embeds':[{'title':msg,'color':color}]})
+import urllib.request
+req=urllib.request.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST')
+urllib.request.urlopen(req)
+" 2>/dev/null || true
 
   artifacts:
     - path: Build/x64/$(CONFIGURATION)/Game
