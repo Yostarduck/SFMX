@@ -34,6 +34,9 @@ add_library(FrameworkGame STATIC
     source/core/FileSystem.cpp
 
     source/assets/AssetFile.cpp
+    source/assets/AssetCodecRegistry.cpp
+    source/assets/TextureAsset.cpp
+    source/assets/TextureCodec.cpp
 
     source/input/InputTypes.cpp
     source/input/Keyboard.cpp
