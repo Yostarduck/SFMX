@@ -5,7 +5,6 @@
 #include <SFML/Graphics/PrimitiveType.hpp>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/System/Angle.hpp>
 
 #include "core/platform/Prerequisites.h"
@@ -13,6 +12,8 @@
 #include "scene/SceneNode.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/TypeTraits.h"
+
+namespace sf { class VertexBuffer; }
 
 namespace sfmx
 {
@@ -192,8 +193,9 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   /** @brief Tail of the intrusive doubly-linked list of active particles. */
   Particle*    m_lastParticle  = nullptr;
 
-  /** @brief Pre-allocated vertex buffer (capacity * 6 vertices, two triangles per particle). */
-  mutable sf::VertexBuffer m_vertexBuffer;
+  /** @brief Pre-allocated vertex buffer (capacity * 6 vertices, two triangles per particle).
+   *         Lazily created in setConfig() to avoid OpenGL context dependency at construction. */
+  mutable UniquePtr<sf::VertexBuffer> m_vertexBuffer;
   /** @brief Set to true whenever the active list changes, triggers a rebuild before draw. */
   mutable bool m_verticesDirty = true;
 

@@ -1,6 +1,8 @@
 #include <SFML/Graphics.hpp>
 
 #include "config/IniFile.h"
+
+#include "input/Mapping.h"
 #include "input/ActionMap.h"
 #include "input/Gamepad.h"
 #include "input/InputAction.h"
@@ -9,22 +11,28 @@
 #include "input/Keyboard.h"
 #include "input/Mapping.h"
 #include "input/Mouse.h"
-#include "scene/CameraComponent.h"
-#include "scene/ListenerComponent.h"
-#include "scene/ParticleSystemComponent.h"
+
 #include "scene/Scene.h"
+#include "scene/CameraComponent.h"
 #include "scene/SourceComponent.h"
+#include "scene/ListenerComponent.h"
 #include "scene/SpriteComponent.h"
 #include "scene/AnimatorComponent.h"
 #include "scene/ColliderComponent.h"
 #include "scene/RigidBodyComponent.h"
+#include "scene/ParticleSystemComponent.h"
+#include "scene/ScriptComponent.h"
+
 #include "resource/SpriteAtlas.h"
 #include "resource/Frame.h"
+
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Module.h"
 #include "utils/EventSystem.h"
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
+
+#include "scripts/scriptEngine.h"
 
 using namespace sfmx;
 
@@ -53,6 +61,7 @@ DECLARE_TYPE_TRAITS(SourceComponent)
 DECLARE_TYPE_TRAITS(ListenerComponent)
 DECLARE_TYPE_TRAITS(CameraComponent)
 DECLARE_TYPE_TRAITS(AnimatorComponent)
+DECLARE_TYPE_TRAITS(ScriptComponent)
 
 int main()
 {
@@ -73,6 +82,7 @@ int main()
   InputSystem::startUp();
   PhysicsSystem::startUp();
   MemoryPoolHandler::startUp(4096);
+  ScriptEngine::startUp();
 
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
   pools.registerPool<Particle>(2048);
@@ -86,7 +96,9 @@ int main()
   pools.registerPool<AnimatorComponent>(8);
   pools.registerPool<ColliderComponent>(64);
   pools.registerPool<RigidBodyComponent>(64);
+  pools.registerPool<ScriptComponent>(1024);
 
+  std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
 
   Scene scene("Main");
 
@@ -457,6 +469,10 @@ int main()
             << "Dice: "   << Random::diceThrow(2, 6)    << "\n"
             << "Dice: "   << Random::diceThrow(1, 6)    << "\n";
 
+  SceneNode* Spaceship = scene.createNode("Spaceship");
+  Spaceship->transform().setPosition({center.x, 0.f});
+  Spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
+
   while (window.isOpen())
   {
     // InputSystem: snapshot device state before polling
@@ -511,10 +527,15 @@ int main()
     window.display();
   }
 
+  scene.clear();
+
+  ScriptEngine::shutDown();
+
   InputSystem::shutDown();
   PhysicsSystem::shutDown();
   // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
   // and components are destroyed here, while SFML is still alive.
+  
   MemoryPoolHandler::shutDown();
 
   return 0;

@@ -203,7 +203,7 @@ SceneNode::removeComponent() {
     if (component->getTypeId() == id) {
       unlinkComponent(component);
       MemoryPool<T>& pool = MemoryPoolHandler::instance().pool<T>();
-      pool.deallocate(id, static_cast<void*>(component));
+      pool.deallocate(static_cast<T*>(component));
       return;
     }
   }
