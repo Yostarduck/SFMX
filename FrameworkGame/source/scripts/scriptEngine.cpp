@@ -8,7 +8,7 @@ namespace sfmx
 
 void
 ScriptEngine::onStartUp() {
-  script::registerAll(m_lua);
+  script::RegisterAll(m_lua);
 }
 
 void

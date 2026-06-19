@@ -66,6 +66,15 @@ add_library(FrameworkGame STATIC
     source/utils/UUID.cpp
 
     source/scripts/scriptEngine.cpp
+    source/scripts/registerAngle.cpp
+    source/scripts/registerColor.cpp
+    source/scripts/registerVector2i.cpp
+    source/scripts/registerVector2f.cpp
+    source/scripts/registerVector3i.cpp
+    source/scripts/registerVector3f.cpp
+    source/scripts/registerIntRect.cpp
+    source/scripts/registerFloatRect.cpp
+    source/scripts/registerTransform.cpp
     source/scripts/registerAll.cpp)
 
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)

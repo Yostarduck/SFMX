@@ -2,6 +2,7 @@
 
 #include "config/IniFile.h"
 
+#include "input/Mapping.h"
 #include "input/ActionMap.h"
 #include "input/Gamepad.h"
 #include "input/InputAction.h"
@@ -11,13 +12,13 @@
 #include "input/Mapping.h"
 #include "input/Mouse.h"
 
-#include "scene/CameraComponent.h"
-#include "scene/ListenerComponent.h"
-#include "scene/ParticleSystemComponent.h"
 #include "scene/Scene.h"
+#include "scene/CameraComponent.h"
 #include "scene/SourceComponent.h"
+#include "scene/ListenerComponent.h"
 #include "scene/SpriteComponent.h"
 #include "scene/AnimatorComponent.h"
+#include "scene/ParticleSystemComponent.h"
 #include "scene/ScriptComponent.h"
 
 #include "resource/SpriteAtlas.h"
@@ -78,6 +79,7 @@ int main()
 
   InputSystem::startUp();
   MemoryPoolHandler::startUp(4096);
+  ScriptEngine::startUp();
 
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
   pools.registerPool<Particle>(2048);
@@ -488,9 +490,10 @@ int main()
 
   scene.clear();
 
+  ScriptEngine::shutDown();
+
   InputSystem::shutDown();
-  // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
-  // and components are destroyed here, while SFML is still alive.
+  
   MemoryPoolHandler::shutDown();
 
   return 0;
