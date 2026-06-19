@@ -58,7 +58,7 @@ class ColliderComponent : public ComponentT<ColliderComponent>
   // Accessors
 
   /** @brief The current collider shape type */
-  NODISCARD ColliderType  getColliderType() const;
+  // NODISCARD ColliderType  getColliderType() const;
   /** @brief Raw pointer to the internal collider (may be null) */
   NODISCARD ICollider*     getCollider()       const { return m_collider.get(); }
   /** @brief Whether this collider acts as a trigger (no separation) */

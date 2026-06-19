@@ -423,78 +423,105 @@ intersect(const WorldLine& a, const WorldLine& b) {
 CollisionResult
 intersect(const ICollider& a, const sf::Transform& wtA,
           const ICollider& b, const sf::Transform& wtB) {
-  switch (a.getType()) {
-    case ColliderType::kCircle: {
-      const auto& ca = static_cast<const CircleCollider&>(a);
-      const WorldCircle wa = buildWorldCircle(ca, wtA);
-      switch (b.getType()) {
-        case ColliderType::kCircle: return intersect(wa, buildWorldCircle(static_cast<const CircleCollider&>(b), wtB));
-        case ColliderType::kAABB:   return intersect(wa, buildWorldAABB(static_cast<const AABBCollider&>(b), wtB));
-        case ColliderType::kOBB:   return intersect(wa, buildWorldOBB(static_cast<const OBBCollider&>(b), wtB));
-        case ColliderType::kPoint:  return intersect(wa, buildWorldPoint(static_cast<const PointCollider&>(b), wtB));
-        case ColliderType::kLine:   return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
-      }
-      break;
+
+  UUID aUUID = a.getTypeId();
+  UUID bUUID = b.getTypeId();
+  if (TypeTraits<CircleCollider>::getTypeId() == aUUID) {
+    const auto& ca = static_cast<const CircleCollider&>(a);
+    const WorldCircle wa = buildWorldCircle(ca, wtA);
+    if (TypeTraits<CircleCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldCircle(static_cast<const CircleCollider&>(b), wtB));
     }
-    case ColliderType::kAABB: {
-      const auto& ca = static_cast<const AABBCollider&>(a);
-      const WorldAABB wa = buildWorldAABB(ca, wtA);
-      switch (b.getType()) {
-        case ColliderType::kCircle:
-          return intersect(buildWorldCircle(static_cast<const CircleCollider&>(b), wtB), wa);
-        case ColliderType::kAABB:   return intersect(wa, buildWorldAABB(static_cast<const AABBCollider&>(b), wtB));
-        case ColliderType::kOBB:   return intersect(wa, buildWorldOBB(static_cast<const OBBCollider&>(b), wtB));
-        case ColliderType::kPoint:  return intersect(wa, buildWorldPoint(static_cast<const PointCollider&>(b), wtB));
-        case ColliderType::kLine:   return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
-      }
-      break;
+    else if (TypeTraits<AABBCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldAABB(static_cast<const AABBCollider&>(b), wtB));
     }
-    case ColliderType::kOBB: {
-      const auto& ca = static_cast<const OBBCollider&>(a);
-      const WorldOBB wa = buildWorldOBB(ca, wtA);
-      switch (b.getType()) {
-        case ColliderType::kCircle:
-          return intersect(buildWorldCircle(static_cast<const CircleCollider&>(b), wtB), wa);
-        case ColliderType::kAABB:
-          return intersect(buildWorldAABB(static_cast<const AABBCollider&>(b), wtB), wa);
-        case ColliderType::kOBB:   return intersect(wa, buildWorldOBB(static_cast<const OBBCollider&>(b), wtB));
-        case ColliderType::kPoint:  return intersect(wa, buildWorldPoint(static_cast<const PointCollider&>(b), wtB));
-        case ColliderType::kLine:   return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
-      }
-      break;
+    else if (TypeTraits<OBBCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldOBB(static_cast<const OBBCollider&>(b), wtB));
     }
-    case ColliderType::kPoint: {
-      const auto& ca = static_cast<const PointCollider&>(a);
-      const WorldPoint wa = buildWorldPoint(ca, wtA);
-      switch (b.getType()) {
-        case ColliderType::kCircle:
-          return intersect(buildWorldCircle(static_cast<const CircleCollider&>(b), wtB), wa);
-        case ColliderType::kAABB:
-          return intersect(buildWorldAABB(static_cast<const AABBCollider&>(b), wtB), wa);
-        case ColliderType::kOBB:
-          return intersect(buildWorldOBB(static_cast<const OBBCollider&>(b), wtB), wa);
-        case ColliderType::kPoint:  return intersect(wa, buildWorldPoint(static_cast<const PointCollider&>(b), wtB));
-        case ColliderType::kLine:   return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
-      }
-      break;
+    else if (TypeTraits<PointCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldPoint(static_cast<const PointCollider&>(b), wtB));
     }
-    case ColliderType::kLine: {
-      const auto& ca = static_cast<const LineCollider&>(a);
-      const WorldLine wa = buildWorldLine(ca, wtA);
-      switch (b.getType()) {
-        case ColliderType::kCircle:
-          return intersect(buildWorldCircle(static_cast<const CircleCollider&>(b), wtB), wa);
-        case ColliderType::kAABB:
-          return intersect(buildWorldAABB(static_cast<const AABBCollider&>(b), wtB), wa);
-        case ColliderType::kOBB:
-          return intersect(buildWorldOBB(static_cast<const OBBCollider&>(b), wtB), wa);
-        case ColliderType::kPoint:
-          return intersect(buildWorldPoint(static_cast<const PointCollider&>(b), wtB), wa);
-        case ColliderType::kLine:   return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
-      }
-      break;
-    }
+    else if (TypeTraits<LineCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
+    }      
   }
+  else if (TypeTraits<AABBCollider>::getTypeId() == aUUID) {
+    const auto& ca = static_cast<const AABBCollider&>(a);
+    const WorldAABB wa = buildWorldAABB(ca, wtA);
+    if (TypeTraits<CircleCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldCircle(static_cast<const CircleCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<AABBCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldAABB(static_cast<const AABBCollider&>(b), wtB));
+    }
+    else if (TypeTraits<OBBCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldOBB(static_cast<const OBBCollider&>(b), wtB));
+    }
+    else if (TypeTraits<PointCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldPoint(static_cast<const PointCollider&>(b), wtB));
+    }
+    else if (TypeTraits<LineCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
+    } 
+  }
+  else if (TypeTraits<OBBCollider>::getTypeId() == aUUID) {
+    const auto& ca = static_cast<const OBBCollider&>(a);
+    const WorldOBB wa = buildWorldOBB(ca, wtA);
+    if (TypeTraits<CircleCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldCircle(static_cast<const CircleCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<AABBCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldAABB(static_cast<const AABBCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<OBBCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldOBB(static_cast<const OBBCollider&>(b), wtB));
+    }
+    else if (TypeTraits<PointCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldPoint(static_cast<const PointCollider&>(b), wtB));
+    }
+    else if (TypeTraits<LineCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
+    } 
+  }
+  else if (TypeTraits<PointCollider>::getTypeId() == aUUID) {
+    const auto& ca = static_cast<const PointCollider&>(a);
+    const WorldPoint wa = buildWorldPoint(ca, wtA);
+    if (TypeTraits<CircleCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldCircle(static_cast<const CircleCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<AABBCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldAABB(static_cast<const AABBCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<OBBCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldOBB(static_cast<const OBBCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<PointCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldPoint(static_cast<const PointCollider&>(b), wtB));
+    }
+    else if (TypeTraits<LineCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
+    } 
+  }
+  else if (TypeTraits<LineCollider>::getTypeId() == aUUID) {
+    const auto& ca = static_cast<const LineCollider&>(a);
+    const WorldLine wa = buildWorldLine(ca, wtA);
+    if (TypeTraits<CircleCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldCircle(static_cast<const CircleCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<AABBCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldAABB(static_cast<const AABBCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<OBBCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldOBB(static_cast<const OBBCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<PointCollider>::getTypeId() == bUUID) {
+      return intersect(buildWorldPoint(static_cast<const PointCollider&>(b), wtB), wa);
+    }
+    else if (TypeTraits<LineCollider>::getTypeId() == bUUID) {
+      return intersect(wa, buildWorldLine(static_cast<const LineCollider&>(b), wtB));
+    } 
+  }
+
   return {};
 }
 

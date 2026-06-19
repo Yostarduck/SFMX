@@ -9,6 +9,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "utils/TypeTraits.h"
 #include <SFML/Graphics/Transform.hpp>
 #include <SFML/System/Vector2.hpp>
 
@@ -49,20 +50,35 @@ class ICollider
 {
  public:
   virtual ~ICollider() = default;
-  /** @brief Returns the concrete shape type for dispatch */
-  NODISCARD virtual ColliderType getType() const = 0;
+  /** @brief Returns the concrete shape type for dispatch (fast enum path) */
+  // NODISCARD virtual ColliderType getType() const = 0;
+  /** @brief Returns the UUID-based type id (TypeTraits-based, for safe RTTI) */
+  NODISCARD virtual const UUID& getTypeId() const = 0;
+};
+
+/**
+ * @brief CRTP helper that automatically provides getType() and getTypeId()
+ *        from template parameters and TypeTraits, eliminating manual overrides.
+ *
+ * Derive as:
+ *   class CircleCollider : public ColliderT<CircleCollider, ColliderType::kCircle>
+ */
+template<typename Derived> //, ColliderType Type>
+class ColliderT : public ICollider
+{
+ public:
+  // NODISCARD FORCEINLINE ColliderType getType() const override { return Type; }
+  NODISCARD FORCEINLINE const UUID&  getTypeId() const override { return TypeTraits<Derived>::getTypeId(); }
 };
 
 /** @brief Circle defined by a center point and radius */
-class CircleCollider : public ICollider
+class CircleCollider : public ColliderT<CircleCollider> //, ColliderType::kCircle>
 {
  public:
   CircleCollider() = default;
   /** @brief Construct with local-space center and radius */
   CircleCollider(const sf::Vector2f& center, float radius)
     : m_center(center), m_radius(radius) {}
-
-  NODISCARD  FORCEINLINE ColliderType getType() const override { return ColliderType::kCircle; }
 
   /** @brief Set the local-space center position */
   FORCEINLINE void setCenter(const sf::Vector2f& c) { m_center = c; }
@@ -81,15 +97,13 @@ class CircleCollider : public ICollider
 };
 
 /** @brief Axis-aligned bounding box with center + half-size */
-class AABBCollider : public ICollider
+class AABBCollider : public ColliderT<AABBCollider> //, ColliderType::kAABB>
 {
  public:
   AABBCollider() = default;
   /** @brief Construct with local-space center and half-extents */
   AABBCollider(const sf::Vector2f& center, const sf::Vector2f& halfSize)
     : m_center(center), m_halfSize(halfSize) {}
-
-  NODISCARD FORCEINLINE ColliderType getType() const override { return ColliderType::kAABB; }
 
   /** @brief Set the local-space center position */
   FORCEINLINE void setCenter(const sf::Vector2f& c)   { m_center = c; }
@@ -106,15 +120,13 @@ class AABBCollider : public ICollider
 };
 
 /** @brief Oriented bounding box (AABB rotated via its world transform) */
-class OBBCollider : public ICollider
+class OBBCollider : public ColliderT<OBBCollider> //, ColliderType::kOBB>
 {
  public:
   OBBCollider() = default;
   /** @brief Construct with local-space center and half-extents */
   OBBCollider(const sf::Vector2f& center, const sf::Vector2f& halfSize)
     : m_center(center), m_halfSize(halfSize) {}
-
-  NODISCARD FORCEINLINE ColliderType getType() const override { return ColliderType::kOBB; }
 
   /** @brief Set the local-space center position */
   FORCEINLINE void setCenter(const sf::Vector2f& c)   { m_center = c; }
@@ -131,14 +143,12 @@ class OBBCollider : public ICollider
 };
 
 /** @brief Zero-area point collider */
-class PointCollider : public ICollider
+class PointCollider : public ColliderT<PointCollider> //, ColliderType::kPoint>
 {
  public:
   PointCollider() = default;
   /** @brief Construct at a given local-space point */
   FORCEINLINE explicit PointCollider(const sf::Vector2f& point) : m_point(point) {}
-
-  NODISCARD FORCEINLINE ColliderType getType() const override { return ColliderType::kPoint; }
 
   /** @brief Set the local-space point position */
   FORCEINLINE void setPoint(sf::Vector2f p) { m_point = p; }
@@ -150,15 +160,13 @@ class PointCollider : public ICollider
 };
 
 /** @brief Line segment collider (start / end) */
-class LineCollider : public ICollider
+class LineCollider : public ColliderT<LineCollider> //, ColliderType::kLine>
 {
  public:
   LineCollider() = default;
   /** @brief Construct with local-space start and end points */
   LineCollider(const sf::Vector2f& start, const sf::Vector2f& end)
     : m_start(start), m_end(end) {}
-
-  NODISCARD FORCEINLINE ColliderType getType() const override { return ColliderType::kLine; }
 
   /** @brief Set the line segment start point */
   FORCEINLINE void setStart(const sf::Vector2f& p) { m_start = p; }
@@ -180,4 +188,16 @@ class LineCollider : public ICollider
 CollisionResult intersect(const ICollider& a, const sf::Transform& wtA,
                           const ICollider& b, const sf::Transform& wtB);
 
+/** @brief Convenience helper: get the TypeTraits UUID for a collider type */
+template<typename T>
+NODISCARD const UUID& colliderTypeId() {
+  return TypeTraits<T>::getTypeId();
+}
+
 } // namespace sfmx
+
+DECLARE_TYPE_TRAITS(sfmx::CircleCollider)
+DECLARE_TYPE_TRAITS(sfmx::AABBCollider)
+DECLARE_TYPE_TRAITS(sfmx::OBBCollider)
+DECLARE_TYPE_TRAITS(sfmx::PointCollider)
+DECLARE_TYPE_TRAITS(sfmx::LineCollider)
