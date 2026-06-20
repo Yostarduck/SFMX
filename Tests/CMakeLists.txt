@@ -8,6 +8,7 @@ add_executable(UnitTests
     FileSystemTest.cpp
     CollisionTest.cpp
     AssetFileTest.cpp
+    AssetCodecTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE

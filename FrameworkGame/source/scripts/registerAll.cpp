@@ -12,6 +12,11 @@
 #include "scripts/registerFloatRect.h"
 #include "scripts/registerTransform.h"
 
+#include "scripts/registerInputTypes.h"
+#include "scripts/registerKeyboard.h"
+#include "scripts/registerMouse.h"
+#include "scripts/registerGamepad.h"
+
 #include "scene/SceneNode.h"
 #include "scene/SpriteComponent.h"
 
@@ -37,6 +42,12 @@ RegisterAll(sol::state_view lua) {
   RegisterIntRect(lua);
   RegisterFloatRect(lua);
   RegisterTransform(lua);
+
+  // Input types.
+  RegisterInputTypes(lua);
+  RegisterKeyboard(lua);
+  RegisterMouse(lua);
+  RegisterGamepad(lua);
 }
 
 }

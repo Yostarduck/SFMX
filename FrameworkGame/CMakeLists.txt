@@ -36,6 +36,9 @@ add_library(FrameworkGame STATIC
     source/core/physics/PhysicsSystem.cpp
 
     source/assets/AssetFile.cpp
+    source/assets/AssetCodecRegistry.cpp
+    source/assets/TextureAsset.cpp
+    source/assets/TextureCodec.cpp
 
     source/input/InputTypes.cpp
     source/input/Keyboard.cpp
@@ -79,6 +82,10 @@ add_library(FrameworkGame STATIC
     source/scripts/registerIntRect.cpp
     source/scripts/registerFloatRect.cpp
     source/scripts/registerTransform.cpp
+    source/scripts/registerInputTypes.cpp
+    source/scripts/registerKeyboard.cpp
+    source/scripts/registerMouse.cpp
+    source/scripts/registerGamepad.cpp
     source/scripts/registerAll.cpp)
 
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
