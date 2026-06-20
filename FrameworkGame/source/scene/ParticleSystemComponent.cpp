@@ -38,13 +38,9 @@ ParticleSystemComponent::setConfig(const EmitterConfig& config) {
   SFMX_ASSERT(MemoryPoolHandler::instance().pool<Particle>().getCapacity() >= m_capacity &&
     "Shared particle pool too small. Call registerPool<Particle>(budget) with a larger budget.");
 
-  if (!m_vertexBuffer) {
-    m_vertexBuffer = MakeUnique<sf::VertexBuffer>();
-  }
-  if (m_vertexBuffer->create(m_capacity * 6)) {
-    m_vertexBuffer->setUsage(sf::VertexBuffer::Usage::Stream);
-    m_vertexBuffer->setPrimitiveType(sf::PrimitiveType::Triangles);
-  }
+  // Vertex buffer created lazily in rebuildVertices() to avoid OpenGL context
+  // dependency during construction / configuration (needed for headless CI).
+  m_vertexBuffer.reset();
 
   m_elapsed = 0.f;
   m_running = true;
@@ -262,6 +258,10 @@ ParticleSystemComponent::onDraw(sf::RenderTarget& target,
 
   rebuildVertices();
 
+  if (!m_vertexBuffer) {
+    return;
+  }
+
   if (m_worldSpace) {
     states.transform = sf::Transform::Identity;
   }
@@ -276,6 +276,18 @@ void
 ParticleSystemComponent::rebuildVertices() const {
   if (!m_verticesDirty) {
     return;
+  }
+
+  // Lazy vertex buffer creation — avoids OpenGL context dependency until
+  // actual rendering is needed (required for headless CI environments).
+  if (!m_vertexBuffer) {
+    m_vertexBuffer = MakeUnique<sf::VertexBuffer>();
+    if (!m_vertexBuffer->create(m_capacity * 6)) {
+      m_vertexBuffer.reset();
+      return;
+    }
+    m_vertexBuffer->setUsage(sf::VertexBuffer::Usage::Stream);
+    m_vertexBuffer->setPrimitiveType(sf::PrimitiveType::Triangles);
   }
 
   // Fixed-size stack buffer for vertex data, uploaded in batches
