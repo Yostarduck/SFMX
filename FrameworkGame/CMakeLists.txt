@@ -78,6 +78,10 @@ add_library(FrameworkGame STATIC
     source/scripts/registerIntRect.cpp
     source/scripts/registerFloatRect.cpp
     source/scripts/registerTransform.cpp
+    source/scripts/registerInputTypes.cpp
+    source/scripts/registerKeyboard.cpp
+    source/scripts/registerMouse.cpp
+    source/scripts/registerGamepad.cpp
     source/scripts/registerAll.cpp)
 
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
