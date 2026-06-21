@@ -44,7 +44,6 @@ registerTransform(sol::state_view lua) {
       }
     ),
 
-
     "Identity", sol::var(std::cref(sf::Transform::Identity)),
 
     sol::meta_function::multiplication,

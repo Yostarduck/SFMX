@@ -1,6 +1,6 @@
-#include "core/platform/Prerequisites.h"
-
 #include "scripts/registerAll.h"
+
+#include "core/platform/Prerequisites.h"
 
 #include "scripts/registerAngle.h"
 #include "scripts/registerColor.h"
