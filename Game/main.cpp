@@ -9,7 +9,6 @@
 #include "input/InputControl.h"
 #include "input/InputSystem.h"
 #include "input/Keyboard.h"
-#include "input/Mapping.h"
 #include "input/Mouse.h"
 
 #include "scene/Scene.h"
