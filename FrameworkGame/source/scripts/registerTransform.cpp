@@ -1,10 +1,11 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerTransform.h"
 
 #include <SFML/System/Angle.hpp>
 #include <SFML/Graphics/Transform.hpp>
 
 #include <algorithm>
+
+#include "core/platform/Prerequisites.h"
 
 namespace sfmx
 {
@@ -13,7 +14,7 @@ namespace script
 {
 
 void
-RegisterTransform(sol::state_view lua) {
+registerTransform(sol::state_view lua) {
   lua.new_usertype<sf::Transform>("Transform",
     sol::call_constructor,
     sol::constructors<sf::Transform(),
@@ -48,10 +49,10 @@ RegisterTransform(sol::state_view lua) {
 
     sol::meta_function::multiplication,
     sol::overload(
-      [](const sf::Transform &left, const sf::Transform &right) {
+      [](const sf::Transform& left, const sf::Transform& right) {
         return left * right;
       },
-      [](const sf::Transform &left, sf::Vector2f right) {
+      [](const sf::Transform& left, sf::Vector2f right) {
         return left * right;
       }
     ),
@@ -63,6 +64,6 @@ RegisterTransform(sol::state_view lua) {
   );
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

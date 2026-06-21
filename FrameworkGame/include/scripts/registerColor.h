@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterColor(sol::state_view lua);
+registerColor(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

@@ -97,10 +97,21 @@ SourceComponent::stop() {
     m_source->stop();
 }
 
-sf::SoundSource::Status
+AudioStatus
 SourceComponent::getStatus() const {
-  return m_source ? m_source->getStatus() : 
-                    sf::SoundSource::Status::Stopped;
+  if (nullptr == m_source) {
+    return AudioStatus::kStopped;
+  }
+  
+  sf::SoundSource::Status status = m_source->getStatus();
+  
+  switch (status)
+  {
+  case sf::SoundSource::Status::Playing:  return AudioStatus::kPlaying;
+  case sf::SoundSource::Status::Paused:   return AudioStatus::kPaused;
+  case sf::SoundSource::Status::Stopped:  return AudioStatus::kStopped;
+  default: return AudioStatus::kStopped;
+  }
 }
 
 // -----------------------------------------------------------------------------

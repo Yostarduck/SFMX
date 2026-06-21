@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterKeyboard(sol::state_view lua);
+registerKeyboard(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

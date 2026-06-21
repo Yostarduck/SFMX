@@ -1,8 +1,9 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerVector2i.h"
 
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
+
+#include "core/platform/Prerequisites.h"
 
 namespace sfmx
 {
@@ -11,7 +12,7 @@ namespace script
 {
 
 void
-RegisterVector2i(sol::state_view lua) {
+registerVector2i(sol::state_view lua) {
   lua.new_usertype<sf::Vector2i>("Vector2i",
     sol::call_constructor,
     sol::constructors<sf::Vector2i(), sf::Vector2i(int32, int32)>(),
@@ -39,12 +40,12 @@ RegisterVector2i(sol::state_view lua) {
 
     sol::meta_function::multiplication,
     sol::overload(
-      [](const sf::Vector2i& left, int right) { return left * right; },
-      [](int left, const sf::Vector2i& right) { return left * right; }
+      [](const sf::Vector2i& left, int32 right) { return left * right; },
+      [](int32 left, const sf::Vector2i& right) { return left * right; }
     ),
 
     sol::meta_function::division,
-    [](const sf::Vector2i& left, int right) { return left / right; },
+    [](const sf::Vector2i& left, int32 right) { return left / right; },
 
     sol::meta_function::equal_to,
     [](const sf::Vector2i& left, const sf::Vector2i& right) {
@@ -56,6 +57,6 @@ RegisterVector2i(sol::state_view lua) {
   );
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

@@ -8,7 +8,7 @@ namespace sfmx
 
 void
 ScriptEngine::onStartUp() {
-  script::RegisterAll(m_lua);
+  script::registerAll(m_lua);
 }
 
 void
@@ -46,4 +46,4 @@ ScriptEngine::loadScript(ScriptComponent* scriptComponent) {
   scriptComponent->m_initialized = true;
 }
 
-}
+} // namespace sfmx

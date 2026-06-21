@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterVector2i(sol::state_view lua);
+registerVector2i(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

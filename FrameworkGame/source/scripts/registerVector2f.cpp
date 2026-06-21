@@ -1,8 +1,9 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerVector2f.h"
 
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
+
+#include "core/platform/Prerequisites.h"
 
 namespace sfmx
 {
@@ -11,7 +12,7 @@ namespace script
 {
 
 void
-RegisterVector2f(sol::state_view lua) {
+registerVector2f(sol::state_view lua) {
   lua.new_usertype<sf::Vector2f>("Vector2f",
     sol::call_constructor,
     sol::constructors<sf::Vector2f(), sf::Vector2f(float, float)>(),
@@ -59,6 +60,6 @@ RegisterVector2f(sol::state_view lua) {
   );
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

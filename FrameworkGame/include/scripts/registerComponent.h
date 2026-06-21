@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterComponent(sol::state_view lua);
+registerComponent(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

@@ -7,9 +7,10 @@
 
 namespace sfmx {
 
-enum class AnimationState : uint32
-{
-  kPlaying, kPaused, kStopped
+enum class AnimationState : uint32 {
+  kPlaying,
+  kPaused,
+  kStopped
 };
 
 enum class ParamType : uint32 {
@@ -25,15 +26,15 @@ struct Param {
 };
 
 struct AnimationTransition {
-  Map<String, Param>  params  = {};
-  String              exit    = "";
-  bool      shouldTransition  = true;
-  bool      hasExitTime       = true;
+  Map<String, Param>  params            = {};
+  String              exit              = "";
+  bool                shouldTransition  = true;
+  bool                hasExitTime       = true;
 };
 
 struct AnimationNode
 {
-  SPtr<Animation>              animation   = nullptr;
+  SPtr<Animation>                     animation  = nullptr;
   Vector<SPtr<AnimationTransition>>  transitions = {};
 };
 

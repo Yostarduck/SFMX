@@ -1,7 +1,8 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerVector3i.h"
 
 #include <SFML/System/Vector3.hpp>
+
+#include "core/platform/Prerequisites.h"
 
 namespace sfmx
 {
@@ -10,7 +11,7 @@ namespace script
 {
 
 void
-RegisterVector3i(sol::state_view lua) {
+registerVector3i(sol::state_view lua) {
   lua.new_usertype<sf::Vector3i>("Vector3i",
     sol::call_constructor,
     sol::constructors<sf::Vector3i(), sf::Vector3i(int32, int32, int32)>(),
@@ -55,6 +56,6 @@ RegisterVector3i(sol::state_view lua) {
   );
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

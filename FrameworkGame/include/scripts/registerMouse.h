@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterMouse(sol::state_view lua);
+registerMouse(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

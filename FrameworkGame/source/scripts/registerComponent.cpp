@@ -1,6 +1,6 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerComponent.h"
 
+#include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
 // Complete type required: getOwner returns SceneNode*, so sol2 needs the full
 // definition to push it.
@@ -13,7 +13,7 @@ namespace script
 {
 
 void
-RegisterComponent(sol::state_view lua) {
+registerComponent(sol::state_view lua) {
   lua.new_usertype<Component>("Component",
     sol::no_constructor,
 
@@ -22,6 +22,6 @@ RegisterComponent(sol::state_view lua) {
   );
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

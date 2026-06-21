@@ -18,17 +18,14 @@
 namespace sfmx
 {
 
-  /** @brief Audio channel layout hint */
-  namespace AudioSpace
-  {
-  enum E { kNone = 0, kMono, kStereo, kSurround };
-  } // namespace AudioSpace
+/** @brief Audio channel layout hint */
+enum class AudioSpace : int32 { kNone = 0, kMono, kStereo, kSurround };
 
-  /** @brief Which concrete type backs the m_source pointer */
-  namespace AudioBackend
-  {
-  enum E { kNone, kSound, kMusic };
-  } // namespace AudioBackend
+/** @brief Which concrete type backs the m_source pointer */
+enum class AudioBackend : int32 { kNone, kSound, kMusic };
+
+/** @brief Current state of the playing audio */
+enum class AudioStatus : int32 { kPlaying, kPaused, kStopped };
 
 /**
  * @brief Wraps an sf::Sound or sf::Music behind a single sf::SoundSource*
@@ -62,7 +59,7 @@ public:
   void stop();
 
   /** @brief Current playback status (Playing / Paused / Stopped) */
-  NODISCARD sf::SoundSource::Status getStatus() const;
+  NODISCARD AudioStatus getStatus() const;
   /** @brief Sets the output volume (0-100) */
   void setVolume(float volume);
   /** @brief Returns the current volume */
@@ -129,12 +126,12 @@ private:
   /** @brief Const access to the active SoundSource (may be null) */
   NODISCARD const sf::SoundSource* activeSource() const;
 
-  sf::SoundSource* m_source = nullptr;
-  sf::SoundBuffer  m_buffer;
-  sf::Sound        m_sound;
-  sf::Music        m_music;
-  AudioBackend::E  m_backend   = AudioBackend::kNone;
-  bool             m_followNode = true;
+  sf::SoundSource*  m_source = nullptr;
+  sf::SoundBuffer   m_buffer;
+  sf::Sound         m_sound;
+  sf::Music         m_music;
+  AudioBackend      m_backend    = AudioBackend::kNone;
+  bool              m_followNode = true;
 };
 
 } // namespace sfmx

@@ -1,6 +1,6 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerMouse.h"
 
+#include "core/platform/Prerequisites.h"
 #include "input/Mouse.h"
 #include "input/InputTypes.h"
 
@@ -11,7 +11,7 @@ namespace script
 {
 
 void
-RegisterMouse(sol::state_view lua) {
+registerMouse(sol::state_view lua) {
   lua.new_usertype<Mouse>("Mouse",
     sol::no_constructor,
 
@@ -25,6 +25,6 @@ RegisterMouse(sol::state_view lua) {
   lua["Mouse"] = std::ref(Mouse::instance());
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

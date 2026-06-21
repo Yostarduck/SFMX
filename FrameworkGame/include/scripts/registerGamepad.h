@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterGamepad(sol::state_view lua);
+registerGamepad(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx
