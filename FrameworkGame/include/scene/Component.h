@@ -10,6 +10,7 @@
 namespace sfmx
 {
 class SceneNode;
+class DataStream;
 
 template<typename T>
 NODISCARD ComponentTypeId
@@ -71,6 +72,20 @@ class Component
     SFMX_PARAMETER_UNUSED(target);
     SFMX_PARAMETER_UNUSED(states);
   }
+
+  /**
+   * @brief Write this component's persistent state to @p stream.
+   *
+   * Default: nothing. A concrete component opts in by overriding this (and
+   * @ref onDeserialize) to write/read its own fields — referenced assets are
+   * stored by UUID, not by pointer. Used by the scene serializer (M5).
+   */
+  virtual void
+  onSerialize(DataStream& stream) const { SFMX_PARAMETER_UNUSED(stream); }
+
+  /** @brief Read this component's persistent state from @p stream. Default: nothing. */
+  virtual void
+  onDeserialize(DataStream& stream) { SFMX_PARAMETER_UNUSED(stream); }
 
  protected:
   SceneNode* m_owner;

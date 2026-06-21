@@ -57,6 +57,7 @@ add_library(FrameworkGame STATIC
     source/scene/Scene.cpp
     source/scene/SceneNode.cpp
     source/scene/Component.cpp
+    source/scene/ComponentRegistry.cpp
     source/scene/Transform.cpp
     source/scene/CameraComponent.cpp
     source/scene/SourceComponent.cpp
