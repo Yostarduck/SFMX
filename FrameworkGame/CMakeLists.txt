@@ -32,6 +32,8 @@ add_library(FrameworkGame STATIC
     source/core/MemoryDataStream.cpp
     source/core/FileDataStream.cpp
     source/core/FileSystem.cpp
+    source/core/physics/Collider.cpp
+    source/core/physics/PhysicsSystem.cpp
 
     source/assets/AssetFile.cpp
     source/assets/AssetCodecRegistry.cpp
@@ -61,6 +63,8 @@ add_library(FrameworkGame STATIC
     source/scene/ListenerComponent.cpp
     source/scene/SpriteComponent.cpp
     source/scene/AnimatorComponent.cpp
+    source/scene/ColliderComponent.cpp
+    source/scene/RigidBodyComponent.cpp
     source/scene/ParticleSystemComponent.cpp
     source/scene/ScriptComponent.cpp
     

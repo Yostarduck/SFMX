@@ -18,6 +18,8 @@
 #include "scene/ListenerComponent.h"
 #include "scene/SpriteComponent.h"
 #include "scene/AnimatorComponent.h"
+#include "scene/ColliderComponent.h"
+#include "scene/RigidBodyComponent.h"
 #include "scene/ParticleSystemComponent.h"
 #include "scene/ScriptComponent.h"
 
@@ -78,6 +80,7 @@ int main()
   window.setVerticalSyncEnabled(enableVSync);
 
   InputSystem::startUp();
+  PhysicsSystem::startUp();
   MemoryPoolHandler::startUp(4096);
   ScriptEngine::startUp();
 
@@ -91,6 +94,8 @@ int main()
   pools.registerPool<SpriteComponent>(8);
   pools.registerPool<CameraComponent>(1);
   pools.registerPool<AnimatorComponent>(8);
+  pools.registerPool<ColliderComponent>(64);
+  pools.registerPool<RigidBodyComponent>(64);
   pools.registerPool<ScriptComponent>(1024);
 
   std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
@@ -287,6 +292,40 @@ int main()
     std::cerr << "[SpriteAtlas] Failed to load marioatlas.png\n";
   }
   
+  // ── Physics debug draw demo: colliders ────────────────────────────────
+  SceneNode* ground = scene.createNode("Ground");
+  ground->transform().setPosition({center.x, windowHeight - 5.f});
+  auto* groundCollider = ground->addComponent<ColliderComponent>();
+  groundCollider->setAABB({windowWidth * 0.5f, 30.f});
+  groundCollider->setDebugColor(sf::Color(100, 100, 100));
+
+  auto spawnCollider = [&](sf::Vector2f pos, auto&& setupCollider) {
+    SceneNode* n = scene.createNode("PhysObj");
+    n->transform().setPosition(pos);
+    auto* col = n->addComponent<ColliderComponent>();
+    setupCollider(col);
+    auto* rb = n->addComponent<RigidBodyComponent>();
+    rb->setMass(1.f);
+    rb->setGravityScale(1.f);
+  };
+
+  spawnCollider({center.x - 120.f, center.y}, [](ColliderComponent* c) {
+    c->setCircle(16.f);
+    c->setDebugColor(sf::Color::Red);
+  });
+  spawnCollider({center.x - 40.f, center.y}, [](ColliderComponent* c) {
+    c->setAABB({15.f, 12.f});
+    c->setDebugColor(sf::Color::Green);
+  });
+  spawnCollider({center.x + 40.f, center.y}, [](ColliderComponent* c) {
+    c->setCircle(20.f);
+    c->setDebugColor(sf::Color::Yellow);
+  });
+  spawnCollider({center.x + 120.f, center.y}, [](ColliderComponent* c) {
+    c->setAABB({10.f, 18.f});
+    c->setDebugColor(sf::Color::Cyan);
+  });
+
   auto* marioSprite = marioNode->getComponent<SpriteComponent>();
   // marioSprite->setOrigin({marioSprite->getPixelSize().x * 0.5f,
   //                         marioSprite->getPixelSize().y * 0.5f});
@@ -493,6 +532,9 @@ int main()
   ScriptEngine::shutDown();
 
   InputSystem::shutDown();
+  PhysicsSystem::shutDown();
+  // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
+  // and components are destroyed here, while SFML is still alive.
   
   MemoryPoolHandler::shutDown();
 

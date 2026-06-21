@@ -141,6 +141,9 @@ Scene::update(float deltaTime) {
   if (nullptr != m_root) {
     m_root->update(deltaTime);
   }
+  if (PhysicsSystem::isStarted()) {
+    PhysicsSystem::instance().step(deltaTime);
+  }
 }
 
 void
