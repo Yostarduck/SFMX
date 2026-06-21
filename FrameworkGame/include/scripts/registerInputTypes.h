@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterInputTypes(sol::state_view lua);
+registerInputTypes(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

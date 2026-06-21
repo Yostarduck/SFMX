@@ -1,6 +1,6 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerInputTypes.h"
 
+#include "core/platform/Prerequisites.h"
 #include "input/InputTypes.h"
 
 namespace sfmx
@@ -10,7 +10,7 @@ namespace script
 {
 
 void
-RegisterInputTypes(sol::state_view lua) {
+registerInputTypes(sol::state_view lua) {
   lua.new_enum<DeviceType>("DeviceType", {
     { "Keyboard",  DeviceType::kKeyboard },
     { "Mouse",     DeviceType::kMouse },
@@ -80,7 +80,7 @@ RegisterInputTypes(sol::state_view lua) {
 
     { "Count", Key::kCount }
   });
-  
+
   lua.new_enum<MouseButton>("MouseButton", {
     { "Left",   MouseButton::kLeft },
     { "Right",  MouseButton::kRight },
@@ -89,7 +89,7 @@ RegisterInputTypes(sol::state_view lua) {
     { "Extra2", MouseButton::kExtra2 },
     { "Count",  MouseButton::kCount }
   });
-  
+
   lua.new_enum<Axis>("Axis", {
     { "LeftX",         Axis::kLeftX },
     { "LeftY",         Axis::kLeftY },
@@ -102,10 +102,10 @@ RegisterInputTypes(sol::state_view lua) {
 
     { "PovX",          Axis::kPovX },
     { "PovY",          Axis::kPovY },
-    
+
     { "Count",         Axis::kCount }
   });
-  
+
   lua.new_enum<GamepadButton>("GamepadButton", {
     { "South",  GamepadButton::kSouth },
     { "East",   GamepadButton::kEast },
@@ -139,6 +139,6 @@ RegisterInputTypes(sol::state_view lua) {
   lua.set_function("deviceTypeFromString",    &deviceTypeFromString);
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

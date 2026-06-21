@@ -1,6 +1,6 @@
-#include "core/platform/Prerequisites.h"
-
 #include "scripts/registerAll.h"
+
+#include "core/platform/Prerequisites.h"
 
 #include "scripts/registerAngle.h"
 #include "scripts/registerColor.h"
@@ -30,33 +30,33 @@ namespace script
 {
 
 void
-RegisterAll(sol::state_view lua) {
+registerAll(sol::state_view lua) {
   lua.open_libraries(sol::lib::base,
                      sol::lib::math,
                      sol::lib::string,
                      sol::lib::table);
   // Value types.
-  RegisterAngle(lua);
-  RegisterColor(lua);
-  RegisterVector2i(lua);
-  RegisterVector2f(lua);
-  RegisterVector3i(lua);
-  RegisterVector3f(lua);
-  RegisterIntRect(lua);
-  RegisterFloatRect(lua);
-  RegisterTransform(lua);
+  registerAngle(lua);
+  registerColor(lua);
+  registerVector2i(lua);
+  registerVector2f(lua);
+  registerVector3i(lua);
+  registerVector3f(lua);
+  registerIntRect(lua);
+  registerFloatRect(lua);
+  registerTransform(lua);
 
   // Input types.
-  RegisterInputTypes(lua);
-  RegisterKeyboard(lua);
-  RegisterMouse(lua);
-  RegisterGamepad(lua);
+  registerInputTypes(lua);
+  registerKeyboard(lua);
+  registerMouse(lua);
+  registerGamepad(lua);
 
   // Component hierarchy: the base must precede its derived usertypes so the
   // sol::bases<Component> links resolve.
-  RegisterComponent(lua);
+  registerComponent(lua);
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

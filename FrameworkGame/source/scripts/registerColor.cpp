@@ -1,10 +1,11 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerColor.h"
 
 #include <SFML/Graphics/Color.hpp>
 
 #include <algorithm>
 #include <functional>
+
+#include "core/platform/Prerequisites.h"
 
 namespace sfmx
 {
@@ -13,7 +14,7 @@ namespace script
 {
 
 void
-RegisterColor(sol::state_view lua) {
+registerColor(sol::state_view lua) {
   lua.new_usertype<sf::Color>("Color",
     sol::call_constructor,
     sol::constructors<
@@ -82,6 +83,6 @@ RegisterColor(sol::state_view lua) {
   );
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

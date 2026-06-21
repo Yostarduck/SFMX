@@ -1,7 +1,8 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerIntRect.h"
 
 #include <SFML/Graphics/Rect.hpp>
+
+#include "core/platform/Prerequisites.h"
 
 namespace sfmx
 {
@@ -10,7 +11,7 @@ namespace script
 {
 
 void
-RegisterIntRect(sol::state_view lua) {
+registerIntRect(sol::state_view lua) {
   lua.new_usertype<sf::IntRect>("IntRect",
     sol::call_constructor,
     sol::constructors<sf::IntRect(),
@@ -24,12 +25,12 @@ RegisterIntRect(sol::state_view lua) {
     [](const sf::IntRect& left, const sf::IntRect& right) {
       return left == right;
     },
-    
+
     "position", &sf::IntRect::position,
     "size", &sf::IntRect::size
   );
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

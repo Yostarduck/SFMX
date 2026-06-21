@@ -19,10 +19,10 @@ namespace sfmx
 {
 
 /** @brief Controls how active particles are ordered before rendering. */
-enum class ParticleSortMode
+enum class ParticleSortMode : int32 
 {
-  None,
-  BackToFront
+  kNone,
+  kBackToFront
 };
 
 /**
@@ -50,14 +50,14 @@ struct Particle
  */
 struct EmitterConfig
 {
-  size_t        maxParticles            = 256;
-  sf::Vector2f  positionOffset          = {0.0f, 0.0f};
-  sf::Vector2f  gravity                 = {0.f, 0.f};
-  sf::Vector2f  startSize               = {8.f, 8.f};
-  sf::Vector2f  endSize                 = {0.f, 0.f};
-  const sf::Texture* texture            = nullptr;
+  size_t              maxParticles    = 256;
+  sf::Vector2f        positionOffset  = {0.0f, 0.0f};
+  sf::Vector2f        gravity         = {0.f, 0.f};
+  sf::Vector2f        startSize       = {8.f, 8.f};
+  sf::Vector2f        endSize         = {0.f, 0.f};
+  const sf::Texture*  texture         = nullptr;
 
-  sf::BlendMode      blendMode          = sf::BlendAlpha;
+  sf::BlendMode       blendMode       = sf::BlendAlpha;
 
   /** @brief Particles emitted per second (0 = manual @ref emit only). */
   float         emissionRate            = 0.0f;
@@ -173,7 +173,7 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   /** @brief Current emitter configuration. */
   EmitterConfig       m_config;
   /** @brief Current sort mode for active particles. */
-  ParticleSortMode    m_sortMode    = ParticleSortMode::None;
+  ParticleSortMode    m_sortMode    = ParticleSortMode::kNone;
   /** @brief If true, particles are emitted in world space (default: local). */
   bool                m_worldSpace  = false;
   /** @brief Accumulated time since the last auto-spawn (fractional emission rates). */

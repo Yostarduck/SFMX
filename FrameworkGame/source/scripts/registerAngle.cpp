@@ -1,9 +1,10 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerAngle.h"
 
 #include <SFML/System/Angle.hpp>
 
 #include <functional>
+
+#include "core/platform/Prerequisites.h"
 
 namespace sfmx
 {
@@ -12,7 +13,7 @@ namespace script
 {
 
 void
-RegisterAngle(sol::state_view lua) {
+registerAngle(sol::state_view lua) {
   lua.new_usertype<sf::Angle>("Angle",
     sol::call_constructor,
     sol::constructors<sf::Angle()>(),
@@ -77,6 +78,6 @@ RegisterAngle(sol::state_view lua) {
   angle.set_function("radians", &sf::radians);
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

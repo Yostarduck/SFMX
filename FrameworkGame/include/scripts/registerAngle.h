@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterAngle(sol::state_view lua);
+registerAngle(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

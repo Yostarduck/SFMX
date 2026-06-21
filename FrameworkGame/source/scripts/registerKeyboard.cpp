@@ -1,6 +1,6 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerKeyboard.h"
 
+#include "core/platform/Prerequisites.h"
 #include "input/Keyboard.h"
 #include "input/InputTypes.h"
 
@@ -11,7 +11,7 @@ namespace script
 {
 
 void
-RegisterKeyboard(sol::state_view lua) {
+registerKeyboard(sol::state_view lua) {
   lua.new_usertype<Keyboard>("Keyboard",
     sol::no_constructor,
 
@@ -22,6 +22,6 @@ RegisterKeyboard(sol::state_view lua) {
   lua["Keyboard"] = std::ref(Keyboard::instance());
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

@@ -227,7 +227,7 @@ ParticleSystemComponent::onUpdate(float deltaTime) {
   }
 
   // Sort BackToFront
-  if (m_sortMode == ParticleSortMode::BackToFront && m_count > 1) {
+  if (m_sortMode == ParticleSortMode::kBackToFront && m_count > 1) {
     Vector<Particle*> sorted;
     sorted.reserve(m_count);
     for (Particle* p = m_firstParticle; p; p = p->next)

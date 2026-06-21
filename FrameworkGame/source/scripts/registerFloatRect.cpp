@@ -1,7 +1,8 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerFloatRect.h"
 
 #include <SFML/Graphics/Rect.hpp>
+
+#include "core/platform/Prerequisites.h"
 
 namespace sfmx
 {
@@ -10,7 +11,7 @@ namespace script
 {
 
 void
-RegisterFloatRect(sol::state_view lua) {
+registerFloatRect(sol::state_view lua) {
   lua.new_usertype<sf::FloatRect>("FloatRect",
     sol::call_constructor,
     sol::constructors<sf::FloatRect(),
@@ -30,6 +31,6 @@ RegisterFloatRect(sol::state_view lua) {
   );
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

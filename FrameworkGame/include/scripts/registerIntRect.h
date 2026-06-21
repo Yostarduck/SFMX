@@ -9,8 +9,8 @@ namespace script
 {
 
 void
-RegisterIntRect(sol::state_view lua);
+registerIntRect(sol::state_view lua);
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx

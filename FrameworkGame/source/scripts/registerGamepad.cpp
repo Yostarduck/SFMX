@@ -1,6 +1,6 @@
-#include "core/platform/Prerequisites.h"
 #include "scripts/registerGamepad.h"
 
+#include "core/platform/Prerequisites.h"
 #include "input/Gamepad.h"
 #include "input/InputTypes.h"
 
@@ -11,10 +11,10 @@ namespace script
 {
 
 void
-RegisterGamepad(sol::state_view lua) {
+registerGamepad(sol::state_view lua) {
   lua.new_usertype<GamepadDevice>("GamepadDevice",
     sol::no_constructor,
-    
+
     "getAxis",              &GamepadDevice::getAxis,
 
     "isPressed",            &GamepadDevice::isPressed,
@@ -22,7 +22,7 @@ RegisterGamepad(sol::state_view lua) {
     "wasReleasedThisFrame", &GamepadDevice::wasReleasedThisFrame,
 
     "isConnected",          &GamepadDevice::isConnected,
-    
+
     "getDeadZone",          &GamepadDevice::getDeadZone,
     "setDeadZone",          &GamepadDevice::setDeadZone
   );
@@ -38,6 +38,6 @@ RegisterGamepad(sol::state_view lua) {
   lua["Gamepad"] = std::ref(Gamepad::instance());
 }
 
-}
+}  // namespace script
 
-}
+}  // namespace sfmx
