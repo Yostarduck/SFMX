@@ -17,6 +17,9 @@
 #include "scripts/registerMouse.h"
 #include "scripts/registerGamepad.h"
 
+#include "scripts/registerComponent.h"
+#include "scripts/registerComponentAccess.h"
+
 #include "scene/SceneNode.h"
 #include "scene/SpriteComponent.h"
 
@@ -48,6 +51,10 @@ RegisterAll(sol::state_view lua) {
   RegisterKeyboard(lua);
   RegisterMouse(lua);
   RegisterGamepad(lua);
+
+  // Component hierarchy: the base must precede its derived usertypes so the
+  // sol::bases<Component> links resolve.
+  RegisterComponent(lua);
 }
 
 }

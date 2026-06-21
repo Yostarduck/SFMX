@@ -86,6 +86,8 @@ add_library(FrameworkGame STATIC
     source/scripts/registerKeyboard.cpp
     source/scripts/registerMouse.cpp
     source/scripts/registerGamepad.cpp
+    source/scripts/registerComponent.cpp
+    source/scripts/registerComponentAccess.cpp
     source/scripts/registerAll.cpp)
 
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
