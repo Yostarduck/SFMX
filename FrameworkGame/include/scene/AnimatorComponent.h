@@ -34,8 +34,8 @@ struct AnimationTransition {
 
 struct AnimationNode
 {
-  SPtr<Animation>                     animation  = nullptr;
-  Vector<SPtr<AnimationTransition>>  transitions = {};
+  SPtr<Animation>                   animation  = nullptr;
+  Vector<SPtr<AnimationTransition>> transitions = {};
 };
 
 class AnimatorComponent : public ComponentT<AnimatorComponent> {

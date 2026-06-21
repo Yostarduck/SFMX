@@ -173,7 +173,7 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   /** @brief Current emitter configuration. */
   EmitterConfig       m_config;
   /** @brief Current sort mode for active particles. */
-  ParticleSortMode    m_sortMode    = ParticleSortMode::Nonek;
+  ParticleSortMode    m_sortMode    = ParticleSortMode::kNone;
   /** @brief If true, particles are emitted in world space (default: local). */
   bool                m_worldSpace  = false;
   /** @brief Accumulated time since the last auto-spawn (fractional emission rates). */
