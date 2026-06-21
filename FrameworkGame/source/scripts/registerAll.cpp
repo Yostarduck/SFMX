@@ -19,9 +19,13 @@
 
 #include "scripts/registerComponent.h"
 #include "scripts/registerComponentAccess.h"
+#include "scripts/registerTransformComponent.h"
+
+#include "scripts/registerScene.h"
+#include "scripts/registerSceneNode.h"
 
 #include "scene/SceneNode.h"
-#include "scene/SpriteComponent.h"
+#include "scene/SourceComponent.h"
 
 namespace sfmx
 {
@@ -55,6 +59,11 @@ registerAll(sol::state_view lua) {
   // Component hierarchy: the base must precede its derived usertypes so the
   // sol::bases<Component> links resolve.
   registerComponent(lua);
+  registerTransformComponent(lua);
+
+  // Scene graph.
+  registerSceneNode(lua);
+  registerScene(lua);
 }
 
 }  // namespace script

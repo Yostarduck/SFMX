@@ -61,7 +61,7 @@ TEST_CASE("ParticleSystemComponent - default config") {
 
   CHECK(ps->getParticleCount() == 0);
   CHECK_FALSE(ps->isWorldSpace());
-  CHECK(ps->getSortMode() == ParticleSortMode::None);
+  CHECK(ps->getSortMode() == ParticleSortMode::kNone);
   CHECK(ps->getEmissionRate() == doctest::Approx(0.0f));
 }
 
