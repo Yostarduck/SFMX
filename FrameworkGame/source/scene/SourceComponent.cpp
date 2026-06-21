@@ -110,8 +110,10 @@ SourceComponent::getStatus() const {
   case sf::SoundSource::Status::Playing:  return AudioStatus::kPlaying;
   case sf::SoundSource::Status::Paused:   return AudioStatus::kPaused;
   case sf::SoundSource::Status::Stopped:  return AudioStatus::kStopped;
-  default: return AudioStatus::kStopped;
+  default: break;
   }
+
+  return AudioStatus::kStopped;
 }
 
 // -----------------------------------------------------------------------------
