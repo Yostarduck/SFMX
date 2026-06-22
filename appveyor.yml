@@ -20,9 +20,11 @@ cache:
 install:
   - cmake --version
   
-# Webhook sent via on_finish build scripts (not the notifications provider)
+# Webhook sent via on_success/on_failure build scripts (not the notifications provider)
 # because Appveyor's .NET client rejects Content-Type as a request header,
 # and Discord requires Content-Type: application/json.
+# APPVEYOR_JOB_STATUS is NOT a real env var (only available in notification templates),
+# so we rely on Appveyor's native exit-code-based on_success/on_failure hooks.
 
 #
 # ── Windows ──────────────────────────────────────────────────────────
@@ -47,34 +49,44 @@ for:
 
   test_script:
     - cd Build
-    - ctest -C %CONFIGURATION% --output-on-failure --timeout 30 || ver
+    - ctest -C %CONFIGURATION% --output-on-failure --timeout 30
     - cd ..
 
-  on_finish:
+  on_success:
     - ps: |
-        $url = "https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2"
-        $status = "$env:APPVEYOR_JOB_STATUS"
-        $failed = ($status -like "*fail*")
-        $color = if ($failed) { 16711680 } else { 65280 }
-        $title = if ($failed) { "Build failed" } else { "Build passed" }
-        $commitMsg = "$env:APPVEYOR_REPO_COMMIT_MESSAGE".Split("`n")[0]
-        $buildUrl = "$env:APPVEYOR_URL/project/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/build/$env:APPVEYOR_BUILD_VERSION"
-        $shortSha = "$env:APPVEYOR_REPO_COMMIT".Substring(0, [Math]::Min(7, "$env:APPVEYOR_REPO_COMMIT".Length))
         $body = @{
           embeds = @(@{
-            title = $title
-            url = $buildUrl
-            color = $color
+            title = "Build passed"
+            url = "$env:APPVEYOR_URL/project/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/build/$env:APPVEYOR_BUILD_VERSION"
+            color = 65280
             fields = @(
               @{ name = "Project"; value = $env:APPVEYOR_PROJECT_NAME; inline = $true }
               @{ name = "Branch";  value = $env:APPVEYOR_REPO_BRANCH;  inline = $true }
-              @{ name = "Commit";  value = $shortSha;                  inline = $true }
-              @{ name = "Message"; value = $commitMsg;                 inline = $false }
+              @{ name = "Commit";  value = "$env:APPVEYOR_REPO_COMMIT".Substring(0, [Math]::Min(7, "$env:APPVEYOR_REPO_COMMIT".Length)); inline = $true }
+              @{ name = "Message"; value = "$env:APPVEYOR_REPO_COMMIT_MESSAGE".Split("`n")[0]; inline = $false }
             )
             footer = @{ text = "Build $env:APPVEYOR_BUILD_VERSION" }
           })
         } | ConvertTo-Json -Compress -Depth 4
-        Invoke-RestMethod -Uri $url -Method Post -Body $body -ContentType "application/json"
+        Invoke-RestMethod -Uri "https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2" -Method Post -Body $body -ContentType "application/json"
+
+  on_failure:
+    - ps: |
+        $body = @{
+          embeds = @(@{
+            title = "Build failed"
+            url = "$env:APPVEYOR_URL/project/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/build/$env:APPVEYOR_BUILD_VERSION"
+            color = 16711680
+            fields = @(
+              @{ name = "Project"; value = $env:APPVEYOR_PROJECT_NAME; inline = $true }
+              @{ name = "Branch";  value = $env:APPVEYOR_REPO_BRANCH;  inline = $true }
+              @{ name = "Commit";  value = "$env:APPVEYOR_REPO_COMMIT".Substring(0, [Math]::Min(7, "$env:APPVEYOR_REPO_COMMIT".Length)); inline = $true }
+              @{ name = "Message"; value = "$env:APPVEYOR_REPO_COMMIT_MESSAGE".Split("`n")[0]; inline = $false }
+            )
+            footer = @{ text = "Build $env:APPVEYOR_BUILD_VERSION" }
+          })
+        } | ConvertTo-Json -Compress -Depth 4
+        Invoke-RestMethod -Uri "https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2" -Method Post -Body $body -ContentType "application/json"
 
   artifacts:
     - path: Build\x64\%CONFIGURATION%\Game.exe
@@ -109,15 +121,31 @@ for:
   test_script:
     - sh: |
         export LD_LIBRARY_PATH="Build/_deps/sfml-build/lib:Build/x64/$CONFIGURATION"
-        cd Build && ctest -C $CONFIGURATION --output-on-failure --timeout 30 || true
+        cd Build && ctest -C $CONFIGURATION --output-on-failure --timeout 30
 
-  on_finish:
+  on_success:
     - sh: |
-        URL="https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2"
-        BUILD_URL="$APPVEYOR_URL/project/$APPVEYOR_ACCOUNT_NAME/$APPVEYOR_PROJECT_SLUG/build/$APPVEYOR_BUILD_VERSION"
-        SHORT_SHA=$(printf '%.7s' "$APPVEYOR_REPO_COMMIT")
-        export URL APPVEYOR_JOB_STATUS APPVEYOR_PROJECT_NAME APPVEYOR_REPO_BRANCH APPVEYOR_BUILD_VERSION APPVEYOR_REPO_COMMIT_MESSAGE BUILD_URL SHORT_SHA
-        python3 -c "import json,os;failed='fail' in os.environ['APPVEYOR_JOB_STATUS'].lower();c=16711680 if failed else 65280;title='Build failed' if failed else 'Build passed';url=os.environ['URL'];msg=(os.environ.get('APPVEYOR_REPO_COMMIT_MESSAGE','') or '').split('\n')[0];build_url=os.environ['BUILD_URL'];project=os.environ['APPVEYOR_PROJECT_NAME'];branch=os.environ['APPVEYOR_REPO_BRANCH'];sha=os.environ['SHORT_SHA'];version=os.environ['APPVEYOR_BUILD_VERSION'];body=json.dumps({'embeds':[{'title':title,'url':build_url,'color':c,'fields':[{'name':'Project','value':project,'inline':True},{'name':'Branch','value':branch,'inline':True},{'name':'Commit','value':sha,'inline':True},{'name':'Message','value':msg,'inline':False}],'footer':{'text':'Build '+version}}]});import urllib.request as r;r.urlopen(r.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST'))" 2>/dev/null || true
+        python3 -c "
+import json,os
+url='https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2'
+build_url=os.environ['APPVEYOR_URL']+'/project/'+os.environ['APPVEYOR_ACCOUNT_NAME']+'/'+os.environ['APPVEYOR_PROJECT_SLUG']+'/build/'+os.environ['APPVEYOR_BUILD_VERSION']
+sha=(os.environ['APPVEYOR_REPO_COMMIT']+' ')[:7]
+msg=(os.environ.get('APPVEYOR_REPO_COMMIT_MESSAGE','') or '').split(chr(10))[0]
+body=json.dumps({'embeds':[{'title':'Build passed','url':build_url,'color':65280,'fields':[{'name':'Project','value':os.environ['APPVEYOR_PROJECT_NAME'],'inline':True},{'name':'Branch','value':os.environ['APPVEYOR_REPO_BRANCH'],'inline':True},{'name':'Commit','value':sha,'inline':True},{'name':'Message','value':msg,'inline':False}],'footer':{'text':'Build '+os.environ['APPVEYOR_BUILD_VERSION']}}]})
+import urllib.request as r;r.urlopen(r.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST'))
+" 2>/dev/null || true
+
+  on_failure:
+    - sh: |
+        python3 -c "
+import json,os
+url='https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2'
+build_url=os.environ['APPVEYOR_URL']+'/project/'+os.environ['APPVEYOR_ACCOUNT_NAME']+'/'+os.environ['APPVEYOR_PROJECT_SLUG']+'/build/'+os.environ['APPVEYOR_BUILD_VERSION']
+sha=(os.environ['APPVEYOR_REPO_COMMIT']+' ')[:7]
+msg=(os.environ.get('APPVEYOR_REPO_COMMIT_MESSAGE','') or '').split(chr(10))[0]
+body=json.dumps({'embeds':[{'title':'Build failed','url':build_url,'color':16711680,'fields':[{'name':'Project','value':os.environ['APPVEYOR_PROJECT_NAME'],'inline':True},{'name':'Branch','value':os.environ['APPVEYOR_REPO_BRANCH'],'inline':True},{'name':'Commit','value':sha,'inline':True},{'name':'Message','value':msg,'inline':False}],'footer':{'text':'Build '+os.environ['APPVEYOR_BUILD_VERSION']}}]})
+import urllib.request as r;r.urlopen(r.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST'))
+" 2>/dev/null || true
 
   artifacts:
     - path: Build/x64/$(CONFIGURATION)/Game
