@@ -126,26 +126,26 @@ for:
   on_success:
     - sh: |
         python3 -c "
-import json,os
-url='https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2'
-build_url=os.environ['APPVEYOR_URL']+'/project/'+os.environ['APPVEYOR_ACCOUNT_NAME']+'/'+os.environ['APPVEYOR_PROJECT_SLUG']+'/build/'+os.environ['APPVEYOR_BUILD_VERSION']
-sha=(os.environ['APPVEYOR_REPO_COMMIT']+' ')[:7]
-msg=(os.environ.get('APPVEYOR_REPO_COMMIT_MESSAGE','') or '').split(chr(10))[0]
-body=json.dumps({'embeds':[{'title':'Build passed','url':build_url,'color':65280,'fields':[{'name':'Project','value':os.environ['APPVEYOR_PROJECT_NAME'],'inline':True},{'name':'Branch','value':os.environ['APPVEYOR_REPO_BRANCH'],'inline':True},{'name':'Commit','value':sha,'inline':True},{'name':'Message','value':msg,'inline':False}],'footer':{'text':'Build '+os.environ['APPVEYOR_BUILD_VERSION']}}]})
-import urllib.request as r;r.urlopen(r.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST'))
-" 2>/dev/null || true
+        import json,os
+        url='https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2'
+        build_url=os.environ['APPVEYOR_URL']+'/project/'+os.environ['APPVEYOR_ACCOUNT_NAME']+'/'+os.environ['APPVEYOR_PROJECT_SLUG']+'/build/'+os.environ['APPVEYOR_BUILD_VERSION']
+        sha=(os.environ['APPVEYOR_REPO_COMMIT']+' ')[:7]
+        msg=(os.environ.get('APPVEYOR_REPO_COMMIT_MESSAGE','') or '').split(chr(10))[0]
+        body=json.dumps({'embeds':[{'title':'Build passed','url':build_url,'color':65280,'fields':[{'name':'Project','value':os.environ['APPVEYOR_PROJECT_NAME'],'inline':True},{'name':'Branch','value':os.environ['APPVEYOR_REPO_BRANCH'],'inline':True},{'name':'Commit','value':sha,'inline':True},{'name':'Message','value':msg,'inline':False}],'footer':{'text':'Build '+os.environ['APPVEYOR_BUILD_VERSION']}}]})
+        import urllib.request as r;r.urlopen(r.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST'))
+        " 2>/dev/null || true
 
   on_failure:
     - sh: |
         python3 -c "
-import json,os
-url='https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2'
-build_url=os.environ['APPVEYOR_URL']+'/project/'+os.environ['APPVEYOR_ACCOUNT_NAME']+'/'+os.environ['APPVEYOR_PROJECT_SLUG']+'/build/'+os.environ['APPVEYOR_BUILD_VERSION']
-sha=(os.environ['APPVEYOR_REPO_COMMIT']+' ')[:7]
-msg=(os.environ.get('APPVEYOR_REPO_COMMIT_MESSAGE','') or '').split(chr(10))[0]
-body=json.dumps({'embeds':[{'title':'Build failed','url':build_url,'color':16711680,'fields':[{'name':'Project','value':os.environ['APPVEYOR_PROJECT_NAME'],'inline':True},{'name':'Branch','value':os.environ['APPVEYOR_REPO_BRANCH'],'inline':True},{'name':'Commit','value':sha,'inline':True},{'name':'Message','value':msg,'inline':False}],'footer':{'text':'Build '+os.environ['APPVEYOR_BUILD_VERSION']}}]})
-import urllib.request as r;r.urlopen(r.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST'))
-" 2>/dev/null || true
+        import json,os
+        url='https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2'
+        build_url=os.environ['APPVEYOR_URL']+'/project/'+os.environ['APPVEYOR_ACCOUNT_NAME']+'/'+os.environ['APPVEYOR_PROJECT_SLUG']+'/build/'+os.environ['APPVEYOR_BUILD_VERSION']
+        sha=(os.environ['APPVEYOR_REPO_COMMIT']+' ')[:7]
+        msg=(os.environ.get('APPVEYOR_REPO_COMMIT_MESSAGE','') or '').split(chr(10))[0]
+        body=json.dumps({'embeds':[{'title':'Build failed','url':build_url,'color':16711680,'fields':[{'name':'Project','value':os.environ['APPVEYOR_PROJECT_NAME'],'inline':True},{'name':'Branch','value':os.environ['APPVEYOR_REPO_BRANCH'],'inline':True},{'name':'Commit','value':sha,'inline':True},{'name':'Message','value':msg,'inline':False}],'footer':{'text':'Build '+os.environ['APPVEYOR_BUILD_VERSION']}}]})
+        import urllib.request as r;r.urlopen(r.Request(url,data=body.encode(),headers={'Content-Type':'application/json'},method='POST'))
+        " 2>/dev/null || true
 
   artifacts:
     - path: Build/x64/$(CONFIGURATION)/Game
