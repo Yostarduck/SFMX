@@ -1,4 +1,4 @@
-#include "scripts/registerFloatRect.h"
+#include "scripts/RegisterFloatRect.h"
 
 #include <SFML/Graphics/Rect.hpp>
 

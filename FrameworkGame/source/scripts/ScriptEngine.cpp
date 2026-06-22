@@ -1,6 +1,6 @@
-#include "scripts/scriptEngine.h"
+#include "scripts/ScriptEngine.h"
 
-#include "scripts/registerAll.h"
+#include "scripts/RegisterAll.h"
 #include "scene/ScriptComponent.h"
 
 namespace sfmx

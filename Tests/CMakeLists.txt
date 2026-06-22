@@ -10,6 +10,7 @@ add_executable(UnitTests
     AssetFileTest.cpp
     AssetCodecTest.cpp
     AssetManagerTest.cpp
+    ComponentRegistryTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE

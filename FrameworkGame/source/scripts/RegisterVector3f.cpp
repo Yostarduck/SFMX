@@ -1,4 +1,4 @@
-#include "scripts/registerVector3f.h"
+#include "scripts/RegisterVector3f.h"
 
 #include <SFML/System/Vector3.hpp>
 

@@ -1,4 +1,4 @@
-#include "scripts/registerVector2i.h"
+#include "scripts/RegisterVector2i.h"
 
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
