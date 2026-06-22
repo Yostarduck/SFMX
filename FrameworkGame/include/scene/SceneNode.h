@@ -82,6 +82,15 @@ class SceneNode
   /** @brief First direct child whose name equals @p name, or nullptr. */
   NODISCARD SceneNode* findChild(StringView name) const;
 
+  /**
+   * @brief Head of this node's component list, or nullptr if none.
+   *
+   * Walk the list via @ref Component::getNextComponent. This is the only generic
+   * (type-erased) way to enumerate a node's components — used by serialization.
+   */
+  NODISCARD FORCEINLINE Component*
+  getFirstComponent() const { return m_firstComponent; }
+
   // -- Hierarchy mutation ----------------------------------------------------
   /** @brief Create a child node through the owning Scene; returns the child. */
   SceneNode* createChild(StringView name);

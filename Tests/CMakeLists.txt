@@ -11,6 +11,7 @@ add_executable(UnitTests
     AssetCodecTest.cpp
     AssetManagerTest.cpp
     ComponentRegistryTest.cpp
+    SceneSerializerTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE
