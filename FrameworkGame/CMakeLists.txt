@@ -72,23 +72,26 @@ add_library(FrameworkGame STATIC
     source/utils/Random.cpp
     source/utils/UUID.cpp
 
-    source/scripts/scriptEngine.cpp
-    source/scripts/registerAngle.cpp
-    source/scripts/registerColor.cpp
-    source/scripts/registerVector2i.cpp
-    source/scripts/registerVector2f.cpp
-    source/scripts/registerVector3i.cpp
-    source/scripts/registerVector3f.cpp
-    source/scripts/registerIntRect.cpp
-    source/scripts/registerFloatRect.cpp
-    source/scripts/registerTransform.cpp
-    source/scripts/registerInputTypes.cpp
-    source/scripts/registerKeyboard.cpp
-    source/scripts/registerMouse.cpp
-    source/scripts/registerGamepad.cpp
-    source/scripts/registerComponent.cpp
-    source/scripts/registerComponentAccess.cpp
-    source/scripts/registerAll.cpp)
+    source/scripts/ScriptEngine.cpp
+    source/scripts/RegisterAngle.cpp
+    source/scripts/RegisterColor.cpp
+    source/scripts/RegisterVector2i.cpp
+    source/scripts/RegisterVector2f.cpp
+    source/scripts/RegisterVector3i.cpp
+    source/scripts/RegisterVector3f.cpp
+    source/scripts/RegisterIntRect.cpp
+    source/scripts/RegisterFloatRect.cpp
+    source/scripts/RegisterTransform.cpp
+    source/scripts/RegisterInputTypes.cpp
+    source/scripts/RegisterKeyboard.cpp
+    source/scripts/RegisterMouse.cpp
+    source/scripts/RegisterGamepad.cpp
+    source/scripts/RegisterComponent.cpp
+    source/scripts/RegisterComponentAccess.cpp
+    source/scripts/RegisterTransformComponent.cpp
+    source/scripts/RegisterScene.cpp
+    source/scripts/RegisterSceneNode.cpp
+    source/scripts/RegisterAll.cpp)
 
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
 

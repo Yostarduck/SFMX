@@ -1,4 +1,4 @@
-#include "scripts/registerColor.h"
+#include "scripts/RegisterColor.h"
 
 #include <SFML/Graphics/Color.hpp>
 

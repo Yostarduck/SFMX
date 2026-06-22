@@ -1,4 +1,4 @@
-#include "scripts/registerInputTypes.h"
+#include "scripts/RegisterInputTypes.h"
 
 #include "core/platform/Prerequisites.h"
 #include "input/InputTypes.h"

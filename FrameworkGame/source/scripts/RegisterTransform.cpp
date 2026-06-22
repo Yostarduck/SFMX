@@ -1,4 +1,4 @@
-#include "scripts/registerTransform.h"
+#include "scripts/RegisterTransform.h"
 
 #include <SFML/System/Angle.hpp>
 #include <SFML/Graphics/Transform.hpp>

@@ -139,7 +139,7 @@ int main()
 
   auto* sunParticles = sun->addComponent<ParticleSystemComponent>();
   sunParticles->setConfig(sunCfg);
-  sunParticles->setSortMode(ParticleSortMode::BackToFront);
+  sunParticles->setSortMode(ParticleSortMode::kBackToFront);
   sunParticles->setWorldSpace(false);
 
   SceneNode* sun2 = scene.createNode("Sun2");
@@ -192,7 +192,7 @@ int main()
 
   auto* earthParticles = earth->addComponent<ParticleSystemComponent>();
   earthParticles->setConfig(earthCfg);
-  earthParticles->setSortMode(ParticleSortMode::BackToFront);
+  earthParticles->setSortMode(ParticleSortMode::kBackToFront);
   earthParticles->setWorldSpace(true);
 
   SceneNode* moon = scene.createNode("Moon", earth);
