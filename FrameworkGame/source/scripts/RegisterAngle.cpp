@@ -1,4 +1,4 @@
-#include "scripts/registerAngle.h"
+#include "scripts/RegisterAngle.h"
 
 #include <SFML/System/Angle.hpp>
 

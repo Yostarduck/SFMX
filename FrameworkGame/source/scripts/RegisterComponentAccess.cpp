@@ -1,4 +1,4 @@
-#include "scripts/registerComponentAccess.h"
+#include "scripts/RegisterComponentAccess.h"
 
 #include "core/platform/Prerequisites.h"
 #include "scene/SceneNode.h"

@@ -1,4 +1,4 @@
-#include "scripts/registerTransformComponent.h"
+#include "scripts/RegisterTransformComponent.h"
 
 #include "core/platform/Prerequisites.h"
 #include "scene/Transform.h"

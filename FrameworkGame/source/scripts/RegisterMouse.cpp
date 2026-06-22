@@ -1,4 +1,4 @@
-#include "scripts/registerMouse.h"
+#include "scripts/RegisterMouse.h"
 
 #include "core/platform/Prerequisites.h"
 #include "input/Mouse.h"

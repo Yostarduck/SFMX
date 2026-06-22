@@ -1,4 +1,4 @@
-#include "scripts/registerComponent.h"
+#include "scripts/RegisterComponent.h"
 
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"

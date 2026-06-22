@@ -1,4 +1,4 @@
-#include "scripts/registerGamepad.h"
+#include "scripts/RegisterGamepad.h"
 
 #include "core/platform/Prerequisites.h"
 #include "input/Gamepad.h"

@@ -1,4 +1,4 @@
-#include "scripts/registerIntRect.h"
+#include "scripts/RegisterIntRect.h"
 
 #include <SFML/Graphics/Rect.hpp>
 

@@ -1,4 +1,4 @@
-#include "scripts/registerKeyboard.h"
+#include "scripts/RegisterKeyboard.h"
 
 #include "core/platform/Prerequisites.h"
 #include "input/Keyboard.h"

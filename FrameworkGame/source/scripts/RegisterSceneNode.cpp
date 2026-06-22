@@ -1,4 +1,4 @@
-#include "scripts/registerSceneNode.h"
+#include "scripts/RegisterSceneNode.h"
 
 #include "core/platform/Prerequisites.h"
 #include "scene/SceneNode.h"
@@ -6,7 +6,7 @@
 #include "scene/Transform.h"
 #include <SFML/Graphics/Transform.hpp>
 
-#include "scripts/registerComponentAccess.h"
+#include "scripts/RegisterComponentAccess.h"
 
 namespace sfmx
 {
