@@ -31,7 +31,7 @@
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
 
-#include "scripts/scriptEngine.h"
+#include "scripts/ScriptEngine.h"
 
 using namespace sfmx;
 

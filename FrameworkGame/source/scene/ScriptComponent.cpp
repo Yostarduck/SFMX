@@ -1,7 +1,7 @@
 #include "scene/ScriptComponent.h"
 #include "scene/SceneNode.h"
 
-#include "scripts/scriptEngine.h"
+#include "scripts/ScriptEngine.h"
 
 namespace sfmx
 {
