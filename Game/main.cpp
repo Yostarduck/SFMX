@@ -84,15 +84,15 @@ int main()
   ScriptEngine::startUp();
 
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
-  pools.registerPool<Particle>(2048);
   pools.registerPool<SceneNode>(1024);
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
-  pools.registerPool<ParticleSystemComponent>(8);
-  pools.registerPool<SpriteComponent>(8);
   pools.registerPool<CameraComponent>(1);
+  pools.registerPool<SpriteComponent>(8);
   pools.registerPool<AnimatorComponent>(8);
+  pools.registerPool<Particle>(2048);
+  pools.registerPool<ParticleSystemComponent>(8);
   pools.registerPool<ColliderComponent>(64);
   pools.registerPool<RigidBodyComponent>(64);
   pools.registerPool<ScriptComponent>(1024);
@@ -471,6 +471,7 @@ int main()
   SceneNode* Spaceship = scene.createNode("Spaceship");
   Spaceship->transform().setPosition({center.x, 0.f});
   Spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
+  Spaceship->addComponent<ScriptComponent>("Game/resources/character.lua");
 
   while (window.isOpen())
   {

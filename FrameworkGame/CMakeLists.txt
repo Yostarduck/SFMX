@@ -89,8 +89,17 @@ add_library(FrameworkGame STATIC
     source/scripts/RegisterComponent.cpp
     source/scripts/RegisterComponentAccess.cpp
     source/scripts/RegisterTransformComponent.cpp
+    source/scripts/RegisterSourceComponent.cpp
+    source/scripts/RegisterListenerComponent.cpp
+    source/scripts/RegisterCameraComponent.cpp
+    source/scripts/RegisterSpriteComponent.cpp
+    source/scripts/RegisterAnimatorComponent.cpp
+    #source/scripts/RegisterParticleSystemComponent.cpp
+    source/scripts/RegisterScriptComponent.cpp
+
     source/scripts/RegisterScene.cpp
     source/scripts/RegisterSceneNode.cpp
+
     source/scripts/RegisterAll.cpp)
 
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
