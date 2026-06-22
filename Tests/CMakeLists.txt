@@ -9,6 +9,7 @@ add_executable(UnitTests
     CollisionTest.cpp
     AssetFileTest.cpp
     AssetCodecTest.cpp
+    AssetManagerTest.cpp
     ComponentRegistryTest.cpp
 )
 
