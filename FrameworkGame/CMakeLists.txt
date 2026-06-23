@@ -39,6 +39,7 @@ add_library(FrameworkGame STATIC
     source/assets/AssetCodecRegistry.cpp
     source/assets/TextureAsset.cpp
     source/assets/TextureCodec.cpp
+    source/assets/AssetManager.cpp
 
     source/input/InputTypes.cpp
     source/input/Keyboard.cpp
@@ -57,6 +58,7 @@ add_library(FrameworkGame STATIC
     source/scene/Scene.cpp
     source/scene/SceneNode.cpp
     source/scene/Component.cpp
+    source/scene/ComponentRegistry.cpp
     source/scene/Transform.cpp
     source/scene/CameraComponent.cpp
     source/scene/SourceComponent.cpp
