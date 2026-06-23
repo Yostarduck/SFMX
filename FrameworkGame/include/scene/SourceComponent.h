@@ -14,9 +14,12 @@
 #include <SFML/Audio/SoundSource.hpp>
 
 #include "scene/Component.h"
+#include "utils/UUID.h"
 
 namespace sfmx
 {
+
+class SoundAsset;
 
 /** @brief Audio channel layout hint */
 enum class AudioSpace : int32 { kNone = 0, kMono, kStereo, kSurround };
@@ -48,6 +51,19 @@ public:
   bool loadMusicFromFile(const String& filePath);
   /** @brief Loads from an externally provided SoundBuffer into sf::Sound */
   bool loadFromBuffer(const sf::SoundBuffer& data);
+
+  // Asset-backed loading (the serializable, kSound path)
+
+  /** @brief Bind to a SoundAsset, keeping it alive and recording its UUID; sets up
+   *         the kSound backend from the asset's buffer. */
+  void setSoundAsset(SPtr<SoundAsset> asset);
+  /** @brief Record the sound asset UUID and resolve it via AssetManager when
+   *         available; if it can't be resolved the id is still kept. */
+  void setSoundAssetId(const UUID& id);
+  /** @brief UUID of the referenced SoundAsset, or UUID::null() for music/raw/none. */
+  NODISCARD const UUID& getSoundAssetId() const;
+  /** @brief The kept-alive SoundAsset, or nullptr if not asset-backed. */
+  NODISCARD SPtr<SoundAsset> getSoundAsset() const;
 
   // Playback
 
@@ -116,6 +132,11 @@ public:
   /** @brief Drives auto position from the node's world transform when m_followNode is true */
   void onUpdate(float deltaTime) override;
 
+  /** @brief Serializes the source handle (SoundAsset UUID or music path) + playback params. */
+  void onSerialize(DataStream& stream) const override;
+  /** @brief Restores the source (re-resolves the asset / re-opens the music) and params. */
+  void onDeserialize(DataStream& stream) override;
+
   /** @brief Returns the active SoundSource pointer (may be null) */
   NODISCARD const sf::SoundSource* getSource() const;
 
@@ -132,6 +153,12 @@ private:
   sf::Music         m_music;
   AudioBackend      m_backend    = AudioBackend::kNone;
   bool              m_followNode = true;
+
+  SPtr<SoundAsset>  m_soundAsset;                 //!< keep-alive for an asset-backed buffer
+  UUID              m_soundAssetId = UUID::null();
+  String            m_musicPath;                  //!< source path for the streaming backend
 };
 
 } // namespace sfmx
+
+DECLARE_TYPE_TRAITS(sfmx::SourceComponent)

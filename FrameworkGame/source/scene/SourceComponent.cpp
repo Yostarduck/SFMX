@@ -5,8 +5,18 @@
 #include "scene/SceneNode.h"
 #include "scene/Transform.h"
 
+#include "assets/AssetManager.h"
+#include "assets/SoundAsset.h"
+#include "core/DataStream.h"
+#include "core/DataStreamTypes.h"   // operator<< / >> for UUID
+
 namespace sfmx
 {
+
+namespace {
+/** @brief SourceComponent blob layout version; bump on format changes. */
+constexpr uint32 kSourceComponentVersion = 1;
+} // namespace
 
 SourceComponent::SourceComponent(SceneNode* owner)
   : ComponentT<SourceComponent>(owner),
@@ -45,6 +55,7 @@ SourceComponent::loadSoundFromFile(const String& filePath) {
   m_sound.setBuffer(m_buffer);
   m_source = &m_sound;
   m_backend = AudioBackend::kSound;
+  m_musicPath.clear();  // a raw file-loaded buffer is not the streaming backend
   return true;
 }
 
@@ -59,6 +70,8 @@ SourceComponent::loadMusicFromFile(const String& filePath) {
 
   m_source = &m_music;
   m_backend = AudioBackend::kMusic;
+  m_musicPath = filePath;        // remembered so the streaming source re-opens on load
+  m_soundAssetId = UUID::null(); // music is path-backed, not asset-backed
   return true;
 }
 
@@ -72,7 +85,54 @@ SourceComponent::loadFromBuffer(const sf::SoundBuffer& data) {
   m_sound.setBuffer(m_buffer);
   m_source = &m_sound;
   m_backend = AudioBackend::kSound;
+  m_musicPath.clear();
   return true;
+}
+
+// -----------------------------------------------------------------------------
+// Asset-backed loading
+// -----------------------------------------------------------------------------
+
+void
+SourceComponent::setSoundAsset(SPtr<SoundAsset> asset) {
+  // If handed an asset that isn't decoded yet, bring it up through the
+  // AssetManager by its UUID. A single attempt (no recursion) — same as sprite.
+  if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
+    SPtr<SoundAsset> loaded =
+        AssetManager::instance().load<SoundAsset>(asset->metadata().uuid);
+    if (nullptr != loaded) {
+      asset = loaded;
+    }
+  }
+
+  m_soundAsset   = asset;
+  m_soundAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  if (nullptr != asset && asset->isLoaded()) {
+    loadFromBuffer(asset->buffer());  // copies into m_buffer, sets up the kSound backend
+  }
+}
+
+void
+SourceComponent::setSoundAssetId(const UUID& id) {
+  if (id != UUID::null() && AssetManager::isStarted()) {
+    SPtr<SoundAsset> asset = AssetManager::instance().load<SoundAsset>(id);
+    if (nullptr != asset) {
+      setSoundAsset(asset);  // records m_soundAssetId from the asset (== id)
+      return;
+    }
+  }
+  // Couldn't resolve: keep the id so it still re-serializes and can resolve later.
+  m_soundAssetId = id;
+}
+
+const UUID&
+SourceComponent::getSoundAssetId() const {
+  return m_soundAssetId;
+}
+
+SPtr<SoundAsset>
+SourceComponent::getSoundAsset() const {
+  return m_soundAsset;
 }
 
 // -----------------------------------------------------------------------------
@@ -280,6 +340,84 @@ SourceComponent::onUpdate(float deltaTime) {
       m_owner->transform().getWorldTransform().transformPoint({0,0});
   m_source->setPosition({worldPos.x, worldPos.y, 0.f});
   // std::cout << m_source->getPosition().x << " : " << m_source->getPosition().y << std::endl;
+}
+
+// -----------------------------------------------------------------------------
+// Serialization
+// -----------------------------------------------------------------------------
+
+void
+SourceComponent::onSerialize(DataStream& stream) const {
+  stream << kSourceComponentVersion;
+  stream << static_cast<uint8>(m_backend);
+
+  switch (m_backend) {
+    case AudioBackend::kSound: stream << m_soundAssetId;     break;
+    case AudioBackend::kMusic: stream.writeString(m_musicPath); break;
+    default: break;  // kNone: no source handle
+  }
+
+  // Playback params (the getters return safe defaults when m_source is null).
+  stream << getVolume() << getPitch() << getPan();
+  stream << static_cast<uint8>(isLooping() ? 1 : 0);
+  stream << static_cast<uint8>(isRelativeToListener() ? 1 : 0);
+  stream << getMinDistance() << getAttenuation();
+  stream << static_cast<uint8>(isSpatializationEnabled() ? 1 : 0);
+  stream << static_cast<uint8>(m_followNode ? 1 : 0);
+}
+
+void
+SourceComponent::onDeserialize(DataStream& stream) {
+  uint32 version = 0;
+  stream >> version;
+  if (version != kSourceComponentVersion) {
+    return;  // unknown version: leave defaults rather than misread bytes
+  }
+
+  uint8 backend = 0;
+  stream >> backend;
+  switch (static_cast<AudioBackend>(backend)) {
+    case AudioBackend::kSound: {
+      UUID id;
+      stream >> id;
+      setSoundAssetId(id);  // re-resolves the asset → sets up the kSound backend
+      break;
+    }
+    case AudioBackend::kMusic: {
+      m_musicPath = stream.readString();
+      if (!m_musicPath.empty()) {
+        loadMusicFromFile(m_musicPath);  // re-opens the streaming source
+      }
+      break;
+    }
+    default:
+      break;  // kNone: no source to rebuild
+  }
+
+  // Always consume the param bytes, even if the source couldn't be rebuilt.
+  float volume = 100.f;
+  float pitch = 1.f;
+  float pan = 0.f;
+  uint8 looping = 0;
+  uint8 relative = 0;
+  float minDistance = 1.f;
+  float attenuation = 1.f;
+  uint8 spatialization = 1;
+  uint8 followNode = 1;
+  stream >> volume >> pitch >> pan >> looping >> relative
+         >> minDistance >> attenuation >> spatialization >> followNode;
+
+  if (nullptr != m_source) {
+    setVolume(volume);
+    setPitch(pitch);
+    setPan(pan);
+    setLooping(looping != 0);
+    setRelativeToListener(relative != 0);
+    setMinDistance(minDistance);
+    setAttenuation(attenuation);
+    setSpatializationEnabled(spatialization != 0);
+  }
+  setFollowNode(followNode != 0);
 }
 
 // -----------------------------------------------------------------------------
