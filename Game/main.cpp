@@ -57,8 +57,9 @@ class CircleComponent : public ComponentT<CircleComponent>
 
 DECLARE_TYPE_TRAITS(CircleComponent)
 DECLARE_TYPE_TRAITS(SourceComponent)
-DECLARE_TYPE_TRAITS(ListenerComponent)
-DECLARE_TYPE_TRAITS(CameraComponent)
+// CameraComponent / ListenerComponent declare their type traits in their own
+// headers now (required so the engine TU instantiates a matching type id); a
+// second declaration here would redefine the specialization.
 DECLARE_TYPE_TRAITS(AnimatorComponent)
 DECLARE_TYPE_TRAITS(ScriptComponent)
 

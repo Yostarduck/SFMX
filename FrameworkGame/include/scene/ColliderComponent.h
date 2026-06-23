@@ -81,11 +81,20 @@ class ColliderComponent : public ComponentT<ColliderComponent>
 
   /** @brief Set the debug-render outline color */
   void setDebugColor(const sf::Color& c) { m_debugColor = c; }
+  /** @brief The debug-render outline color */
+  NODISCARD const sf::Color& getDebugColor() const { return m_debugColor; }
 
   // Debug rendering
 
   /** @brief Draws a wireframe representation of the collider shape */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
+
+  // Serialization
+
+  /** @brief Serializes the shape (type tag + params), layer/mask, flags and debug color. */
+  void onSerialize(DataStream& stream) const override;
+  /** @brief Restores the state written by @ref onSerialize. */
+  void onDeserialize(DataStream& stream) override;
 
  private:
   UniquePtr<ICollider> m_collider;

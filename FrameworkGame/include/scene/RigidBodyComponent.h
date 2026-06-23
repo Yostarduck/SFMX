@@ -58,6 +58,13 @@ class RigidBodyComponent : public ComponentT<RigidBodyComponent>
   /** @brief Apply accumulated forces, gravity, and advance position */
   void integrate(float dt, sf::Vector2f gravity);
 
+  // Serialization
+
+  /** @brief Serializes velocity, mass and gravity scale (force accumulator is transient). */
+  void onSerialize(DataStream& stream) const override;
+  /** @brief Restores the state written by @ref onSerialize. */
+  void onDeserialize(DataStream& stream) override;
+
  private:
   sf::Vector2f m_velocity      = {0.f, 0.f};
   sf::Vector2f m_forceAccum    = {0.f, 0.f};

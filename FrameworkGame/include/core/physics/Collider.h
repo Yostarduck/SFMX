@@ -50,8 +50,8 @@ class ICollider
 {
  public:
   virtual ~ICollider() = default;
-  /** @brief Returns the concrete shape type for dispatch (fast enum path) */
-  // NODISCARD virtual ColliderType getType() const = 0;
+  /** @brief Concrete shape discriminator (fast enum path; also the serialized tag) */
+  NODISCARD virtual ColliderType getType() const = 0;
   /** @brief Returns the UUID-based type id (TypeTraits-based, for safe RTTI) */
   NODISCARD virtual const UUID& getTypeId() const = 0;
 };
@@ -63,16 +63,16 @@ class ICollider
  * Derive as:
  *   class CircleCollider : public ColliderT<CircleCollider, ColliderType::kCircle>
  */
-template<typename Derived> //, ColliderType Type>
+template<typename Derived, ColliderType Type>
 class ColliderT : public ICollider
 {
  public:
-  // NODISCARD FORCEINLINE ColliderType getType() const override { return Type; }
+  NODISCARD FORCEINLINE ColliderType getType()   const override { return Type; }
   NODISCARD FORCEINLINE const UUID&  getTypeId() const override { return TypeTraits<Derived>::getTypeId(); }
 };
 
 /** @brief Circle defined by a center point and radius */
-class CircleCollider : public ColliderT<CircleCollider> //, ColliderType::kCircle>
+class CircleCollider : public ColliderT<CircleCollider, ColliderType::kCircle>
 {
  public:
   CircleCollider() = default;
@@ -97,7 +97,7 @@ class CircleCollider : public ColliderT<CircleCollider> //, ColliderType::kCircl
 };
 
 /** @brief Axis-aligned bounding box with center + half-size */
-class AABBCollider : public ColliderT<AABBCollider> //, ColliderType::kAABB>
+class AABBCollider : public ColliderT<AABBCollider, ColliderType::kAABB>
 {
  public:
   AABBCollider() = default;
@@ -120,7 +120,7 @@ class AABBCollider : public ColliderT<AABBCollider> //, ColliderType::kAABB>
 };
 
 /** @brief Oriented bounding box (AABB rotated via its world transform) */
-class OBBCollider : public ColliderT<OBBCollider> //, ColliderType::kOBB>
+class OBBCollider : public ColliderT<OBBCollider, ColliderType::kOBB>
 {
  public:
   OBBCollider() = default;
@@ -143,7 +143,7 @@ class OBBCollider : public ColliderT<OBBCollider> //, ColliderType::kOBB>
 };
 
 /** @brief Zero-area point collider */
-class PointCollider : public ColliderT<PointCollider> //, ColliderType::kPoint>
+class PointCollider : public ColliderT<PointCollider, ColliderType::kPoint>
 {
  public:
   PointCollider() = default;
@@ -160,7 +160,7 @@ class PointCollider : public ColliderT<PointCollider> //, ColliderType::kPoint>
 };
 
 /** @brief Line segment collider (start / end) */
-class LineCollider : public ColliderT<LineCollider> //, ColliderType::kLine>
+class LineCollider : public ColliderT<LineCollider, ColliderType::kLine>
 {
  public:
   LineCollider() = default;

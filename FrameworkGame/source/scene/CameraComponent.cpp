@@ -2,7 +2,17 @@
 #include "scene/SceneNode.h"
 #include "scene/Transform.h"
 
+#include <SFML/Graphics/Rect.hpp>
+#include <SFML/System/Angle.hpp>
+
+#include "core/DataStream.h"
+
 namespace sfmx {
+
+namespace {
+/** @brief CameraComponent blob layout version; bump on format changes. */
+constexpr uint32 kCameraComponentVersion = 1;
+} // namespace
 
 CameraComponent::CameraComponent(SceneNode* owner)
   : ComponentT<CameraComponent>(owner)
@@ -129,6 +139,52 @@ CameraComponent::setFollowNode(bool follow) {
 bool
 CameraComponent::isFollowingNode() const {
   return m_followNode;
+}
+
+void
+CameraComponent::onSerialize(DataStream& stream) const {
+  stream << kCameraComponentVersion;
+
+  const sf::Vector2f center = m_view.getCenter();
+  const sf::Vector2f size   = m_view.getSize();
+  const sf::FloatRect vp    = m_view.getViewport();
+  stream << center.x << center.y;
+  stream << size.x << size.y;
+  stream << m_view.getRotation().asRadians();
+  stream << vp.position.x << vp.position.y << vp.size.x << vp.size.y;
+
+  stream << static_cast<uint8>(m_followNode ? 1 : 0);
+  stream << m_drawOrder;
+}
+
+void
+CameraComponent::onDeserialize(DataStream& stream) {
+  uint32 version = 0;
+  stream >> version;
+  if (version != kCameraComponentVersion) {
+    return;  // unknown version: leave defaults rather than misread bytes
+  }
+
+  float cx = 0.f;
+  float cy = 0.f;
+  float sx = 0.f;
+  float sy = 0.f;
+  float rot = 0.f;
+  float vpx = 0.f;
+  float vpy = 0.f;
+  float vpw = 1.f;
+  float vph = 1.f;
+  stream >> cx >> cy >> sx >> sy >> rot >> vpx >> vpy >> vpw >> vph;
+
+  uint8 follow = 1;
+  stream >> follow;
+  stream >> m_drawOrder;
+
+  m_view.setCenter({cx, cy});
+  m_view.setSize({sx, sy});
+  m_view.setRotation(sf::radians(rot));
+  m_view.setViewport(sf::FloatRect({vpx, vpy}, {vpw, vph}));
+  m_followNode = follow != 0;
 }
 
 } // namespace sfmx
