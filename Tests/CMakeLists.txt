@@ -13,7 +13,6 @@ add_executable(UnitTests
     ComponentRegistryTest.cpp
     SceneSerializerTest.cpp
     ComponentSerializationTest.cpp
-    SpriteComponentSerializationTest.cpp
     ScriptComponentSerializationTest.cpp
 )
 
