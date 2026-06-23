@@ -11,5 +11,11 @@
     "--compile-commands-dir=Build",
     "--background-index"
   ],
-  "C_Cpp.intelliSenseEngine": "Disabled"
+  "C_Cpp.intelliSenseEngine": "Disabled",
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "cmake.buildDirectory": "${workspaceFolder}/Build",
+  "cmake.configureOnOpen": true,
+  "cmake.configureSettings": {
+    "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+  }
 }
