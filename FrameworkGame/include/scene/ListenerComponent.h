@@ -59,8 +59,15 @@ public:
   /** @brief Auto-updates position from the node's world transform when m_autoUpdate is true */
   void onUpdate(float deltaTime) override;
 
+  /** @brief Serializes the auto-update flag (the only per-component state). */
+  void onSerialize(DataStream& stream) const override;
+  /** @brief Restores the state written by @ref onSerialize. */
+  void onDeserialize(DataStream& stream) override;
+
 private:
   bool m_autoUpdate = true;
 };
 
 } // namespace sfmx
+
+DECLARE_TYPE_TRAITS(sfmx::ListenerComponent)

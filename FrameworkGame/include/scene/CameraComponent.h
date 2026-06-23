@@ -86,6 +86,11 @@ class CameraComponent : public ComponentT<CameraComponent>
   /** @brief Returns the draw order. */
   NODISCARD uint32 getDrawOrder() const { return m_drawOrder; }
 
+  /** @brief Serializes the view (center/size/rotation/viewport), follow flag and draw order. */
+  void onSerialize(DataStream& stream) const override;
+  /** @brief Restores the state written by @ref onSerialize. */
+  void onDeserialize(DataStream& stream) override;
+
  private:
   sf::View m_view;
   bool     m_followNode = true;
@@ -93,3 +98,5 @@ class CameraComponent : public ComponentT<CameraComponent>
 };
 
 } // namespace sfmx
+
+DECLARE_TYPE_TRAITS(sfmx::CameraComponent)

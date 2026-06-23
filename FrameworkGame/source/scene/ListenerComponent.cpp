@@ -3,11 +3,17 @@
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector3.hpp>
 
+#include "core/DataStream.h"
 #include "scene/SceneNode.h"
 #include "scene/Transform.h"
 
 namespace sfmx
 {
+
+namespace {
+/** @brief ListenerComponent blob layout version; bump on format changes. */
+constexpr uint32 kListenerComponentVersion = 1;
+} // namespace
 
 ListenerComponent::ListenerComponent(SceneNode* owner)
   : ComponentT<ListenerComponent>(owner)
@@ -95,6 +101,29 @@ ListenerComponent::onUpdate(float deltaTime) {
   const sf::Vector2f worldPos =
       m_owner->getWorldTransform().transformPoint({0.f, 0.f});
   sf::Listener::setPosition({worldPos.x, worldPos.y, 0.f});
+}
+
+// -----------------------------------------------------------------------------
+// Serialization
+// -----------------------------------------------------------------------------
+
+void
+ListenerComponent::onSerialize(DataStream& stream) const {
+  stream << kListenerComponentVersion;
+  stream << static_cast<uint8>(m_autoUpdate ? 1 : 0);
+}
+
+void
+ListenerComponent::onDeserialize(DataStream& stream) {
+  uint32 version = 0;
+  stream >> version;
+  if (version != kListenerComponentVersion) {
+    return;  // unknown version: leave defaults rather than misread bytes
+  }
+
+  uint8 autoUpdate = 1;
+  stream >> autoUpdate;
+  m_autoUpdate = autoUpdate != 0;
 }
 
 } // namespace sfmx
