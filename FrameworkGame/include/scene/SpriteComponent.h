@@ -5,9 +5,11 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include "scene/Component.h"
+#include "utils/UUID.h"
 
 namespace sfmx {
 class Frame;
+class TextureAsset;
 
 class SpriteComponent : public ComponentT<SpriteComponent> {
 
@@ -16,6 +18,17 @@ public:
 
   void setTexture(const sf::Texture& txt);
   void setTexture(SPtr<sf::Texture> texture);
+
+  /** @brief Bind the sprite to a TextureAsset, keeping it alive and recording its UUID
+   *         (the serializable handle). The asset's sf::Texture outlives the sprite. */
+  void setTextureAsset(SPtr<TextureAsset> asset);
+  /** @brief Record the texture asset UUID and resolve it via AssetManager when available;
+   *         if it can't be resolved the id is still kept so it re-serializes. */
+  void setTextureAssetId(const UUID& id);
+  /** @brief UUID of the referenced TextureAsset, or UUID::null() for a raw/no texture. */
+  NODISCARD const UUID& getTextureAssetId() const;
+  /** @brief The kept-alive TextureAsset, or nullptr if the texture isn't asset-backed. */
+  NODISCARD SPtr<TextureAsset> getTextureAsset() const;
 
   void setFrame(const Frame& f);
   NODISCARD const Frame getAsFrame() const;
@@ -70,15 +83,24 @@ public:
   void onDraw(sf::RenderTarget& target,
               sf::RenderStates states) const override;
 
+  /** @brief Serializes the texture asset UUID, flips, color and texture rect. */
+  void onSerialize(DataStream& stream) const override;
+  /** @brief Restores the state written by @ref onSerialize (re-resolves the texture). */
+  void onDeserialize(DataStream& stream) override;
+
   NODISCARD sf::Sprite& activeSprite();
   NODISCARD const sf::Sprite& activeSprite() const;
 
 private:
 
-  SPtr<sf::Sprite>   m_sprite;
+  SPtr<sf::Sprite>     m_sprite;
   SPtr<sf::Texture>    m_texture;
+  SPtr<TextureAsset>   m_textureAsset;            //!< keep-alive for an asset-backed texture
+  UUID                 m_textureAssetId = UUID::null();
   bool                 m_flipX      = false;
   bool                 m_flipY      = false;
 };
 
 } // namespace sfmx
+
+DECLARE_TYPE_TRAITS(sfmx::SpriteComponent)
