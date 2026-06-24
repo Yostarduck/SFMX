@@ -21,6 +21,7 @@
 #include "scene/RigidBodyComponent.h"
 #include "scene/ParticleSystemComponent.h"
 #include "scene/ScriptComponent.h"
+#include "scene/CanvasComponent.h"
 
 #include "resource/SpriteAtlas.h"
 #include "resource/Frame.h"
@@ -32,6 +33,10 @@
 #include "utils/Arithmetic.h"
 
 #include "scripts/ScriptEngine.h"
+
+#include "ui/UIEventSystem.h"
+#include "ui/Canvas.h"
+#include "ui/UIButton.h"
 
 using namespace sfmx;
 
@@ -63,6 +68,7 @@ DECLARE_TYPE_TRAITS(AnimatorComponent)
 
 int main()
 {
+  {
   sfmx::IniFile config;
   config.loadAll({"Game/config/Engine.ini", "Game/config/Game.ini"});
 
@@ -95,6 +101,8 @@ int main()
   pools.registerPool<ColliderComponent>(64);
   pools.registerPool<RigidBodyComponent>(64);
   pools.registerPool<ScriptComponent>(1024);
+  pools.registerPool<UIButton>(64);
+  pools.registerPool<CanvasComponent>(8);
 
   std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
 
@@ -430,6 +438,37 @@ int main()
     {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kW), -1, false}, CompositeRole::kPositiveY, {}});
   move->addProcessor(Processor{ProcessorType::kNormalize, {}, {}});
 
+  // ── UI ActionMap: keyboard/gamepad navigation ──────────────────────────
+  ActionMap* uiActions = controls->addMap("UI");
+
+  InputAction* uiNavigate = uiActions->addAction("Navigate", ActionValueType::kAxis2D);
+  CompositeBinding& navComposite = uiNavigate->addComposite(CompositeType::kVector2D);
+  navComposite.m_parts.push_back(
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kUp), -1, false}, CompositeRole::kNegativeY, {}});
+  navComposite.m_parts.push_back(
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kDown), -1, false}, CompositeRole::kPositiveY, {}});
+  navComposite.m_parts.push_back(
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kLeft), -1, false}, CompositeRole::kNegativeX, {}});
+  navComposite.m_parts.push_back(
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kRight), -1, false}, CompositeRole::kPositiveX, {}});
+  navComposite.m_parts.push_back(
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kW), -1, false}, CompositeRole::kNegativeY, {}});
+  navComposite.m_parts.push_back(
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kS), -1, false}, CompositeRole::kPositiveY, {}});
+  navComposite.m_parts.push_back(
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kA), -1, false}, CompositeRole::kNegativeX, {}});
+  navComposite.m_parts.push_back(
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kD), -1, false}, CompositeRole::kPositiveX, {}});
+
+  InputAction* uiSubmit = uiActions->addAction("Submit", ActionValueType::kButton);
+  uiSubmit->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kSpace), -1, false});
+  uiSubmit->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kEnter), -1, false});
+  uiSubmit->setInteraction(Interaction{InteractionType::kPress, 0.f});
+
+  InputAction* uiCancel = uiActions->addAction("Cancel", ActionValueType::kButton);
+  uiCancel->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kEscape), -1, false});
+  uiCancel->setInteraction(Interaction{InteractionType::kPress, 0.f});
+
   InputSystem::instance().setActiveMapping(controls);
 
   HEvent jumpSub = jump->onPerformed([](const InputContext&) {
@@ -471,6 +510,56 @@ int main()
   Spaceship->transform().setPosition({center.x, 0.f});
   Spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
   Spaceship->addComponent<ScriptComponent>("Game/resources/character.lua");
+
+  // ── UI demo: Canvas + Button ──────────────────────────────────────────
+  UIEventSystem::startUp();
+
+  Canvas uiCanvas("HUD");
+  UIEventSystem::instance().registerCanvas(&uiCanvas);
+
+  UIButton* btn = uiCanvas.createWidget<UIButton>("StartBtn");
+  btn->setPosition({windowWidth * 0.5f - 100.f, windowHeight * 0.5f - 25.f});
+  btn->setSize({200.f, 50.f});
+  btn->syncColliderToRect();
+
+  UIButton* btnExit = uiCanvas.createWidget<UIButton>("ExitBtn");
+  btnExit->setPosition({windowWidth * 0.5f - 100.f,
+                        windowHeight * 0.5f + 40.f});
+  btnExit->setSize({200.f, 50.f});
+  btnExit->syncColliderToRect();
+  btnExit->setNormalColor(sf::Color(180, 80, 80));
+
+  // Wire up UI navigation actions
+  UIEventSystem::instance().setNavigateAction(uiNavigate);
+  UIEventSystem::instance().setSubmitAction(uiSubmit);
+  UIEventSystem::instance().setCancelAction(uiCancel);
+
+  // Explicit navigation links
+  btn->setNavDown(btnExit);
+  btnExit->setNavUp(btn);
+
+  int clickCount = 0;
+  HEvent btnSub = btn->onPointerClick([&clickCount](sf::Vector2f pos) {
+    ++clickCount;
+    std::cout << "[UI] Start clicked (" << clickCount << "x) at ("
+              << pos.x << ", " << pos.y << ")\n";
+  });
+  HEvent btnSubNav = btn->onSubmit([&clickCount]() {
+    ++clickCount;
+    std::cout << "[UI] Start submitted via keyboard (" << clickCount << "x)\n";
+  });
+  HEvent exitSub = btnExit->onPointerClick([&window](sf::Vector2f pos) {
+    SFMX_PARAMETER_UNUSED(pos);
+    std::cout << "[UI] Exit clicked — closing window\n";
+    window.close();
+  });
+  HEvent exitSubNav = btnExit->onSubmit([&window]() {
+    std::cout << "[UI] Exit submitted via keyboard — closing window\n";
+    window.close();
+  });
+
+  std::cout << "[UI] System ready — click buttons or press Escape\n"
+            << "[UI] Navigate: Arrow keys / WASD  |  Submit: Space / Enter  |  Cancel: Escape\n";
 
   while (window.isOpen())
   {
@@ -519,22 +608,33 @@ int main()
     earth->transform().rotate(sf::degrees(215.f * deltaTime));
     neptune->transform().rotate(sf::degrees(-15.f * deltaTime));
 
+    // UI: process input, then draw overlay
+    UIEventSystem::instance().update(window, deltaTime);
     scene.update(deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
     scene.draw(window);
+    // Screen-space canvas: reset the view so coordinates match window pixels.
+    // (scene.draw() left the camera view active.)
+    window.setView(window.getDefaultView());
+    uiCanvas.draw(window, sf::RenderStates::Default);
     window.display();
   }
 
   scene.clear();
 
+  UIEventSystem::shutDown();
+
   ScriptEngine::shutDown();
 
   InputSystem::shutDown();
   PhysicsSystem::shutDown();
-  // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
-  // and components are destroyed here, while SFML is still alive.
-  
+
+  // Stack variables (uiCanvas, HEvent handles, etc.) are destroyed here
+  // before pool memory is freed.
+  }
+
+  // Pools destroyed last, after all stack variables are gone.
   MemoryPoolHandler::shutDown();
 
   return 0;
