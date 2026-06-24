@@ -12,11 +12,15 @@
 #include "scene/SceneNode.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/TypeTraits.h"
+#include "utils/UUID.h"
 
 namespace sf { class VertexBuffer; }
 
 namespace sfmx
 {
+
+class DataStream;
+class TextureAsset;
 
 /** @brief Controls how active particles are ordered before rendering. */
 enum class ParticleSortMode : int32 
@@ -56,6 +60,8 @@ struct EmitterConfig
   sf::Vector2f        startSize       = {8.f, 8.f};
   sf::Vector2f        endSize         = {0.f, 0.f};
   const sf::Texture*  texture         = nullptr;
+  //!< Serializable handle to the texture's asset (null for a raw/no texture).
+  UUID                textureAssetId  = UUID::null();
 
   sf::BlendMode       blendMode       = sf::BlendAlpha;
 
@@ -162,6 +168,13 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
    */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
+  /** @brief Serializes the emitter config (texture by asset UUID), sort mode and
+   *         world-space flag. Live particles and timers are transient and not saved. */
+  void onSerialize(DataStream& stream) const override;
+  /** @brief Restores the emitter config (re-resolving the texture via AssetManager) and
+   *         flags via @ref setConfig; no live particles are restored. */
+  void onDeserialize(DataStream& stream) override;
+
  private:
   /** @brief Allocate a new particle and initialise it from the current config. */
   void spawnParticle();
@@ -172,6 +185,8 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
 
   /** @brief Current emitter configuration. */
   EmitterConfig       m_config;
+  /** @brief Keep-alive for an asset-backed texture; @ref m_config.texture points into it. */
+  SPtr<TextureAsset>  m_textureAsset;
   /** @brief Current sort mode for active particles. */
   ParticleSortMode    m_sortMode    = ParticleSortMode::kNone;
   /** @brief If true, particles are emitted in world space (default: local). */
