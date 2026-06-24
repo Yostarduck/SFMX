@@ -7,12 +7,22 @@
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
 
+#include "assets/AssetManager.h"
+#include "assets/TextureAsset.h"
+#include "core/DataStream.h"
+#include "core/DataStreamTypes.h"
+
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/Graphics/Transform.hpp>
 
 namespace sfmx
 {
+
+namespace {
+/** @brief ParticleSystemComponent blob layout version; bump on format changes. */
+constexpr uint32 kParticleSystemComponentVersion = 1;
+} // namespace
 
 ParticleSystemComponent::ParticleSystemComponent(SceneNode* owner)
   : ComponentT<ParticleSystemComponent>(owner) {}
@@ -354,6 +364,129 @@ ParticleSystemComponent::rebuildVertices() const {
   }
 
   m_verticesDirty = false;
+}
+
+// -----------------------------------------------------------------------------
+// Serialization
+// -----------------------------------------------------------------------------
+
+void
+ParticleSystemComponent::onSerialize(DataStream& stream) const {
+  stream << kParticleSystemComponentVersion;
+
+  stream << static_cast<uint64>(m_config.maxParticles);
+  stream << m_config.positionOffset.x << m_config.positionOffset.y;
+  stream << m_config.gravity.x << m_config.gravity.y;
+  stream << m_config.startSize.x << m_config.startSize.y;
+  stream << m_config.endSize.x << m_config.endSize.y;
+
+  stream << m_config.textureAssetId;
+
+  stream << static_cast<uint8>(m_config.blendMode.colorSrcFactor);
+  stream << static_cast<uint8>(m_config.blendMode.colorDstFactor);
+  stream << static_cast<uint8>(m_config.blendMode.colorEquation);
+  stream << static_cast<uint8>(m_config.blendMode.alphaSrcFactor);
+  stream << static_cast<uint8>(m_config.blendMode.alphaDstFactor);
+  stream << static_cast<uint8>(m_config.blendMode.alphaEquation);
+
+  stream << m_config.emissionRate;
+  stream << m_config.positionVariance;
+  stream << m_config.direction.asRadians();
+  stream << m_config.directionVariance.asRadians();
+  stream << m_config.speed;
+  stream << m_config.speedVariance;
+  stream << m_config.startRotation.asRadians();
+  stream << m_config.startRotationVariance.asRadians();
+  stream << m_config.angularVelocity;
+  stream << m_config.angularVelocityVariance;
+
+  stream << m_config.startColor.r << m_config.startColor.g
+         << m_config.startColor.b << m_config.startColor.a;
+  stream << m_config.endColor.r << m_config.endColor.g
+         << m_config.endColor.b << m_config.endColor.a;
+
+  stream << m_config.lifetime;
+  stream << m_config.lifetimeVariance;
+  stream << m_config.duration;
+  stream << static_cast<uint8>(m_config.loop ? 1 : 0);
+
+  stream << static_cast<int32>(m_sortMode);
+  stream << static_cast<uint8>(m_worldSpace ? 1 : 0);
+}
+
+void
+ParticleSystemComponent::onDeserialize(DataStream& stream) {
+  uint32 version = 0;
+  stream >> version;
+  if (version != kParticleSystemComponentVersion) {
+    return;
+  }
+
+  EmitterConfig cfg;
+
+  uint64 maxParticles = 0;
+  stream >> maxParticles;
+  cfg.maxParticles = static_cast<size_t>(maxParticles);
+  stream >> cfg.positionOffset.x >> cfg.positionOffset.y;
+  stream >> cfg.gravity.x >> cfg.gravity.y;
+  stream >> cfg.startSize.x >> cfg.startSize.y;
+  stream >> cfg.endSize.x >> cfg.endSize.y;
+
+  stream >> cfg.textureAssetId;
+
+  uint8 colorSrc = 0, colorDst = 0, colorEq = 0;
+  uint8 alphaSrc = 0, alphaDst = 0, alphaEq = 0;
+  stream >> colorSrc >> colorDst >> colorEq >> alphaSrc >> alphaDst >> alphaEq;
+  cfg.blendMode.colorSrcFactor = static_cast<sf::BlendMode::Factor>(colorSrc);
+  cfg.blendMode.colorDstFactor = static_cast<sf::BlendMode::Factor>(colorDst);
+  cfg.blendMode.colorEquation  = static_cast<sf::BlendMode::Equation>(colorEq);
+  cfg.blendMode.alphaSrcFactor = static_cast<sf::BlendMode::Factor>(alphaSrc);
+  cfg.blendMode.alphaDstFactor = static_cast<sf::BlendMode::Factor>(alphaDst);
+  cfg.blendMode.alphaEquation  = static_cast<sf::BlendMode::Equation>(alphaEq);
+
+  stream >> cfg.emissionRate;
+  stream >> cfg.positionVariance;
+  float direction = 0.f, directionVar = 0.f;
+  stream >> direction >> directionVar;
+  cfg.direction         = sf::radians(direction);
+  cfg.directionVariance = sf::radians(directionVar);
+  stream >> cfg.speed;
+  stream >> cfg.speedVariance;
+  float startRot = 0.f, startRotVar = 0.f;
+  stream >> startRot >> startRotVar;
+  cfg.startRotation         = sf::radians(startRot);
+  cfg.startRotationVariance = sf::radians(startRotVar);
+  stream >> cfg.angularVelocity;
+  stream >> cfg.angularVelocityVariance;
+
+  stream >> cfg.startColor.r >> cfg.startColor.g >> cfg.startColor.b >> cfg.startColor.a;
+  stream >> cfg.endColor.r >> cfg.endColor.g >> cfg.endColor.b >> cfg.endColor.a;
+
+  stream >> cfg.lifetime;
+  stream >> cfg.lifetimeVariance;
+  stream >> cfg.duration;
+  uint8 loop = 0;
+  stream >> loop;
+  cfg.loop = (loop != 0);
+
+  int32 sortMode = 0;
+  stream >> sortMode;
+  uint8 worldSpace = 0;
+  stream >> worldSpace;
+
+  // Re-resolve the texture by asset UUID (kept alive so cfg.texture stays valid).
+  if (cfg.textureAssetId != UUID::null() && AssetManager::isStarted()) {
+    SPtr<TextureAsset> asset =
+        AssetManager::instance().load<TextureAsset>(cfg.textureAssetId);
+    if (nullptr != asset && asset->isLoaded()) {
+      m_textureAsset = asset;
+      cfg.texture    = &asset->texture();
+    }
+  }
+
+  setConfig(cfg);
+  setSortMode(static_cast<ParticleSortMode>(sortMode));
+  setWorldSpace(worldSpace != 0);
 }
 
 } // namespace sfmx
