@@ -33,16 +33,23 @@ void Canvas::clear()
 
 UIWidget* Canvas::hitTest(sf::Vector2f localPoint) const
 {
+    UIWidget* fallback = nullptr;
+
     // Iterate in reverse (back = drawn last = topmost).
     for (auto it = m_widgets.rbegin(); it != m_widgets.rend(); ++it)
     {
         UIWidget* w = it->get();
         if (!w->isEnabled() || !w->isVisible() || !w->isInteractable())
             continue;
-        if (w->containsPoint(localPoint))
+        if (!w->containsPoint(localPoint))
+            continue;
+        if (w->isBlockingInput())
             return w;
+        // Non-blocking widget: record and keep looking for a blocking one.
+        if (fallback == nullptr)
+            fallback = w;
     }
-    return nullptr;
+    return fallback;
 }
 
 void Canvas::draw(sf::RenderTarget& target, sf::RenderStates states) const

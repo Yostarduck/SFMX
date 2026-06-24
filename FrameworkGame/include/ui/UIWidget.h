@@ -65,6 +65,10 @@ class UIWidget
   NODISCARD FORCEINLINE bool isFocused() const { return m_focused; }
   FORCEINLINE void setFocused(bool focused) { m_focused = focused; }
 
+  /** @brief Whether this widget blocks pointer events from reaching widgets drawn below it. */
+  NODISCARD FORCEINLINE bool isBlockingInput() const { return m_blocksInput; }
+  FORCEINLINE void setBlocksInput(bool blocks) { m_blocksInput = blocks; }
+
   // -- Rect ------------------------------------------------------------------
 
   /** @brief Local-space position (relative to parent or canvas). */
@@ -303,6 +307,7 @@ class UIWidget
   bool m_visible = true;
   bool m_interactable = true;
   bool m_focused = false;
+  bool m_blocksInput = true;
 
   sf::FloatRect m_rect;        // position + size (local space)
   sf::Vector2f m_anchorMin;    // Unity-style normalized 0-1
