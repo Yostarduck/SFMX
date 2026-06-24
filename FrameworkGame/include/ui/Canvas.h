@@ -43,19 +43,19 @@ class Canvas
 
   // -- Identity --------------------------------------------------------------
 
-  NODISCARD const String& getName() const { return m_name; }
-  void setName(StringView name) { m_name = name; }
+  NODISCARD FORCEINLINE const String& getName() const { return m_name; }
+  FORCEINLINE void setName(StringView name) { m_name = name; }
 
   // -- Depth / sort order ----------------------------------------------------
 
   /** @brief Sorting depth (higher = on top). */
-  NODISCARD int getDepth() const { return m_depth; }
-  void setDepth(int depth) { m_depth = depth; }
+  NODISCARD FORCEINLINE int getDepth() const { return m_depth; }
+  FORCEINLINE void setDepth(int depth) { m_depth = depth; }
 
   // -- Transform -------------------------------------------------------------
 
-  NODISCARD const sf::Transform& getTransform() const { return m_transform; }
-  void setTransform(const sf::Transform& transform) { m_transform = transform; }
+  NODISCARD FORCEINLINE const sf::Transform& getTransform() const { return m_transform; }
+  FORCEINLINE void setTransform(const sf::Transform& transform) { m_transform = transform; }
 
   // -- Widget management -----------------------------------------------------
 

@@ -88,21 +88,21 @@ class UIButton final : public UIWidget, public ComponentT<UIButton>
 
   // -- State -----------------------------------------------------------------
 
-  NODISCARD VisualState getVisualState() const { return m_visualState; }
+  NODISCARD FORCEINLINE VisualState getVisualState() const { return m_visualState; }
 
   // -- Colour overrides ------------------------------------------------------
 
-  void setNormalColor(sf::Color color) { m_normalColor = color; }
-  void setHoveredColor(sf::Color color) { m_hoveredColor = color; }
-  void setPressedColor(sf::Color color) { m_pressedColor = color; }
-  void setDisabledColor(sf::Color color) { m_disabledColor = color; }
-  void setFocusedColor(sf::Color color) { m_focusedColor = color; }
+  FORCEINLINE void setNormalColor(sf::Color color) { m_normalColor = color; }
+  FORCEINLINE void setHoveredColor(sf::Color color) { m_hoveredColor = color; }
+  FORCEINLINE void setPressedColor(sf::Color color) { m_pressedColor = color; }
+  FORCEINLINE void setDisabledColor(sf::Color color) { m_disabledColor = color; }
+  FORCEINLINE void setFocusedColor(sf::Color color) { m_focusedColor = color; }
 
-  NODISCARD sf::Color getNormalColor() const { return m_normalColor; }
-  NODISCARD sf::Color getHoveredColor() const { return m_hoveredColor; }
-  NODISCARD sf::Color getPressedColor() const { return m_pressedColor; }
-  NODISCARD sf::Color getFocusedColor() const { return m_focusedColor; }
-  NODISCARD sf::Color getDisabledColor() const { return m_disabledColor; }
+  NODISCARD FORCEINLINE sf::Color getNormalColor() const { return m_normalColor; }
+  NODISCARD FORCEINLINE sf::Color getHoveredColor() const { return m_hoveredColor; }
+  NODISCARD FORCEINLINE sf::Color getPressedColor() const { return m_pressedColor; }
+  NODISCARD FORCEINLINE sf::Color getFocusedColor() const { return m_focusedColor; }
+  NODISCARD FORCEINLINE sf::Color getDisabledColor() const { return m_disabledColor; }
 
  private:
   // -- UIWidget virtual overrides --------------------------------------------

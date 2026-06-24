@@ -44,71 +44,71 @@ class UIWidget
   // -- Identity & state ------------------------------------------------------
 
   /** @brief The widget's display name (not required to be unique). */
-  NODISCARD const String& getName() const { return m_name; }
+  NODISCARD FORCEINLINE const String& getName() const { return m_name; }
 
   /** @brief Override the widget's display name. */
-  void setName(StringView name) { m_name = name; }
+  FORCEINLINE void setName(StringView name) { m_name = name; }
 
   /** @brief True if the widget and its callbacks are processed. */
-  NODISCARD bool isEnabled() const { return m_enabled; }
-  void setEnabled(bool enabled) { m_enabled = enabled; }
+  NODISCARD FORCEINLINE bool isEnabled() const { return m_enabled; }
+  FORCEINLINE void setEnabled(bool enabled) { m_enabled = enabled; }
 
   /** @brief True if the widget participates in rendering. */
-  NODISCARD bool isVisible() const { return m_visible; }
-  void setVisible(bool visible) { m_visible = visible; }
+  NODISCARD FORCEINLINE bool isVisible() const { return m_visible; }
+  FORCEINLINE void setVisible(bool visible) { m_visible = visible; }
 
   /** @brief True if the widget can receive pointer events. */
-  NODISCARD bool isInteractable() const { return m_interactable; }
-  void setInteractable(bool interactable) { m_interactable = interactable; }
+  NODISCARD FORCEINLINE bool isInteractable() const { return m_interactable; }
+  FORCEINLINE void setInteractable(bool interactable) { m_interactable = interactable; }
 
   /** @brief True when this widget is the current EventSystem selection. */
-  NODISCARD bool isFocused() const { return m_focused; }
-  void setFocused(bool focused) { m_focused = focused; }
+  NODISCARD FORCEINLINE bool isFocused() const { return m_focused; }
+  FORCEINLINE void setFocused(bool focused) { m_focused = focused; }
 
   // -- Rect ------------------------------------------------------------------
 
   /** @brief Local-space position (relative to parent or canvas). */
-  NODISCARD sf::Vector2f getPosition() const { return m_rect.position; }
-  void setPosition(sf::Vector2f position) { m_rect.position = position; }
+  NODISCARD FORCEINLINE sf::Vector2f getPosition() const { return m_rect.position; }
+  FORCEINLINE void setPosition(sf::Vector2f position) { m_rect.position = position; }
 
   /** @brief Widget size in local-space units. */
-  NODISCARD sf::Vector2f getSize() const { return m_rect.size; }
-  void setSize(sf::Vector2f size) { m_rect.size = size; }
+  NODISCARD FORCEINLINE sf::Vector2f getSize() const { return m_rect.size; }
+  FORCEINLINE void setSize(sf::Vector2f size) { m_rect.size = size; }
 
   /** @brief Full bounding rectangle (position + size). */
-  NODISCARD const sf::FloatRect& getRect() const { return m_rect; }
-  void setRect(const sf::FloatRect& rect) { m_rect = rect; }
+  NODISCARD FORCEINLINE const sf::FloatRect& getRect() const { return m_rect; }
+  FORCEINLINE void setRect(const sf::FloatRect& rect) { m_rect = rect; }
 
   // -- Anchor & pivot (Unity-style layout) -----------------------------------
 
   /** @brief Normalized anchor minimum (0-1, fraction of parent size). */
-  NODISCARD sf::Vector2f getAnchorMin() const { return m_anchorMin; }
-  void setAnchorMin(sf::Vector2f min) { m_anchorMin = min; }
+  NODISCARD FORCEINLINE sf::Vector2f getAnchorMin() const { return m_anchorMin; }
+  FORCEINLINE void setAnchorMin(sf::Vector2f min) { m_anchorMin = min; }
 
   /** @brief Normalized anchor maximum (0-1, fraction of parent size). */
-  NODISCARD sf::Vector2f getAnchorMax() const { return m_anchorMax; }
-  void setAnchorMax(sf::Vector2f max) { m_anchorMax = max; }
+  NODISCARD FORCEINLINE sf::Vector2f getAnchorMax() const { return m_anchorMax; }
+  FORCEINLINE void setAnchorMax(sf::Vector2f max) { m_anchorMax = max; }
 
   /** @brief Pivot point as fraction of size (0=bottom-left, 1=top-right). */
-  NODISCARD sf::Vector2f getPivot() const { return m_pivot; }
-  void setPivot(sf::Vector2f pivot) { m_pivot = pivot; }
+  NODISCARD FORCEINLINE sf::Vector2f getPivot() const { return m_pivot; }
+  FORCEINLINE void setPivot(sf::Vector2f pivot) { m_pivot = pivot; }
 
   // -- Visual ----------------------------------------------------------------
 
   /** @brief Tint / fill colour. */
-  NODISCARD sf::Color getColor() const { return m_color; }
-  void setColor(sf::Color color) { m_color = color; }
+  NODISCARD FORCEINLINE sf::Color getColor() const { return m_color; }
+  FORCEINLINE void setColor(sf::Color color) { m_color = color; }
 
   // -- Hierarchy -------------------------------------------------------------
 
   /** @brief Parent widget in the UI hierarchy, or nullptr. */
-  NODISCARD UIWidget* getParent() const { return m_parent; }
+  NODISCARD FORCEINLINE UIWidget* getParent() const { return m_parent; }
 
   /** @brief Reparent this widget under @p parent (removes from old parent). */
   void setParent(UIWidget* parent);
 
   /** @brief Number of direct children. */
-  NODISCARD size_t getChildCount() const { return m_children.size(); }
+  NODISCARD FORCEINLINE size_t getChildCount() const { return m_children.size(); }
 
   /** @brief Indexed access to child (nullptr if out of range). */
   NODISCARD UIWidget* getChild(size_t index) const;
@@ -116,7 +116,7 @@ class UIWidget
   // -- Canvas ----------------------------------------------------------------
 
   /** @brief The Canvas that owns this widget, or nullptr. */
-  NODISCARD Canvas* getCanvas() const { return m_canvas; }
+  NODISCARD FORCEINLINE Canvas* getCanvas() const { return m_canvas; }
 
   // -- Collider (optional) ---------------------------------------------------
 
@@ -126,21 +126,21 @@ class UIWidget
    * @param radius  Circle radius.  Defaults to centering on the widget rect.
    */
   void setColliderCircle(const sf::Vector2f& center, float radius);
-  void setColliderCircle(float radius) { setColliderCircle({0.f, 0.f}, radius); }
+  FORCEINLINE void setColliderCircle(float radius) { setColliderCircle({0.f, 0.f}, radius); }
 
   /** @brief Replace the hit-test shape with an axis-aligned box. */
   void setColliderAABB(const sf::Vector2f& center, const sf::Vector2f& halfSize);
-  void setColliderAABB(const sf::Vector2f& halfSize)
+  FORCEINLINE void setColliderAABB(const sf::Vector2f& halfSize)
     { setColliderAABB({0.f, 0.f}, halfSize); }
 
   /** @brief Replace the hit-test shape with an oriented box. */
   void setColliderOBB(const sf::Vector2f& center, const sf::Vector2f& halfSize);
-  void setColliderOBB(const sf::Vector2f& halfSize)
+  FORCEINLINE void setColliderOBB(const sf::Vector2f& halfSize)
     { setColliderOBB({0.f, 0.f}, halfSize); }
 
   /** @brief Replace the hit-test shape with a point. */
   void setColliderPoint(const sf::Vector2f& localPos);
-  void setColliderPoint() { setColliderPoint({0.f, 0.f}); }
+  FORCEINLINE void setColliderPoint() { setColliderPoint({0.f, 0.f}); }
 
   /** @brief Replace the hit-test shape with a line segment. */
   void setColliderLine(const sf::Vector2f& localStart,
@@ -157,7 +157,7 @@ class UIWidget
   void syncColliderToRect();
 
   /** @brief The current collider, or nullptr if none. */
-  NODISCARD ICollider* getCollider() const { return m_collider.get(); }
+  NODISCARD FORCEINLINE ICollider* getCollider() const { return m_collider.get(); }
 
   // -- Hit testing -----------------------------------------------------------
 
@@ -222,52 +222,52 @@ class UIWidget
 
   // -- Navigation links (explicit neighbor) -----------------------------------
 
-  void setNavUp(UIWidget* widget) { m_navUp = widget; }
-  void setNavDown(UIWidget* widget) { m_navDown = widget; }
-  void setNavLeft(UIWidget* widget) { m_navLeft = widget; }
-  void setNavRight(UIWidget* widget) { m_navRight = widget; }
+  FORCEINLINE void setNavUp(UIWidget* widget) { m_navUp = widget; }
+  FORCEINLINE void setNavDown(UIWidget* widget) { m_navDown = widget; }
+  FORCEINLINE void setNavLeft(UIWidget* widget) { m_navLeft = widget; }
+  FORCEINLINE void setNavRight(UIWidget* widget) { m_navRight = widget; }
 
-  NODISCARD UIWidget* getNavUp() const { return m_navUp; }
-  NODISCARD UIWidget* getNavDown() const { return m_navDown; }
-  NODISCARD UIWidget* getNavLeft() const { return m_navLeft; }
-  NODISCARD UIWidget* getNavRight() const { return m_navRight; }
+  NODISCARD FORCEINLINE UIWidget* getNavUp() const { return m_navUp; }
+  NODISCARD FORCEINLINE UIWidget* getNavDown() const { return m_navDown; }
+  NODISCARD FORCEINLINE UIWidget* getNavLeft() const { return m_navLeft; }
+  NODISCARD FORCEINLINE UIWidget* getNavRight() const { return m_navRight; }
 
   // -- Public Event connect methods (InputAction-style RAII handles) ----------
 
   /** @brief Subscribe to pointer-enter. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onPointerEnter(Function<void(sf::Vector2f)> cb) const
+  NODISCARD FORCEINLINE HEvent onPointerEnter(Function<void(sf::Vector2f)> cb) const
     { return m_onPointerEnterEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to pointer-exit. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onPointerExit(Function<void(sf::Vector2f)> cb) const
+  NODISCARD FORCEINLINE HEvent onPointerExit(Function<void(sf::Vector2f)> cb) const
     { return m_onPointerExitEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to pointer-down. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onPointerDown(Function<void(sf::Vector2f)> cb) const
+  NODISCARD FORCEINLINE HEvent onPointerDown(Function<void(sf::Vector2f)> cb) const
     { return m_onPointerDownEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to pointer-up. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onPointerUp(Function<void(sf::Vector2f)> cb) const
+  NODISCARD FORCEINLINE HEvent onPointerUp(Function<void(sf::Vector2f)> cb) const
     { return m_onPointerUpEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to click. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onPointerClick(Function<void(sf::Vector2f)> cb) const
+  NODISCARD FORCEINLINE HEvent onPointerClick(Function<void(sf::Vector2f)> cb) const
     { return m_onPointerClickEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to selection. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onSelect(Function<void()> cb) const
+  NODISCARD FORCEINLINE HEvent onSelect(Function<void()> cb) const
     { return m_onSelectEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to deselection. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onDeselect(Function<void()> cb) const
+  NODISCARD FORCEINLINE HEvent onDeselect(Function<void()> cb) const
     { return m_onDeselectEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to submit. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onSubmit(Function<void()> cb) const
+  NODISCARD FORCEINLINE HEvent onSubmit(Function<void()> cb) const
     { return m_onSubmitEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to cancel. Returns an RAII unsubscribe handle. */
-  NODISCARD HEvent onCancel(Function<void()> cb) const
+  NODISCARD FORCEINLINE HEvent onCancel(Function<void()> cb) const
     { return m_onCancelEvent.connect(std::move(cb)); }
 
   // -- Drawing ---------------------------------------------------------------
@@ -285,7 +285,7 @@ class UIWidget
   friend class Canvas;
   friend class UIEventSystem;
 
-  void setCanvas(Canvas* canvas) { m_canvas = canvas; }
+  FORCEINLINE void setCanvas(Canvas* canvas) { m_canvas = canvas; }
 
   // Event members (private — fired by the base virtual callback implementations)
   Event<void(sf::Vector2f)> mutable m_onPointerEnterEvent;

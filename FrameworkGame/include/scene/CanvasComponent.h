@@ -29,7 +29,7 @@ class CanvasComponent final : public ComponentT<CanvasComponent>
   explicit CanvasComponent(SceneNode* node, StringView name = "Canvas");
   ~CanvasComponent() override;
 
-  NODISCARD Canvas* getCanvas() const { return m_canvas.get(); }
+  NODISCARD FORCEINLINE Canvas* getCanvas() const { return m_canvas.get(); }
 
  private:
   void onDraw(sf::RenderTarget& target,

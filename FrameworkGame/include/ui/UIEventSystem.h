@@ -52,7 +52,7 @@ class UIEventSystem final : public Module<UIEventSystem>
   // -- Selection -------------------------------------------------------------
 
   /** @brief The widget currently selected (focused), or nullptr. */
-  UIWidget* getSelected() const { return m_selected; }
+  NODISCARD FORCEINLINE UIWidget* getSelected() const { return m_selected; }
 
   /**
    * @brief Set the selected (focused) widget.
@@ -70,7 +70,7 @@ class UIEventSystem final : public Module<UIEventSystem>
    * The system polls getValue() each frame; no subscription needed.
    * Pass nullptr to disable keyboard/gamepad navigation.
    */
-  void setNavigateAction(InputAction* action) { m_navigateAction = action; }
+  FORCEINLINE void setNavigateAction(InputAction* action) { m_navigateAction = action; }
 
   /**
    * @brief Set the submit action (Button — fires once per press).
@@ -97,7 +97,7 @@ class UIEventSystem final : public Module<UIEventSystem>
     bool        buttonDown = false;
   };
 
-  NODISCARD const PointerState& getPointerState() const { return m_pointer; }
+  NODISCARD FORCEINLINE const PointerState& getPointerState() const { return m_pointer; }
 
  private:
   void validateSelection();
