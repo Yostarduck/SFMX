@@ -7,6 +7,8 @@
 
 namespace sfmx {
 
+class DataStream;
+
 enum class AnimationState : uint32 {
   kPlaying,
   kPaused,
@@ -72,8 +74,24 @@ class AnimatorComponent : public ComponentT<AnimatorComponent> {
   NODISCARD FORCEINLINE bool
   animationExists(const String& name) const { return m_animations.count(name); }
 
+  NODISCARD FORCEINLINE const Map<String, UniquePtr<AnimationNode>>&
+  getAnimations() const { return m_animations; }
+
+  NODISCARD FORCEINLINE const Map<String, Param>&
+  getParams() const { return m_params; }
+
+  NODISCARD FORCEINLINE AnimationState
+  getState() const { return m_state; }
+
   void
   onUpdate(float deltaTime) override;
+
+  /** @brief Serializes the animation graph (clips, transitions, params), each clip's
+   *         atlas TextureAsset UUID, and the selected clip name. */
+  void onSerialize(DataStream& stream) const override;
+  /** @brief Restores the graph (re-resolves atlases via AssetManager) and re-selects the
+   *         current clip stopped at t=0; transient play state is not restored. */
+  void onDeserialize(DataStream& stream) override;
 
   FORCEINLINE void
   setSprite(SpriteComponent* newSprite) { m_sprite = newSprite; }
@@ -107,3 +125,5 @@ class AnimatorComponent : public ComponentT<AnimatorComponent> {
 };
 
 } // namespace sfmx
+
+DECLARE_TYPE_TRAITS(sfmx::AnimatorComponent)
