@@ -6,81 +6,75 @@ namespace sfmx
 {
 
 UIButton::UIButton(StringView name, sf::Vector2f size)
-    : UIWidget(name),
-      ComponentT<UIButton>(nullptr)
-{
-    setSize(size);
-    syncColliderToRect();
+  : UIWidget(name),
+    ComponentT<UIButton>(nullptr) {
+  setSize(size);
+  syncColliderToRect();
 }
 
 UIButton::UIButton(SceneNode* node, StringView name, sf::Vector2f size)
-    : UIWidget(name),
-      ComponentT<UIButton>(node)
-{
-    setSize(size);
-    syncColliderToRect();
+  : UIWidget(name),
+    ComponentT<UIButton>(node) {
+  setSize(size);
+  syncColliderToRect();
 }
 
 UIButton::~UIButton() = default;
 
 // -- Pointer events ----------------------------------------------------------
 
-void UIButton::onPointerEnter(sf::Vector2f position)
-{
-    m_visualState = VisualState::kHovered;
-    UIWidget::onPointerEnter(position);
+void UIButton::onPointerEnter(sf::Vector2f position) {
+  m_visualState = VisualState::kHovered;
+  UIWidget::onPointerEnter(position);
 }
 
-void UIButton::onPointerExit(sf::Vector2f position)
-{
-    m_visualState = VisualState::kNormal;
-    UIWidget::onPointerExit(position);
+void UIButton::onPointerExit(sf::Vector2f position) {
+  m_visualState = VisualState::kNormal;
+  UIWidget::onPointerExit(position);
 }
 
-void UIButton::onPointerDown(sf::Vector2f position)
-{
-    m_visualState = VisualState::kPressed;
-    UIWidget::onPointerDown(position);
+void UIButton::onPointerDown(sf::Vector2f position) {
+  m_visualState = VisualState::kPressed;
+  UIWidget::onPointerDown(position);
 }
 
-void UIButton::onPointerUp(sf::Vector2f position)
-{
-    m_visualState = VisualState::kHovered;
-    UIWidget::onPointerUp(position);
+void UIButton::onPointerUp(sf::Vector2f position) {
+  m_visualState = VisualState::kHovered;
+  UIWidget::onPointerUp(position);
 }
 
 // -- Drawing -----------------------------------------------------------------
 
-void UIButton::onDraw(sf::RenderTarget& target, sf::RenderStates states) const
-{
-    if (!isVisible())
-        return;
+void UIButton::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
+  if (!isVisible()) {
+    return;
+  }
 
-    sf::RectangleShape shape(getSize());
-    shape.setPosition(getPosition());
-    shape.setFillColor(resolveColor());
-    target.draw(shape, states);
+  sf::RectangleShape shape(getSize());
+  shape.setPosition(getPosition());
+  shape.setFillColor(resolveColor());
+  target.draw(shape, states);
 }
 
-sf::Color UIButton::resolveColor() const
-{
-    if (!isEnabled())
-        return m_disabledColor;
+sf::Color UIButton::resolveColor() const {
+  if (!isEnabled()) {
+    return m_disabledColor;
+  }
 
-    // Priority: Pressed > Hovered > Focused > Normal
-    switch (m_visualState)
-    {
-    case VisualState::kPressed:  return m_pressedColor;
-    case VisualState::kHovered:  return m_hoveredColor;
-    case VisualState::kFocused:
-    case VisualState::kDisabled:
-    case VisualState::kNormal:   break;
-    }
+  // Priority: Pressed > Hovered > Focused > Normal
+  switch (m_visualState) {
+  case VisualState::kPressed:  return m_pressedColor;
+  case VisualState::kHovered:  return m_hoveredColor;
+  case VisualState::kFocused:
+  case VisualState::kDisabled:
+  case VisualState::kNormal:   break;
+  }
 
-    if (isFocused())
-        return m_focusedColor;
+  if (isFocused()) {
+    return m_focusedColor;
+  }
 
-    return m_normalColor;
+  return m_normalColor;
 }
 
 } // namespace sfmx
