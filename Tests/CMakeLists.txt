@@ -16,6 +16,7 @@ add_executable(UnitTests
     SpriteComponentSerializationTest.cpp
     ScriptComponentSerializationTest.cpp
     SourceComponentSerializationTest.cpp
+    AnimatorComponentSerializationTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE

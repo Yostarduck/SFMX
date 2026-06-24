@@ -56,10 +56,10 @@ class CircleComponent : public ComponentT<CircleComponent>
 };
 
 DECLARE_TYPE_TRAITS(CircleComponent)
-// CameraComponent / ListenerComponent / SourceComponent / ScriptComponent declare
-// their type traits in their own headers now (required so the engine TU instantiates
+DECLARE_TYPE_TRAITS(SourceComponent)
+// CameraComponent / ListenerComponent / SpriteComponent / ScriptComponent / AnimatorComponent
+// declare their type traits in their own headers now (required so the engine TU instantiates
 // a matching type id); a second declaration here would redefine the specialization.
-DECLARE_TYPE_TRAITS(AnimatorComponent)
 
 int main()
 {
