@@ -3,9 +3,7 @@
 namespace sfmx
 {
 
-Canvas::Canvas(StringView name)
-  : m_name(name) {
-}
+Canvas::Canvas() {}
 
 Canvas::~Canvas() {
   // Widgets are NOT owned by the Canvas — they are pool-allocated via the

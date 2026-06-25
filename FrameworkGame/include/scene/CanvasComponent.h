@@ -28,7 +28,7 @@ namespace sfmx
 class CanvasComponent final : public ComponentT<CanvasComponent>
 {
  public:
-  explicit CanvasComponent(SceneNode* node, StringView name = "Canvas");
+  CanvasComponent(SceneNode* node);
   ~CanvasComponent() override;
 
   NODISCARD FORCEINLINE Canvas& getCanvas() const { return *m_canvas; }

@@ -511,23 +511,21 @@ int main()
   Spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
   Spaceship->addComponent<ScriptComponent>("Game/resources/character.lua");
 
-  // ── UI demo: Canvas + Button ──────────────────────────────────────────
   UIEventSystem::startUp();
-
-  Canvas uiCanvas("HUD");
-  UIEventSystem::instance().registerCanvas(&uiCanvas);
-
+  
   SceneNode* canvasNode = scene.createNode("HUDCanvas");
+  auto* canvaComp = canvasNode->addComponent<CanvasComponent>();
+  Canvas& uiCanvas = canvaComp->getCanvas();
 
   auto* btnNode = canvasNode->createChild("StartBtn");
   
-  UIButton* btn = btnNode->addComponent<UIButton>("StartBtn", sf::Vector2f{200.f, 50.f});
+  UIButton* btn = btnNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
   btn->setPosition({windowWidth * 0.5f - 100.f, windowHeight * 0.5f - 25.f});
   btn->syncColliderToRect();
   uiCanvas.addWidget(btn);
 
   auto* btnExitNode = canvasNode->createChild("ExitBtn");
-  UIButton* btnExit = btnExitNode->addComponent<UIButton>("ExitBtn", sf::Vector2f{200.f, 50.f});
+  UIButton* btnExit = btnExitNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
   btnExit->setPosition({windowWidth * 0.5f - 100.f,
                         windowHeight * 0.5f + 40.f});
   btnExit->syncColliderToRect();

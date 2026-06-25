@@ -71,8 +71,7 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
    * @param name Display name.
    * @param size Initial size.
    */
-  explicit UIButton(StringView name,
-                    sf::Vector2f size = {200.f, 50.f});
+  UIButton(sf::Vector2f size = {200.f, 50.f});
 
   /**
    * @brief Constructor for component usage (attached to a SceneNode).
@@ -81,7 +80,6 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
    * @param size  Initial size.
    */
   UIButton(SceneNode* node,
-           StringView name,
            sf::Vector2f size = {200.f, 50.f});
 
   ~UIButton() override;

@@ -42,7 +42,7 @@ enum class WidgetType : uint8
 class UIWidget
 {
  public:
-  explicit UIWidget(StringView name);
+  UIWidget();
   virtual ~UIWidget();
 
   UIWidget(const UIWidget&) = delete;
@@ -346,7 +346,7 @@ template<typename Derived, WidgetType Type>
 class UIWidgetT : public UIWidget
 {
  public:
-  UIWidgetT(StringView name) : UIWidget(name) {}
+  UIWidgetT() : UIWidget() {}
   NODISCARD FORCEINLINE virtual WidgetType getType() const override { return Type; }
   NODISCARD FORCEINLINE virtual UUID getTypeId() const override { return TypeTraits<Derived>::getTypeId(); }
 };

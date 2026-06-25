@@ -4,9 +4,7 @@
 namespace sfmx
 {
 
-UIWidget::UIWidget(StringView name)
-    : m_name(name) {
-}
+UIWidget::UIWidget() {}
 
 UIWidget::~UIWidget() {
   if (m_canvas != nullptr) {

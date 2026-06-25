@@ -5,15 +5,15 @@
 namespace sfmx
 {
 
-UIButton::UIButton(StringView name, sf::Vector2f size)
-  : UIWidgetT<UIButton, WidgetType::kButton>(name),
+UIButton::UIButton(sf::Vector2f size)
+  : UIWidgetT<UIButton, WidgetType::kButton>(),
     ComponentT<UIButton>(nullptr) {
   setSize(size);
   syncColliderToRect();
 }
 
-UIButton::UIButton(SceneNode* node, StringView name, sf::Vector2f size)
-  : UIWidgetT<UIButton, WidgetType::kButton>(name),
+UIButton::UIButton(SceneNode* node, sf::Vector2f size)
+  : UIWidgetT<UIButton, WidgetType::kButton>(),
     ComponentT<UIButton>(node) {
   setSize(size);
   syncColliderToRect();

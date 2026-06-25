@@ -4,9 +4,9 @@
 namespace sfmx
 {
 
-CanvasComponent::CanvasComponent(SceneNode* node, StringView name)
+CanvasComponent::CanvasComponent(SceneNode* node)
   : ComponentT<CanvasComponent>(node),
-    m_canvas(MakeUnique<Canvas>(name)) {
+    m_canvas(MakeUnique<Canvas>()) {
   UIEventSystem::instance().registerCanvas(m_canvas.get());
 }
 

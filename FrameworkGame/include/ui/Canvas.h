@@ -42,7 +42,7 @@ class UIEventSystem;
 class Canvas
 {
  public:
-  explicit Canvas(StringView name = "Canvas");
+  Canvas();
   ~Canvas();
 
   Canvas(const Canvas&) = delete;
