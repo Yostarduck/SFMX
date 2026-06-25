@@ -18,6 +18,7 @@ add_executable(UnitTests
     SourceComponentSerializationTest.cpp
     AnimatorComponentSerializationTest.cpp
     ParticleSystemComponentSerializationTest.cpp
+    AssetCookerTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE
