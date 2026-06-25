@@ -87,6 +87,12 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   /** @brief Type UUID for serialization. */
   NODISCARD UUID getTypeId() const override;
 
+  // -- Serialization -----------------------------------------------------------
+
+  void onSerialize(DataStream& stream) const override;
+
+  void onDeserialize(DataStream& stream) override;
+
   // -- State -----------------------------------------------------------------
 
   NODISCARD FORCEINLINE VisualState getVisualState() const { return m_visualState; }

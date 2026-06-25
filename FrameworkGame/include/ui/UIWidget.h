@@ -16,6 +16,7 @@ namespace sfmx
 
 class Canvas;
 
+
 enum class WidgetType : uint8
 {
   kUnknown,
