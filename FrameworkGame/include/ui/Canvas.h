@@ -16,17 +16,24 @@ class UIEventSystem;
  * @brief Holds an ordered list of UIWidgets, sorted by depth for rendering
  *        and hit-testing.
  *
- * Each widget can have children (forming a hierarchy) but the Canvas owns the
- * root-level widgets directly.  The Canvas also carries a 2D transform
- * (sf::Transform) that is baked into the render state and used to convert
- * screen-space pointer coordinates to widget-local space during hit-testing.
+ * Each widget can have children (forming a hierarchy) but the Canvas holds
+ * references to root-level widgets directly.  The Canvas also carries a 2D
+ * transform (sf::Transform) that is baked into the render state and used to
+ * convert screen-space pointer coordinates to widget-local space during
+ * hit-testing.
+ *
+ * Widgets are NOT owned by the Canvas — they are pool-allocated through the
+ * scene component system or stack-allocated.  Call addWidget() to register
+ * a widget, and removeWidget() to unregister without destroying it.  Widgets
+ * auto-unregister in their destructor.
  *
  * Typical usage:
  * @code
- *   auto canvas = makeUnique<Canvas>();
- *   auto btn = canvas->createWidget<UIButton>("MyButton");
+ *   Canvas canvas("HUD");
+ *   auto* btn = node->addComponent<UIButton>(node, "MyButton", {200.f, 50.f});
+ *   canvas.addWidget(btn);
  *   // ...
- *   canvas->draw(target, states);
+ *   canvas.draw(target, states);
  * @endcode
  *
  * Depth ordering: widgets with a higher (larger) depth value are drawn on top
@@ -60,31 +67,21 @@ class Canvas
   // -- Widget management -----------------------------------------------------
 
   /**
-   * @brief Create a root-level widget and return a pointer to it.
+   * @brief Register a widget with this Canvas.
    *
-   * The widget is owned by the Canvas and destroyed when the Canvas dies or
-   * when destroyWidget() is called.
+   * Sets the widget's canvas pointer and adds it to the draw/hit-test list.
+   * The widget is NOT owned by the Canvas — it must be destroyed separately
+   * (e.g. via its owning SceneNode).  Widgets auto-unregister in ~UIWidget().
    */
-  template<typename T, typename... Args>
-  T* createWidget(Args&&... args)
-  {
-    static_assert(std::is_base_of_v<UIWidget, T>,
-                  "T must derive from UIWidget");
-
-    auto widget = std::make_unique<T>(std::forward<Args>(args)...);
-    widget->setCanvas(this);
-    T* ptr = widget.get();
-    m_widgets.push_back(std::move(widget));
-    return ptr;
-  }
+  void addWidget(UIWidget* widget);
 
   /**
-   * @brief Remove @p widget from the Canvas and destroy it recursively.
+   * @brief Remove @p widget from this Canvas without destroying it.
    * @return True if the widget was found and removed.
    */
-  bool destroyWidget(const UIWidget* widget);
+  bool removeWidget(UIWidget* widget);
 
-  /** @brief Remove (destroy) every widget. */
+  /** @brief Remove all widget references (no destruction). */
   void clear();
 
   // -- Hit testing -----------------------------------------------------------
@@ -114,7 +111,7 @@ class Canvas
   int m_depth = 0;
   sf::Transform m_transform;
 
-  Vector<std::unique_ptr<UIWidget>> m_widgets;
+  Vector<UIWidget*> m_widgets;
 };
 
 } // namespace sfmx

@@ -276,7 +276,7 @@ void UIEventSystem::selectFirst() {
   for (auto it = m_canvases.rbegin(); it != m_canvases.rend(); ++it) {
     for (auto& w : (*it)->m_widgets) {
       if (w->isEnabled() && w->isVisible() && w->isInteractable()) {
-        setSelected(w.get());
+        setSelected(w);
         return;
       }
     }
@@ -301,7 +301,7 @@ UIWidget* UIEventSystem::findSelectableInDirection(
   float bestScore = -std::numeric_limits<float>::max();
 
   for (auto& w : canvas->m_widgets) {
-    UIWidget* candidate = w.get();
+    UIWidget* candidate = w;
     if (candidate == from) {
       continue;
     }

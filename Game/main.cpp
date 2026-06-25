@@ -517,17 +517,21 @@ int main()
   Canvas uiCanvas("HUD");
   UIEventSystem::instance().registerCanvas(&uiCanvas);
 
-  UIButton* btn = uiCanvas.createWidget<UIButton>("StartBtn");
-  btn->setPosition({windowWidth * 0.5f - 100.f, windowHeight * 0.5f - 25.f});
-  btn->setSize({200.f, 50.f});
-  btn->syncColliderToRect();
+  SceneNode* canvasNode = scene.createNode("HUDCanvas");
 
-  UIButton* btnExit = uiCanvas.createWidget<UIButton>("ExitBtn");
+  auto* btnNode = canvasNode->createChild("StartBtn");
+  UIButton* btn = btnNode->addComponent<UIButton>(btnNode, "StartBtn", sf::Vector2f{200.f, 50.f});
+  btn->setPosition({windowWidth * 0.5f - 100.f, windowHeight * 0.5f - 25.f});
+  btn->syncColliderToRect();
+  uiCanvas.addWidget(btn);
+
+  auto* btnExitNode = canvasNode->createChild("ExitBtn");
+  UIButton* btnExit = btnExitNode->addComponent<UIButton>(btnExitNode, "ExitBtn", sf::Vector2f{200.f, 50.f});
   btnExit->setPosition({windowWidth * 0.5f - 100.f,
                         windowHeight * 0.5f + 40.f});
-  btnExit->setSize({200.f, 50.f});
   btnExit->syncColliderToRect();
   btnExit->setNormalColor(sf::Color(180, 80, 80));
+  uiCanvas.addWidget(btnExit);
 
   // Wire up UI navigation actions
   UIEventSystem::instance().setNavigateAction(uiNavigate);

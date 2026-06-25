@@ -19,9 +19,9 @@ namespace sfmx
  *
  * Note on dual-mode:
  *   UIButton inherits from both UIWidget and ComponentT<UIButton>.  When used
- *   via addComponent<UIButton>(...), the ComponentT constructor attaches this
- *   node to the scene graph; when created through Canvas::createWidget, only
- *   the UIWidget functionality is used.
+ *   via addComponent<UIButton>(...), the ComponentT constructor attaches the
+ *   button to the scene graph and pools it via MemoryPool; when created without
+ *   a node (standalone constructor), only the UIWidget functionality is used.
  */
 class UIButton final : public UIWidget, public ComponentT<UIButton>
 {

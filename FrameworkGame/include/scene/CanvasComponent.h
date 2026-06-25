@@ -20,7 +20,9 @@ namespace sfmx
  * @code
  *   node.addComponent<CanvasComponent>("HUD");
  *   auto& canvas = node.getComponent<CanvasComponent>()->getCanvas();
- *   canvas.createWidget<UIButton>("StartBtn");
+ *   auto* btnNode = node.createChild("StartBtn");
+ *   auto* btn = btnNode->addComponent<UIButton>(btnNode, "StartBtn", {200.f, 50.f});
+ *   canvas.addWidget(btn);
  * @endcode
  */
 class CanvasComponent final : public ComponentT<CanvasComponent>

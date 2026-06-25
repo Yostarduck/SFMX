@@ -320,7 +320,7 @@ class UIWidget
 
   sf::Color m_color = sf::Color::White;
 
-  std::unique_ptr<ICollider> m_collider;
+  UniquePtr<ICollider> m_collider;
 
   UIWidget* m_parent = nullptr;
   Vector<UIWidget*> m_children;
