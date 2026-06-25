@@ -71,7 +71,7 @@ class Canvas
     static_assert(std::is_base_of_v<UIWidget, T>,
                   "T must derive from UIWidget");
 
-    auto widget = MakeUnique<T>(std::forward<Args>(args)...);
+    auto widget = std::make_unique<T>(std::forward<Args>(args)...);
     widget->setCanvas(this);
     T* ptr = widget.get();
     m_widgets.push_back(std::move(widget));
@@ -114,7 +114,7 @@ class Canvas
   int m_depth = 0;
   sf::Transform m_transform;
 
-  Vector<UniquePtr<UIWidget>> m_widgets;
+  Vector<std::unique_ptr<UIWidget>> m_widgets;
 };
 
 } // namespace sfmx

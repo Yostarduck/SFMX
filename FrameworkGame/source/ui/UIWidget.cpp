@@ -45,24 +45,24 @@ UIWidget* UIWidget::getChild(size_t index) const {
 // -- Collider ----------------------------------------------------------------
 
 void UIWidget::setColliderCircle(const sf::Vector2f& center, float radius) {
-  m_collider = MakeUnique<CircleCollider>(center, radius);
+  m_collider = std::make_unique<CircleCollider>(center, radius);
 }
 
 void UIWidget::setColliderAABB(const sf::Vector2f& center, const sf::Vector2f& halfSize) {
-  m_collider = MakeUnique<AABBCollider>(center, halfSize);
+  m_collider = std::make_unique<AABBCollider>(center, halfSize);
 }
 
 void UIWidget::setColliderOBB(const sf::Vector2f& center, const sf::Vector2f& halfSize) {
-  m_collider = MakeUnique<OBBCollider>(center, halfSize);
+  m_collider = std::make_unique<OBBCollider>(center, halfSize);
 }
 
 void UIWidget::setColliderPoint(const sf::Vector2f& localPos) {
-  m_collider = MakeUnique<PointCollider>(localPos);
+  m_collider = std::make_unique<PointCollider>(localPos);
 }
 
 void UIWidget::setColliderLine(const sf::Vector2f& localStart,
                                const sf::Vector2f& localEnd) {
-  m_collider = MakeUnique<LineCollider>(localStart, localEnd);
+  m_collider = std::make_unique<LineCollider>(localStart, localEnd);
 }
 
 void UIWidget::clearCollider() {
@@ -73,7 +73,7 @@ void UIWidget::syncColliderToRect() {
   const auto center = sf::Vector2f{m_rect.position.x + m_rect.size.x * 0.5f,
                                     m_rect.position.y + m_rect.size.y * 0.5f};
   const auto halfSize = m_rect.size * 0.5f;
-  m_collider = MakeUnique<AABBCollider>(center, halfSize);
+  m_collider = std::make_unique<AABBCollider>(center, halfSize);
 }
 
 // -- Hit testing -------------------------------------------------------------

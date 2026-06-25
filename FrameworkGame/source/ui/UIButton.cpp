@@ -23,7 +23,7 @@ UIButton::~UIButton() = default;
 
 // -- Type --------------------------------------------------------------------
 
-const UUID& UIButton::getTypeId() const {
+UUID UIButton::getTypeId() const {
   return TypeTraits<UIButton>::getTypeId();
 }
 

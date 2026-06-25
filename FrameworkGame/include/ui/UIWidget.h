@@ -51,7 +51,7 @@ class UIWidget
   FORCEINLINE void setName(StringView name) { m_name = name; }
 
   /** @brief Type UUID for serialization (see TypeTraits). */
-  NODISCARD virtual const UUID& getTypeId() const = 0;
+  NODISCARD virtual UUID getTypeId() const = 0;
 
   /** @brief True if the widget and its callbacks are processed. */
   NODISCARD FORCEINLINE bool isEnabled() const { return m_enabled; }
@@ -320,7 +320,7 @@ class UIWidget
 
   sf::Color m_color = sf::Color::White;
 
-  UniquePtr<ICollider> m_collider;
+  std::unique_ptr<ICollider> m_collider;
 
   UIWidget* m_parent = nullptr;
   Vector<UIWidget*> m_children;

@@ -87,7 +87,7 @@ class UIButton final : public UIWidget, public ComponentT<UIButton>
   ~UIButton() override;
 
   /** @brief Type UUID for serialization. */
-  NODISCARD const UUID& getTypeId() const override;
+  NODISCARD UUID getTypeId() const override;
 
   // -- State -----------------------------------------------------------------
 
