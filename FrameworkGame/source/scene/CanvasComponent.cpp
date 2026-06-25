@@ -6,7 +6,7 @@ namespace sfmx
 
 CanvasComponent::CanvasComponent(SceneNode* node, StringView name)
   : ComponentT<CanvasComponent>(node),
-    m_canvas(std::make_unique<Canvas>(name)) {
+    m_canvas(MakeUnique<Canvas>(name)) {
   UIEventSystem::instance().registerCanvas(m_canvas.get());
 }
 

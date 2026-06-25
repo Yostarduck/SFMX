@@ -21,6 +21,12 @@ UIButton::UIButton(SceneNode* node, StringView name, sf::Vector2f size)
 
 UIButton::~UIButton() = default;
 
+// -- Type --------------------------------------------------------------------
+
+const UUID& UIButton::getTypeId() const {
+  return TypeTraits<UIButton>::getTypeId();
+}
+
 // -- Pointer events ----------------------------------------------------------
 
 void UIButton::onPointerEnter(sf::Vector2f position) {

@@ -19,8 +19,8 @@ namespace sfmx
  * Usage:
  * @code
  *   node.addComponent<CanvasComponent>("HUD");
- *   auto* canvas = node.getComponent<CanvasComponent>()->getCanvas();
- *   canvas->createWidget<UIButton>("StartBtn");
+ *   auto& canvas = node.getComponent<CanvasComponent>()->getCanvas();
+ *   canvas.createWidget<UIButton>("StartBtn");
  * @endcode
  */
 class CanvasComponent final : public ComponentT<CanvasComponent>
@@ -29,13 +29,13 @@ class CanvasComponent final : public ComponentT<CanvasComponent>
   explicit CanvasComponent(SceneNode* node, StringView name = "Canvas");
   ~CanvasComponent() override;
 
-  NODISCARD FORCEINLINE Canvas* getCanvas() const { return m_canvas.get(); }
+  NODISCARD FORCEINLINE Canvas& getCanvas() const { return *m_canvas; }
 
  private:
   void onDraw(sf::RenderTarget& target,
               sf::RenderStates states) const override;
 
-  std::unique_ptr<Canvas> m_canvas;
+  UniquePtr<Canvas> m_canvas;
 };
 
 } // namespace sfmx
