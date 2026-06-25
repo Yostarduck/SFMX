@@ -29,7 +29,7 @@ struct CookTarget
 
 /** @brief Map a lowercase extension (".png", ...) to its cook target.
  *  @return True if supported; @p out is filled. Unsupported extensions
- *          (including ".mp3" — music belongs to streaming, see roadmap) return false. */
+ *          (including ".mp3") return false. */
 bool
 targetForExtension(const String& ext, CookTarget& out) {
   if (ext == ".png") {
@@ -69,7 +69,7 @@ AssetCooker::cookFile(const FileSystemPath& source,
     return false;  // unsupported extension → skipped
   }
 
-  // Path relative to the source root, with forward slashes → a stable, portable
+  // Path relative to the source root, with forward slashes -> a stable, portable
   // id source for createFromName (purely lexical, no filesystem access).
   const FileSystemPath rel = source.lexically_relative(sourceRoot);
   const String relStr = rel.generic_string();
@@ -126,6 +126,7 @@ AssetCooker::cookDirectory(const FileSystemPath& sourceDir,
         }
       });
 
+  //TODO: Logger! 
   std::cout << "AssetCooker: cooked " << stats.cooked << ", skipped "
             << stats.skipped << " (" << sourceDir.string() << " -> "
             << outputDir.string() << ")" << std::endl;
