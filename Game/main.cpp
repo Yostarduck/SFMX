@@ -12,6 +12,7 @@
 #include "input/Mouse.h"
 
 #include "scene/Scene.h"
+#include "scene/SceneManager.h"
 #include "scene/CameraComponent.h"
 #include "scene/SourceComponent.h"
 #include "scene/ListenerComponent.h"
@@ -81,6 +82,7 @@ int main()
   PhysicsSystem::startUp();
   MemoryPoolHandler::startUp(4096);
   ScriptEngine::startUp();
+  SceneManager::startUp();
 
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
   pools.registerPool<SceneNode>(1024);
@@ -98,7 +100,8 @@ int main()
 
   std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
 
-  Scene scene("Main");
+  SceneManager& scenes = SceneManager::instance();
+  Scene& scene = *scenes.createScene("Main");
 
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(center);
@@ -519,22 +522,21 @@ int main()
     earth->transform().rotate(sf::degrees(215.f * deltaTime));
     neptune->transform().rotate(sf::degrees(-15.f * deltaTime));
 
-    scene.update(deltaTime);
+    scenes.update(deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
-    scene.draw(window);
+    scenes.draw(window);
     window.display();
   }
 
-  scene.clear();
-
   ScriptEngine::shutDown();
+
+  // Shut the scene manager down before the pools: it clears every scene, which
+  // returns pooled nodes/components while the pools (and SFML) are still alive.
+  SceneManager::shutDown();
 
   InputSystem::shutDown();
   PhysicsSystem::shutDown();
-  // Tear down pools last: ~Scene only drops ids/registry, so the pooled nodes
-  // and components are destroyed here, while SFML is still alive.
-  
   MemoryPoolHandler::shutDown();
 
   return 0;
