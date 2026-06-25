@@ -520,13 +520,14 @@ int main()
   SceneNode* canvasNode = scene.createNode("HUDCanvas");
 
   auto* btnNode = canvasNode->createChild("StartBtn");
-  UIButton* btn = btnNode->addComponent<UIButton>(btnNode, "StartBtn", sf::Vector2f{200.f, 50.f});
+  
+  UIButton* btn = btnNode->addComponent<UIButton>("StartBtn", sf::Vector2f{200.f, 50.f});
   btn->setPosition({windowWidth * 0.5f - 100.f, windowHeight * 0.5f - 25.f});
   btn->syncColliderToRect();
   uiCanvas.addWidget(btn);
 
   auto* btnExitNode = canvasNode->createChild("ExitBtn");
-  UIButton* btnExit = btnExitNode->addComponent<UIButton>(btnExitNode, "ExitBtn", sf::Vector2f{200.f, 50.f});
+  UIButton* btnExit = btnExitNode->addComponent<UIButton>("ExitBtn", sf::Vector2f{200.f, 50.f});
   btnExit->setPosition({windowWidth * 0.5f - 100.f,
                         windowHeight * 0.5f + 40.f});
   btnExit->syncColliderToRect();

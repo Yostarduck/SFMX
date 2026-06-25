@@ -23,7 +23,7 @@ namespace sfmx
  *   button to the scene graph and pools it via MemoryPool; when created without
  *   a node (standalone constructor), only the UIWidget functionality is used.
  */
-class UIButton final : public UIWidget, public ComponentT<UIButton>
+class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public ComponentT<UIButton>
 {
  public:
   using UIWidget::isEnabled;

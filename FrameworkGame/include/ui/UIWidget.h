@@ -16,6 +16,12 @@ namespace sfmx
 
 class Canvas;
 
+enum class WidgetType : uint8
+{
+  kUnknown,
+  kButton
+};
+
 /**
  * @brief Base class for every UI element placed on a Canvas or attached to a
  *        SceneNode through a component.
@@ -49,6 +55,9 @@ class UIWidget
 
   /** @brief Override the widget's display name. */
   FORCEINLINE void setName(StringView name) { m_name = name; }
+
+  /** @brief Concrete shape discriminator (fast enum path; also the serialized tag) */
+  NODISCARD virtual WidgetType getType() const = 0;
 
   /** @brief Type UUID for serialization (see TypeTraits). */
   NODISCARD virtual UUID getTypeId() const = 0;
@@ -332,6 +341,16 @@ class UIWidget
   UIWidget* m_navLeft = nullptr;
   UIWidget* m_navRight = nullptr;
 };
+
+template<typename Derived, WidgetType Type>
+class UIWidgetT : public UIWidget
+{
+ public:
+  UIWidgetT(StringView name) : UIWidget(name) {}
+  NODISCARD FORCEINLINE virtual WidgetType getType() const override { return Type; }
+  NODISCARD FORCEINLINE virtual UUID getTypeId() const override { return TypeTraits<Derived>::getTypeId(); }
+};
+
 
 } // namespace sfmx
 
