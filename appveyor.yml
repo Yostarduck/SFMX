@@ -52,7 +52,7 @@ for:
 
   on_finish:
     - ps: |
-        $url = "https://discord.com/api/webhooks/1516801263591886899/1VN5Bnk_v-O_VkwWjJJYCoV24Y1YLW01ssh-EPeZBDYj7buEHGCHQFijyXyWZFH6Dls2"
+        $url = "$env:WEBHOOK_URL"
         $status = "$env:APPVEYOR_JOB_STATUS"
         $failed = ($status -like "*fail*")
         $color = if ($failed) { 16711680 } else { 65280 }
