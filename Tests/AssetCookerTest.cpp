@@ -146,7 +146,7 @@ TEST_CASE("AssetCooker wraps a WAV into a SoundAsset") {
   CHECK(reader.metadata().assetType.toString() ==
         TypeTraits<SoundAsset>::getTypeId().toString());
   REQUIRE(reader.chunkCount() == 1);
-  CHECK(reader.chunk(0).format == ChunkFormat::kRaw);
+  CHECK(reader.chunk(0).format == ChunkFormat::kWav);
   reader.close();
 
   ManagerScope scope;
