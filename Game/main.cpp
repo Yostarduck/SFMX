@@ -34,6 +34,13 @@
 
 #include "scripts/ScriptEngine.h"
 
+#include "assets/AssetCooker.h"
+#include "assets/AssetManager.h"
+#include "assets/TextureAsset.h"
+#include "assets/TextureCodec.h"
+
+#include <cstring>
+
 using namespace sfmx;
 
 class CircleComponent : public ComponentT<CircleComponent>
@@ -62,8 +69,19 @@ DECLARE_TYPE_TRAITS(CircleComponent)
 // (required so the engine TU instantiates a matching type id); a second declaration here would
 // redefine the specialization.
 
-int main()
+int main(int argc, char** argv)
 {
+  // Offline asset cooking: `Game.exe --cook [srcDir] [outDir]` wraps the media
+  // under srcDir into .sfmxasset containers and exits (no window, no game loop).
+  for (int i = 1; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--cook") == 0) {
+      const FileSystemPath srcDir = (i + 1 < argc) ? argv[i + 1] : "Game/resources";
+      const FileSystemPath outDir = (i + 2 < argc) ? argv[i + 2] : "Game/assets";
+      AssetCooker::cookDirectory(srcDir, outDir);
+      return 0;
+    }
+  }
+
   sfmx::IniFile config;
   config.loadAll({"Game/config/Engine.ini", "Game/config/Game.ini"});
 
@@ -99,6 +117,24 @@ int main()
   pools.registerPool<ScriptComponent>(1024);
 
   std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
+  
+  // Assets: mount the cooked .sfmxasset directory (the build's POST_BUILD step
+  // runs `Game --cook`, so Game/assets is always populated). Images are resolved
+  // by UUID through the AssetManager; audio stays mp3-by-path (music streams).
+  AssetManager::startUp();
+  AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
+  const size_t mountedAssets = AssetManager::instance().mount("Game/assets");
+  std::cout << "[Assets] mounted " << mountedAssets << " from Game/assets\n";
+
+  // Resolve a cooked texture by its source-relative name (the id the cooker used).
+  auto loadTex = [](const ansichar* rel) -> SPtr<TextureAsset> {
+    SPtr<TextureAsset> asset =
+        AssetManager::instance().load<TextureAsset>(sfmx::UUID::createFromName(rel));
+    if (nullptr == asset) {
+      std::cerr << "[Assets] missing: " << rel << " (a build runs --cook)\n";
+    }
+    return asset;
+  };
 
   SceneManager& scenes = SceneManager::instance();
   Scene& scene = *scenes.createScene("Main");
@@ -107,13 +143,11 @@ int main()
   sun->transform().setPosition(center);
   sun->addComponent<CircleComponent>(40.f, sf::Color(255, 180, 100));
   
-  auto* texture = new sf::Texture();
-  if (!texture->loadFromFile("Game/resources/particle.png"))
-  {
-    std::cerr << "Failed loading particle texture\n";
-    delete texture;
-    return -1;
-  }
+  SPtr<TextureAsset> particleAsset = loadTex("particle.png");
+  const sf::Texture* particleTex =
+      (nullptr != particleAsset) ? &particleAsset->texture() : nullptr;
+  const sfmx::UUID particleId =
+      (nullptr != particleAsset) ? particleAsset->metadata().uuid : sfmx::UUID::null();
 
   // -- Sun: fiery corona (local space, follows the sun's rotation) --
   EmitterConfig sunCfg;
@@ -134,7 +168,8 @@ int main()
   sunCfg.endSize               = {0.f, 0.f};
   sunCfg.lifetime              = 5.0f;
   sunCfg.lifetimeVariance      = 0.5f;
-  sunCfg.texture               = texture;
+  sunCfg.texture               = particleTex;
+  sunCfg.textureAssetId        = particleId;
   sunCfg.blendMode             = sf::BlendAlpha;
   sunCfg.duration              = 0.f;
   sunCfg.loop                  = false;
@@ -187,7 +222,8 @@ int main()
   earthCfg.endSize               = {0.f, 0.f};
   earthCfg.lifetime              = 3.0f;
   earthCfg.lifetimeVariance      = 0.3f;
-  earthCfg.texture               = texture;
+  earthCfg.texture               = particleTex;
+  earthCfg.textureAssetId        = particleId;
   earthCfg.blendMode             = sf::BlendAlpha;
   earthCfg.duration              = 0.f;
   earthCfg.loop                  = false;
@@ -250,14 +286,7 @@ int main()
   neptune->addComponent<CircleComponent>(12.f, sf::Color(80, 100, 200));
   neptune->addComponent<ListenerComponent>();
   auto* sprite = neptune->addComponent<SpriteComponent>();
-  auto* texture2 = new sf::Texture();
-  if (!texture2->loadFromFile("Game/resources/aleka.png"))
-  {
-    std::cerr << "Failed loading particle texture\n";
-    delete texture2;
-    return -1;
-  }
-  sprite->setTexture(*texture2);
+  sprite->setTextureAsset(loadTex("aleka.png"));  // sets texture + records the UUID
   sprite->setScale(0.1f);
   sprite->setOrigin({sprite->getPixelSize().x * 0.5f, 
                      sprite->getPixelSize().y * 0.5f});
@@ -266,9 +295,10 @@ int main()
   // --- Mario atlas animation demo ---
 
   SceneNode* marioNode = scene.createNode("Mario");
-  SPtr<sf::Texture> marioTex = MakeShared<sf::Texture>();
-  if (marioTex->loadFromFile("Game/resources/marioatlas.png"))
+  SPtr<TextureAsset> marioAsset = loadTex("marioatlas.png");
+  if (nullptr != marioAsset && marioAsset->isLoaded())
   {
+    SPtr<sf::Texture> marioTex(marioAsset, &marioAsset->texture());
     const sf::Image marioImg = marioTex->copyToImage();
 
     auto rects = Atlas::detectSpriteRects(marioImg);
@@ -279,6 +309,7 @@ int main()
     marioAnim->m_loops = true;
     marioAnim->m_duration = static_cast<float>(rects.size()) * 0.1f;
     marioAnim->m_speedMultiplier = 1.0f;
+    marioAnim->m_textureAssetId = marioAsset->metadata().uuid;
 
     for (const auto& r : rects) {
       marioAnim->m_frames.push_back({marioTex, r});
@@ -335,9 +366,10 @@ int main()
   auto* playerNode = scene.createNode("Player");
   playerNode->transform().setPosition({256,256});
   auto* playerAnimator = playerNode->addComponent<AnimatorComponent>();
-  SPtr<sf::Texture> idleText = MakeShared<sf::Texture>();
-  if (idleText->loadFromFile("Game/resources/playeridle.png"))
+  SPtr<TextureAsset> idleAsset = loadTex("playeridle.png");
+  if (nullptr != idleAsset && idleAsset->isLoaded())
   {
+    SPtr<sf::Texture> idleText(idleAsset, &idleAsset->texture());
     Vector<sf::IntRect> rects;
     rects.resize(4);
     rects[0] = {{0,0}, {128, 128}};
@@ -351,6 +383,7 @@ int main()
     idleAnim->m_loops = true;
     idleAnim->m_duration = static_cast<float>(rects.size()) * 0.5f;
     idleAnim->m_speedMultiplier = 1.0f;
+    idleAnim->m_textureAssetId = idleAsset->metadata().uuid;
 
     for (const auto& r : rects) {
       idleAnim->m_frames.push_back({idleText, r});
@@ -363,9 +396,10 @@ int main()
   {
     std::cerr << "[SpriteAtlas] Failed to load playeridle.png\n";
   }
-  SPtr<sf::Texture> walkingText = MakeShared<sf::Texture>();
-  if (walkingText->loadFromFile("Game/resources/playerwalking.png"))
+  SPtr<TextureAsset> walkingAsset = loadTex("playerwalking.png");
+  if (nullptr != walkingAsset && walkingAsset->isLoaded())
   {
+    SPtr<sf::Texture> walkingText(walkingAsset, &walkingAsset->texture());
     Vector<sf::IntRect> rects;
     rects.resize(8);
     rects[0] = {{0,0}, {128, 128}};
@@ -383,6 +417,7 @@ int main()
     walkingAnim->m_loops = true;
     walkingAnim->m_duration = static_cast<float>(rects.size()) * 0.1f;
     walkingAnim->m_speedMultiplier = 2.0f;
+    walkingAnim->m_textureAssetId = walkingAsset->metadata().uuid;
 
     for (const auto& r : rects) {
       walkingAnim->m_frames.push_back({walkingText, r});
@@ -538,6 +573,9 @@ int main()
   InputSystem::shutDown();
   PhysicsSystem::shutDown();
   MemoryPoolHandler::shutDown();
+  // After the pooled components are gone, drop the cached assets (their
+  // sf::Textures) while SFML is still alive.
+  AssetManager::shutDown();
 
   return 0;
 }

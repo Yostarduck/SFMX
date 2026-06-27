@@ -13,13 +13,18 @@ class AssetFileReader;
  *
  * Decode-only in v1: the runtime reads `.sfmxasset` files; importing foreign
  * formats (PNG via stb, FBX via assimp, ...) into a `.sfmxasset` is the cooker's
- * job (TODO) and lives outside the shipped game.
+ * job and lives outside the shipped game.
  *
  * A codec is intentionally thin: it knows *which* asset type to instantiate and
  * is keyed by @ref assetType in the @ref AssetCodecRegistry. The *how*, reading
  * chunks, uploading to the GPU , lives in the concrete asset, mirroring how a
  * component owns its own behaviour. Registering a codec (e.g. from a mod DLL) is
  * what teaches the engine a new asset type, with no core recompile.
+ *
+ * This is the DECODE half (runtime). Its IMPORT counterpart, which source file
+ * extension cooks into this type, lives in the cooker's @c kImportRules table;
+ * see AssetCooker.cpp for the full end-to-end walkthrough of adding a format
+ * (both seams) and how a mod DLL registers each half.
  */
 class SFMX_UTILITY_EXPORT IAssetCodec
 {
