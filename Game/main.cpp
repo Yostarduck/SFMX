@@ -557,7 +557,7 @@ int main(int argc, char** argv)
     earth->transform().rotate(sf::degrees(215.f * deltaTime));
     neptune->transform().rotate(sf::degrees(-15.f * deltaTime));
 
-    scenes.update(deltaTime);
+    SceneManager::instance().update(deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
     scenes.draw(window);
