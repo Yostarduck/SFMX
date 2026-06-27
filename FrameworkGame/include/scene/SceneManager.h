@@ -134,8 +134,8 @@ class SFMX_UTILITY_EXPORT SceneManager : public Module<SceneManager>
 
  private:
   friend class Module<SceneManager>;
+  
   SceneManager() = default;
-  ~SceneManager() override;
 
   // Removes scene from the active set, promoting a new current scene if it was
   // the current one. Does not free the scene.

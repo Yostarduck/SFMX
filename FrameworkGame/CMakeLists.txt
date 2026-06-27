@@ -106,6 +106,7 @@ add_library(FrameworkGame STATIC
 
     source/scripts/RegisterScene.cpp
     source/scripts/RegisterSceneNode.cpp
+    source/scripts/RegisterSceneManager.cpp
 
     source/scripts/RegisterAll.cpp)
 

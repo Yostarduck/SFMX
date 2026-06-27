@@ -28,6 +28,7 @@
 //#include "scripts/RegisterParticleSystemComponent.h"
 #include "scripts/RegisterScriptComponent.h"
 
+#include "scripts/RegisterSceneManager.h"
 #include "scripts/RegisterScene.h"
 #include "scripts/RegisterSceneNode.h"
 
@@ -84,6 +85,7 @@ registerAll(sol::state_view lua) {
   // Scene graph.
   registerSceneNode(lua);
   registerScene(lua);
+  registerSceneManager(lua);
 
   // Type-driven component access (node:addComponent(SpriteComponent), ...).
   // Register one entry per pool-allocated component type; the inline Transform

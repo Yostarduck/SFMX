@@ -33,9 +33,7 @@ registerScene(sol::state_view lua) {
     "addCamera", &Scene::addCamera,
     "removeCamera", &Scene::removeCamera,
     "clearCameras", &Scene::clearCameras,
-    "getCameraCount", &Scene::getCameraCount,
-
-    "transform", [](SceneNode& n) -> Transform& { return n.transform(); }
+    "getCameraCount", &Scene::getCameraCount
   );
 }
 
