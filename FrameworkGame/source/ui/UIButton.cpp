@@ -1,8 +1,6 @@
 #include "ui/UIButton.h"
 #include "core/DataStream.h"
 
-#include <SFML/Graphics/RectangleShape.hpp>
-
 namespace sfmx
 {
 
@@ -57,10 +55,10 @@ void UIButton::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
     return;
   }
 
-  sf::RectangleShape shape(getSize());
-  shape.setPosition(getPosition());
-  shape.setFillColor(resolveColor());
-  target.draw(shape, states);
+  m_shape.setSize(getSize());
+  m_shape.setPosition(getPosition());
+  m_shape.setFillColor(resolveColor());
+  target.draw(m_shape, states);
 }
 
 sf::Color UIButton::resolveColor() const {
@@ -89,11 +87,8 @@ sf::Color UIButton::resolveColor() const {
 void
 UIButton::onSerialize(DataStream& stream) const {
   // Version
-  constexpr uint32 kVersion = 1;
+  constexpr uint32 kVersion = 2;
   stream << kVersion;
-
-  // Widget state
-  stream.writeString(getName());
 
   uint8 flags = 0;
   if (isEnabled())       flags |= 1 << 0;
@@ -168,12 +163,9 @@ void
 UIButton::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != 1) {
+  if (version != 2) {
     return;
   }
-
-  // Widget state
-  setName(stream.readString());
 
   uint8 flags = 0;
   stream >> flags;

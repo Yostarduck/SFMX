@@ -1,5 +1,7 @@
 #pragma once
 
+#include <SFML/Graphics/RectangleShape.hpp>
+
 #include "scene/SceneNode.h"
 #include "scene/Component.h"
 #include "ui/UIWidget.h"
@@ -22,6 +24,12 @@ namespace sfmx
  *   via addComponent<UIButton>(...), the ComponentT constructor attaches the
  *   button to the scene graph and pools it via MemoryPool; when created without
  *   a node (standalone constructor), only the UIWidget functionality is used.
+ *
+ * Pool allocation caveat:
+ *   This class allocates/deallocates in its constructor/destructor through the
+ *   MemoryPool system (inherited from ComponentT).  Prefer creating buttons at
+ *   scene load and toggling enable/visible during gameplay rather than
+ *   creating/destroying them at runtime.
  */
 class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public ComponentT<UIButton>
 {
@@ -33,8 +41,6 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   using UIWidget::setVisible;
   using UIWidget::setInteractable;
   using UIWidget::setFocused;
-  using UIWidget::getName;
-  using UIWidget::setName;
   using UIWidget::getPosition;
   using UIWidget::setPosition;
   using UIWidget::getSize;
@@ -43,8 +49,6 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   using UIWidget::setRect;
   using UIWidget::getColor;
   using UIWidget::setColor;
-  using UIWidget::getParent;
-  using UIWidget::setParent;
   using UIWidget::containsPoint;
   using UIWidget::syncColliderToRect;
   using UIWidget::onPointerEnter;
@@ -68,7 +72,6 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
 
   /**
    * @brief Constructor for standalone (canvas) usage.
-   * @param name Display name.
    * @param size Initial size.
    */
   UIButton(sf::Vector2f size = {200.f, 50.f});
@@ -76,7 +79,6 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   /**
    * @brief Constructor for component usage (attached to a SceneNode).
    * @param node  The node this component belongs to.
-   * @param name  Display name.
    * @param size  Initial size.
    */
   UIButton(SceneNode* node,
@@ -122,6 +124,8 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
   sf::Color resolveColor() const;
+
+  mutable sf::RectangleShape m_shape{{200.f, 50.f}};
 
   VisualState m_visualState = VisualState::kNormal;
 

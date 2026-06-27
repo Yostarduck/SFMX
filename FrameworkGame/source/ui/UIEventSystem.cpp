@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <limits>
 
 namespace sfmx
@@ -185,13 +186,18 @@ void UIEventSystem::processNavigation(float deltaTime) {
     return;
   }
 
+  if (m_navigateAction->getValueType() != ActionValueType::kAxis2D) {
+    std::cerr << "UIEventSystem: navigate action \""
+              << m_navigateAction->getName()
+              << "\" must be an Axis2D input" << std::endl;
+    return;
+  }
+
   const InputValue& navValue = m_navigateAction->getValue();
   const sf::Vector2f dir = navValue.asVector2();
 
-  // Deadzone
-  constexpr float kDeadzone = 0.5f;
   const float mag = std::sqrt(dir.x * dir.x + dir.y * dir.y);
-  if (mag < kDeadzone) {
+  if (mag < 0.001f) {
     m_navTimer = 0.f;
     m_navHeld = false;
     return;

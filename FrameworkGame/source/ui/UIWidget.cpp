@@ -4,43 +4,12 @@
 namespace sfmx
 {
 
-UIWidget::UIWidget() {}
+UIWidget::UIWidget() = default;
 
 UIWidget::~UIWidget() {
   if (m_canvas != nullptr) {
     m_canvas->removeWidget(this);
   }
-}
-
-// -- Hierarchy ---------------------------------------------------------------
-
-void UIWidget::setParent(UIWidget* parent) {
-  if (m_parent == parent) {
-    return;
-  }
-
-  // Remove from old parent
-  if (m_parent != nullptr) {
-    auto& siblings = m_parent->m_children;
-    auto it = std::find(siblings.begin(), siblings.end(), this);
-    if (it != siblings.end()) {
-      siblings.erase(it);
-    }
-  }
-
-  m_parent = parent;
-
-  // Add to new parent
-  if (parent != nullptr) {
-    parent->m_children.push_back(this);
-  }
-}
-
-UIWidget* UIWidget::getChild(size_t index) const {
-  if (index >= m_children.size()) {
-    return nullptr;
-  }
-  return m_children[index];
 }
 
 // -- Collider ----------------------------------------------------------------

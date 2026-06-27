@@ -51,12 +51,6 @@ class UIWidget
 
   // -- Identity & state ------------------------------------------------------
 
-  /** @brief The widget's display name (not required to be unique). */
-  NODISCARD FORCEINLINE const String& getName() const { return m_name; }
-
-  /** @brief Override the widget's display name. */
-  FORCEINLINE void setName(StringView name) { m_name = name; }
-
   /** @brief Concrete shape discriminator (fast enum path; also the serialized tag) */
   NODISCARD virtual WidgetType getType() const = 0;
 
@@ -116,20 +110,6 @@ class UIWidget
   /** @brief Tint / fill colour. */
   NODISCARD FORCEINLINE sf::Color getColor() const { return m_color; }
   FORCEINLINE void setColor(sf::Color color) { m_color = color; }
-
-  // -- Hierarchy -------------------------------------------------------------
-
-  /** @brief Parent widget in the UI hierarchy, or nullptr. */
-  NODISCARD FORCEINLINE UIWidget* getParent() const { return m_parent; }
-
-  /** @brief Reparent this widget under @p parent (removes from old parent). */
-  void setParent(UIWidget* parent);
-
-  /** @brief Number of direct children. */
-  NODISCARD FORCEINLINE size_t getChildCount() const { return m_children.size(); }
-
-  /** @brief Indexed access to child (nullptr if out of range). */
-  NODISCARD UIWidget* getChild(size_t index) const;
 
   // -- Canvas ----------------------------------------------------------------
 
@@ -316,7 +296,6 @@ class UIWidget
   Event<void()> mutable m_onSubmitEvent;
   Event<void()> mutable m_onCancelEvent;
 
-  String m_name;
   bool m_enabled = true;
   bool m_visible = true;
   bool m_interactable = true;
@@ -332,8 +311,6 @@ class UIWidget
 
   UniquePtr<ICollider> m_collider;
 
-  UIWidget* m_parent = nullptr;
-  Vector<UIWidget*> m_children;
   Canvas* m_canvas = nullptr;
 
   // Navigation links (explicit neighbours, raw pointers — owned by Canvas).
