@@ -1,4 +1,4 @@
-#include "scripts/RegisterAngle.h"
+#include "scripts/RegisterUUID.h"
 
 #include <functional>
 
@@ -39,7 +39,7 @@ registerUUID(sol::state_view lua) {
       }
     ),
 
-    "null", []() -> const UUID& { return UUID::null(); }
+    "null", []() -> const UUID { return UUID::null(); }
   );
 }
 

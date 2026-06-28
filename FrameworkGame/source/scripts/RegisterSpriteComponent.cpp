@@ -22,6 +22,11 @@ registerSpriteComponent(sol::state_view lua) {
 
     "typeId", sol::var(componentTypeId<SpriteComponent>()),
 
+    // Texture binding by asset id; AssetManager resolves it and it round-trips
+    // through serialization (see SpriteComponent::m_textureAssetId).
+    "setTextureAssetId", &SpriteComponent::setTextureAssetId,
+    "getTextureAssetId", &SpriteComponent::getTextureAssetId,
+
     "setRect", &SpriteComponent::setRect,
     "getRect", &SpriteComponent::getRect,
 

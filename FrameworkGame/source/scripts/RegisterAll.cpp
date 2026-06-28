@@ -11,6 +11,9 @@
 #include "scripts/RegisterIntRect.h"
 #include "scripts/RegisterFloatRect.h"
 #include "scripts/RegisterTransform.h"
+#include "scripts/RegisterUUID.h"
+#include "scripts/RegisterIAsset.h"
+#include "scripts/RegisterAssetManager.h"
 
 #include "scripts/RegisterInputTypes.h"
 #include "scripts/RegisterKeyboard.h"
@@ -63,12 +66,17 @@ registerAll(sol::state_view lua) {
   registerIntRect(lua);
   registerFloatRect(lua);
   registerTransform(lua);
+  registerUUID(lua);
 
   // Input types.
   registerInputTypes(lua);
   registerKeyboard(lua);
   registerMouse(lua);
   registerGamepad(lua);
+
+  // Assets (IAsset before AssetManager: load/get hand back SPtr<IAsset>).
+  registerIAsset(lua);
+  registerAssetManager(lua);
 
   // Component hierarchy: the base must precede its derived usertypes so the
   // sol::bases<Component> links resolve.
