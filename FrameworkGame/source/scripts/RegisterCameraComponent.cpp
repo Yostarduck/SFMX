@@ -57,6 +57,14 @@ registerCameraComponent(sol::state_view lua) {
     "getTransform", &CameraComponent::getTransform,
     "getInverseTransform", &CameraComponent::getInverseTransform,
 
+    // Pixel (e.g. mouse) -> world through this camera's view. Resolution is the
+    // render target size in pixels; taken as Vector2i since Vector2u has no
+    // registered Lua type.
+    "screenToWorld",
+    [](const CameraComponent& c, sf::Vector2i pixel, sf::Vector2i resolution) {
+      return c.screenToWorld(pixel, sf::Vector2u(resolution));
+    },
+
     "setFollowNode", &CameraComponent::setFollowNode,
     "isFollowingNode", &CameraComponent::isFollowingNode,
 

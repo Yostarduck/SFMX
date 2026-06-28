@@ -131,6 +131,28 @@ CameraComponent::getInverseTransform() const {
   return m_view.getInverseTransform();
 }
 
+sf::Vector2f
+CameraComponent::screenToWorld(sf::Vector2i pixel,
+                               sf::Vector2u resolution) const {
+  // Mirrors sf::RenderTarget::mapPixelToCoords: convert the pixel to [-1, 1]
+  // homogeneous coords using the viewport rect (in pixels), then push it
+  // through the view's inverse transform. No RenderTarget required.
+  const sf::FloatRect& viewport = m_view.getViewport();
+  const float resX = static_cast<float>(resolution.x);
+  const float resY = static_cast<float>(resolution.y);
+
+  const int left   = static_cast<int>(0.5f + resX * viewport.position.x);
+  const int top    = static_cast<int>(0.5f + resY * viewport.position.y);
+  const int width  = static_cast<int>(0.5f + resX * viewport.size.x);
+  const int height = static_cast<int>(0.5f + resY * viewport.size.y);
+
+  sf::Vector2f normalized;
+  normalized.x = -1.f + 2.f * (pixel.x - left) / static_cast<float>(width);
+  normalized.y =  1.f - 2.f * (pixel.y - top)  / static_cast<float>(height);
+
+  return m_view.getInverseTransform().transformPoint(normalized);
+}
+
 void
 CameraComponent::setFollowNode(bool follow) {
   m_followNode = follow;

@@ -73,6 +73,19 @@ class CameraComponent : public ComponentT<CameraComponent>
   /** @brief Returns the inverse (target-to-view) transform */
   NODISCARD const sf::Transform& getInverseTransform() const;
 
+  /**
+   * @brief Maps a pixel coordinate (e.g. a mouse position) to world space
+   *        through this camera's view, without needing an sf::RenderTarget.
+   *
+   * Same result as @c renderTarget.mapPixelToCoords(pixel, getView()), but the
+   * caller supplies the render resolution instead of a target, so it works
+   * off-thread or against a camera that isn't the one currently rendering.
+   * @param pixel      Pixel position relative to the render target's top-left.
+   * @param resolution Render target size in pixels (e.g. @c window.getSize()).
+   */
+  NODISCARD sf::Vector2f
+  screenToWorld(sf::Vector2i pixel, sf::Vector2u resolution) const;
+
   /** @brief When true, the view center is synced from the node's world position each frame */
   void setFollowNode(bool follow);
   /** @brief Whether auto-follow is active */

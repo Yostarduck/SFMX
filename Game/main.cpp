@@ -96,11 +96,12 @@ int main(int argc, char** argv)
   sf::RenderWindow window(sf::VideoMode({windowWidth, windowHeight}), windowTitle);
   window.setVerticalSyncEnabled(enableVSync);
 
-  InputSystem::startUp();
-  PhysicsSystem::startUp();
   MemoryPoolHandler::startUp(4096);
-  ScriptEngine::startUp();
+  InputSystem::startUp();
   SceneManager::startUp();
+  PhysicsSystem::startUp();
+  AssetManager::startUp();
+  ScriptEngine::startUp();
 
   MemoryPoolHandler& pools = MemoryPoolHandler::instance();
   pools.registerPool<SceneNode>(1024);
@@ -108,10 +109,10 @@ int main(int argc, char** argv)
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<CameraComponent>(1);
-  pools.registerPool<SpriteComponent>(8);
-  pools.registerPool<AnimatorComponent>(8);
-  pools.registerPool<Particle>(2048);
-  pools.registerPool<ParticleSystemComponent>(8);
+  pools.registerPool<SpriteComponent>(4096);
+  pools.registerPool<AnimatorComponent>(256);
+  pools.registerPool<Particle>(4096);
+  pools.registerPool<ParticleSystemComponent>(64);
   pools.registerPool<ColliderComponent>(64);
   pools.registerPool<RigidBodyComponent>(64);
   pools.registerPool<ScriptComponent>(1024);
@@ -121,7 +122,6 @@ int main(int argc, char** argv)
   // Assets: mount the cooked .sfmxasset directory (the build's POST_BUILD step
   // runs `Game --cook`, so Game/assets is always populated). Images are resolved
   // by UUID through the AssetManager; audio stays mp3-by-path (music streams).
-  AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
   const size_t mountedAssets = AssetManager::instance().mount("Game/assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from Game/assets\n";
@@ -564,18 +564,23 @@ int main(int argc, char** argv)
     window.display();
   }
 
+  SceneManager::instance().destroyAllScenes();
+
   ScriptEngine::shutDown();
+
+  // After the pooled components are gone, drop the cached assets (their
+  // sf::Textures) while SFML is still alive.
+  AssetManager::shutDown();
+
+  PhysicsSystem::shutDown();
 
   // Shut the scene manager down before the pools: it clears every scene, which
   // returns pooled nodes/components while the pools (and SFML) are still alive.
   SceneManager::shutDown();
-
+  
   InputSystem::shutDown();
-  PhysicsSystem::shutDown();
+
   MemoryPoolHandler::shutDown();
-  // After the pooled components are gone, drop the cached assets (their
-  // sf::Textures) while SFML is still alive.
-  AssetManager::shutDown();
 
   return 0;
 }
