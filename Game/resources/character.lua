@@ -5,11 +5,13 @@ local speed = 500
 
 -- Script driven by a ScriptComponent.
 --
--- The component runs the function returned below, passing the owning SceneNode
--- as `self` and the frame delta as `deltaTime`. `self` is a C++ object exposed
--- to Lua, so we can call methods straight on it.
+-- The script returns a table of lifecycle hooks (see bullet.lua for the full
+-- set). `self` is the owning SceneNode, a C++ object exposed to Lua, so we can
+-- call methods straight on it; `deltaTime` is the frame delta.
 -- Two nodes can share this same file but each receives its own owner.
-function update(self, deltaTime)
+local Character = {}
+
+function Character.onUpdate(self, deltaTime)
   local myTransform = self:transform()
   
   local wKey = Keyboard:isPressed(keyFromString("W"))
@@ -61,4 +63,4 @@ function update(self, deltaTime)
 
 end
 
-return update
+return Character

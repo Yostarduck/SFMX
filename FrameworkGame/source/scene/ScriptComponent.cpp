@@ -14,20 +14,29 @@ constexpr uint32 kScriptComponentVersion = 1;
 
 ScriptComponent::ScriptComponent(SceneNode* owner, std::string_view scriptName)
   : ComponentT<ScriptComponent>(owner),
-    m_scriptName(scriptName),
-    m_initialized(false) {
-  // Guarded so a ScriptComponent can be constructed (e.g. for serialization or
-  // headless tooling) even when the scripting module isn't running.
+    m_scriptName(scriptName) {
+      
   if (ScriptEngine::isStarted()) {
     ScriptEngine::instance().initializeScript(this);
   }
 }
 
 ScriptComponent::ScriptComponent(SceneNode* owner)
-  : ComponentT<ScriptComponent>(owner),
-    m_scriptName(),
-    m_initialized(false) {
+  : ComponentT<ScriptComponent>(owner) {
   // Deferred: no script yet — onDeserialize sets the name and re-binds.
+}
+
+ScriptComponent::~ScriptComponent() {
+  if (m_initialized && ScriptEngine::isStarted()) {
+    callHook(m_onDestroyed);
+  }
+}
+
+void
+ScriptComponent::onAttached() {
+  m_linked = true;
+  
+  triggerOnCreated();
 }
 
 void
@@ -36,7 +45,38 @@ ScriptComponent::onUpdate(float deltaTime) {
     return;
   }
 
-  sol::protected_function_result result = m_script(getOwner(), deltaTime);
+  if (!m_started) {
+    m_started = true;
+    callHook(m_onStart);
+  }
+
+  if (!m_onUpdate.valid()) {
+    return;
+  }
+
+  sol::protected_function_result result = m_onUpdate(getOwner(), deltaTime);
+  if (!result.valid()) {
+    const sol::error err = result;
+    // TODO: log error
+    fprintf(stderr, "[Script] %s: %s\n", m_scriptName.c_str(), err.what());
+  }
+}
+
+void
+ScriptComponent::triggerOnCreated() {
+  if (m_initialized && m_linked && !m_created) {
+    m_created = true;
+    callHook(m_onCreated);
+  }
+}
+
+void
+ScriptComponent::callHook(const sol::protected_function& fn) {
+  if (!fn.valid()) {
+    return;
+  }
+
+  sol::protected_function_result result = fn(getOwner());
   if (!result.valid()) {
     const sol::error err = result;
     // TODO: log error
@@ -59,10 +99,14 @@ ScriptComponent::onDeserialize(DataStream& stream) {
   }
 
   m_scriptName  = stream.readString();
+  
   m_initialized = false;
-  // Re-bind the Lua function from the name, when the ScriptEngine is available.
+  m_created     = false;
+  m_started     = false;
+  
   if (!m_scriptName.empty() && ScriptEngine::isStarted()) {
     ScriptEngine::instance().initializeScript(this);
+    triggerOnCreated();
   }
 }
 

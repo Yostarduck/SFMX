@@ -37,12 +37,19 @@ ScriptEngine::loadScript(ScriptComponent* scriptComponent) {
     return;
   }
 
-  if (sol::type::function != returned.get_type()) {
-    fprintf(stderr, "[Script] %s must return a function\n", scriptName.c_str());
+  if (sol::type::table != returned.get_type()) {
+    fprintf(stderr,
+            "[Script] %s must return a table of lifecycle hooks\n",
+            scriptName.c_str());
     return;
   }
+  
+  const sol::table hooks = returned;
+  scriptComponent->m_onCreated   = hooks["onCreated"];
+  scriptComponent->m_onStart     = hooks["onStart"];
+  scriptComponent->m_onUpdate    = hooks["onUpdate"];
+  scriptComponent->m_onDestroyed = hooks["onDestroyed"];
 
-  scriptComponent->m_script = returned;
   scriptComponent->m_initialized = true;
 }
 

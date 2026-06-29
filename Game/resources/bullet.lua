@@ -8,11 +8,28 @@ local maxLifetime = 1.0
 
 -- Script driven by a ScriptComponent.
 --
--- The component runs the function returned below, passing the owning SceneNode
--- as `self` and the frame delta as `deltaTime`. `self` is a C++ object exposed
--- to Lua, so we can call methods straight on it.
+-- A script must return a table of optional lifecycle hooks, as below. Each hook
+-- receives the owning SceneNode as `self`; onUpdate also receives the frame
+-- delta.
+--
+--   onCreated(self)            -- once, after the component is linked to the node
+--   onStart(self)              -- once, just before the first onUpdate
+--   onUpdate(self, deltaTime)  -- every frame
+--   onDestroyed(self)          -- once, when the component is destroyed
+--
 -- Two nodes can share this same file but each receives its own owner.
-function update(self, deltaTime)  
+local Bullet = {}
+
+function Bullet.onCreated(self)
+  -- The node is fully linked here, so owner queries like getName() are valid.
+  print("[bullet] created on node: " .. self:getName())
+end
+
+function Bullet.onStart(self)
+  lifetime = 0.0
+end
+
+function Bullet.onUpdate(self, deltaTime)
   local myTransform = self:transform()
   local rotation = myTransform:getRotation()
   local movement = Vector2f(1, 0):rotatedBy(rotation)
@@ -24,4 +41,8 @@ function update(self, deltaTime)
   end
 end
 
-return update
+function Bullet.onDestroyed(self)
+  print("[bullet] destroyed node: " .. self:getName())
+end
+
+return Bullet

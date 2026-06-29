@@ -105,6 +105,8 @@ SceneNode::linkComponent(Component* component) {
     m_firstComponent = component;
   }
   m_lastComponent = component;
+  
+  component->onAttached();
 }
 
 void
