@@ -59,6 +59,7 @@ add_library(FrameworkGame STATIC
     source/resource/SpriteAtlas.cpp
 
     source/scene/Scene.cpp
+    source/scene/SceneManager.cpp
     source/scene/SceneNode.cpp
     source/scene/Component.cpp
     source/scene/ComponentRegistry.cpp
