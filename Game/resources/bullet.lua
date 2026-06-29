@@ -11,7 +11,7 @@ local maxLifetime = 1.0
 -- The component runs the function returned below, passing the owning SceneNode
 -- as `self` and the frame delta as `deltaTime`. `self` is a C++ object exposed
 -- to Lua, so we can call methods straight on it.
--- Two nodes share this same file but each receives its own owner.
+-- Two nodes can share this same file but each receives its own owner.
 function update(self, deltaTime)  
   local myTransform = self:transform()
   local rotation = myTransform:getRotation()
