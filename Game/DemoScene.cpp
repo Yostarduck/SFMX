@@ -13,6 +13,8 @@
 #include "scene/ParticleSystemComponent.h"
 #include "scene/ScriptComponent.h"
 #include "scene/ComponentRegistry.h"
+#include "scene/CanvasComponent.h"
+#include "ui/UIButton.h"
 
 #include "resource/SpriteAtlas.h"
 #include "resource/Frame.h"
@@ -121,6 +123,8 @@ registerDemoPools(MemoryPoolHandler& pools) {
   pools.registerPool<ColliderComponent>(64);
   pools.registerPool<RigidBodyComponent>(64);
   pools.registerPool<ScriptComponent>(1024);
+  pools.registerPool<UIButton>(64);
+  pools.registerPool<CanvasComponent>(8);
 }
 
 void
@@ -136,6 +140,8 @@ registerDemoComponents() {
   reg.registerComponent<ColliderComponent>();
   reg.registerComponent<RigidBodyComponent>();
   reg.registerComponent<ScriptComponent>();
+  reg.registerComponent<CanvasComponent>();
+  reg.registerComponent<UIButton>();
 }
 
 void

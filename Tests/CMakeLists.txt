@@ -16,6 +16,7 @@ add_executable(UnitTests
     SpriteComponentSerializationTest.cpp
     ScriptComponentSerializationTest.cpp
     SourceComponentSerializationTest.cpp
+    UIButtonSerializationTest.cpp
     AnimatorComponentSerializationTest.cpp
     ParticleSystemComponentSerializationTest.cpp
     AssetCookerTest.cpp

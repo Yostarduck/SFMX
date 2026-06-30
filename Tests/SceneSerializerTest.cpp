@@ -192,3 +192,4 @@ TEST_CASE("SceneSerializer round-trips through a .sfmxasset on disk") {
 
   FileSystem::removeAll(dir);
 }
+
