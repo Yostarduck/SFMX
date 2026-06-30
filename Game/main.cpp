@@ -12,6 +12,7 @@
 #include "input/Mouse.h"
 
 #include "scene/Scene.h"
+#include "scene/SceneManager.h"
 #include "scene/SourceComponent.h"
 #include "scene/SceneSerializer.h"
 #include "scene/ComponentRegistry.h"
@@ -61,34 +62,39 @@ int main(int argc, char** argv)
   sf::RenderWindow window(sf::VideoMode({windowWidth, windowHeight}), windowTitle);
   window.setVerticalSyncEnabled(enableVSync);
 
-  // Engine modules. Order matters: pooled scene nodes/components are destroyed at
-  // MemoryPoolHandler::shutDown(), so the pools (and the AssetManager whose
-  // sf::Textures they reference) are torn down after the scene, while SFML lives.
+  // Engine modules. Order matters: SceneManager clears its scenes at shutDown
+  // (returning pooled nodes/components), so it is torn down before the pools,
+  // and the AssetManager whose sf::Textures they reference is torn down last.
   InputSystem::startUp();
   PhysicsSystem::startUp();
   MemoryPoolHandler::startUp(4096);
   ScriptEngine::startUp();
   ComponentRegistry::startUp();
+  SceneManager::startUp();
 
   demo::registerDemoPools(MemoryPoolHandler::instance());
   demo::registerDemoComponents();
 
   // Mount the cooked .sfmxasset directory (the build's POST_BUILD step runs
-  // `Game --cook` then `Game --cook-scene`, so Game/assets is populated).
+  // `Game --cook` then `Game --cook-scene`, so Game/assets is populated). Images
+  // resolve by UUID through the AssetManager; audio stays mp3-by-path (streams).
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
   const size_t mountedAssets = AssetManager::instance().mount("Game/assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from Game/assets\n";
 
-  // Load the cooked demo scene; fall back to building it in code (dev
-  // convenience if `--cook-scene` has not run yet).
-  Scene scene("Main");
-  if (!SceneSerializer::loadFromFile(scene, demo::kSceneFile)) {
+  // Load the cooked demo scene into a SceneManager-owned scene; fall back to
+  // building it in code (dev convenience if `--cook-scene` has not run yet).
+  SceneManager& scenes = SceneManager::instance();
+  Scene* scenePtr = scenes.loadScene("Main", demo::kSceneFile);
+  if (nullptr == scenePtr) {
     std::cerr << "[Scene] could not load " << demo::kSceneFile
               << " (run `Game --cook-scene`); building in code\n";
-    demo::buildDemoScene(scene, static_cast<float>(windowWidth),
+    scenePtr = scenes.createScene("Main");
+    demo::buildDemoScene(*scenePtr, static_cast<float>(windowWidth),
                          static_cast<float>(windowHeight));
   }
+  Scene& scene = *scenePtr;
 
   // Wire the behavior the serialized scene does not carry (active camera,
   // music/animation playback, the refs the game loop drives).
@@ -202,21 +208,22 @@ int main(int argc, char** argv)
     if (nullptr != rt.earth)   { rt.earth->transform().rotate(sf::degrees(215.f * deltaTime)); }
     if (nullptr != rt.neptune) { rt.neptune->transform().rotate(sf::degrees(-15.f * deltaTime)); }
 
-    scene.update(deltaTime);
+    SceneManager::instance().update(deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
-    scene.draw(window);
+    scenes.draw(window);
     window.display();
   }
 
-  scene.clear();
-
   ScriptEngine::shutDown();
+
+  // Shut the scene manager down before the pools: it clears every scene, which
+  // returns pooled nodes/components while the pools (and SFML) are still alive.
+  SceneManager::shutDown();
   ComponentRegistry::shutDown();
+
   InputSystem::shutDown();
   PhysicsSystem::shutDown();
-  // Pools last: ~Scene only drops ids/registry, so pooled nodes/components are
-  // destroyed here while SFML is alive; then the cached assets they referenced.
   MemoryPoolHandler::shutDown();
   AssetManager::shutDown();
 
