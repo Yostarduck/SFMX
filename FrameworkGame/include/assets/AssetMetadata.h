@@ -7,7 +7,16 @@ namespace sfmx
 {
 
 /**
- * @brief Payload encoding of a chunk; a codec reads this to know how to decode.
+ * @brief Payload encoding of a chunk: the true byte format of the chunk.
+ *
+ * Describes *what the bytes are*, accurately. A self-describing media decoder may
+ * still sniff the bytes (e.g. SFML's @c loadFromMemory) instead of trusting this,
+ * but the tag stays honest for tooling, re-cook decisions, and any future decoder
+ * that dispatches on it. @c kRaw is reserved for genuinely engine-native/opaque
+ * bytes (scene blob, mesh, raw pixels); a foreign media format is never @c kRaw.
+ *
+ * Serialized to disk as @c uint16, so values are **append-only**: add new formats
+ * at the end, never renumber, or old cooked files would misread.
  * @see ChunkCompression
  */
 enum class ChunkFormat : uint16 {
@@ -15,6 +24,10 @@ enum class ChunkFormat : uint16 {
   kWebP = 1,
   kPng  = 2,
   kOgg  = 3,
+  kJpeg = 4,
+  kBmp  = 5,
+  kWav  = 6,
+  kFlac = 7,
 };
 
 /** @brief Whether a chunk's on-disk bytes are compressed (and with what). */
@@ -46,7 +59,7 @@ constexpr size_t kAssetMetadataBytes =
  * stable regardless of compiler padding. The on-disk size is fixed
  * (@ref kAssetMetadataBytes): bounded char arrays + a UUID pair + scalars.
  *
- * The file's own path is intentionally NOT stored here — the AssetManager knows
+ * The file's own path is intentionally NOT stored here; the AssetManager knows
  * it from the directory scan, and embedding it would desync if the file moves.
  * @c sourcePath is the original authoring file (for future re-cook), empty if none.
  */

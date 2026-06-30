@@ -480,6 +480,10 @@ vcpkg_installed/
 # Test output & cache
 Testing/
 
+# Cooked assets (regenerable build artifacts; produce with `Game.exe --cook`).
+# The editable sources live in Game/resources/ and stay tracked.
+Game/assets/
+
 # Claude folder and files
 CLAUDE.md
 .claude/

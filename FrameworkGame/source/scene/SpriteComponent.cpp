@@ -15,7 +15,7 @@ namespace sfmx
 
 namespace {
 /** @brief SpriteComponent blob layout version; bump on format changes. */
-constexpr uint32 kSpriteComponentVersion = 1;
+constexpr uint32 kSpriteComponentVersion = 2;  // v2: + sprite scale
 } // namespace
 
 SpriteComponent::SpriteComponent(SceneNode* owner)
@@ -322,6 +322,8 @@ SpriteComponent::onSerialize(DataStream& stream) const
     stream << rect.position.x << rect.position.y << rect.size.x << rect.size.y;
     const sf::Color color = m_sprite->getColor();
     stream << color.r << color.g << color.b << color.a;
+    const sf::Vector2f scale = m_sprite->getScale();
+    stream << scale.x << scale.y;
   }
 }
 
@@ -359,9 +361,13 @@ SpriteComponent::onDeserialize(DataStream& stream)
     uint8 cb = 0;
     uint8 ca = 255;
     stream >> cr >> cg >> cb >> ca;
+    float sx = 1.f;
+    float sy = 1.f;
+    stream >> sx >> sy;
     if (nullptr != m_sprite) {
       m_sprite->setTextureRect(sf::IntRect({rx, ry}, {rw, rh}));
       m_sprite->setColor(sf::Color(cr, cg, cb, ca));
+      m_sprite->setScale({sx, sy});
     }
   }
 }

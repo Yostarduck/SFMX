@@ -36,6 +36,7 @@ add_library(FrameworkGame STATIC
     source/core/physics/PhysicsSystem.cpp
 
     source/assets/AssetFile.cpp
+    source/assets/AssetCooker.cpp
     source/assets/AssetCodecRegistry.cpp
     source/assets/TextureAsset.cpp
     source/assets/TextureCodec.cpp
@@ -64,6 +65,7 @@ add_library(FrameworkGame STATIC
 
     source/scene/CanvasComponent.cpp
     source/scene/Scene.cpp
+    source/scene/SceneManager.cpp
     source/scene/SceneNode.cpp
     source/scene/Component.cpp
     source/scene/ComponentRegistry.cpp
