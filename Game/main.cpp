@@ -21,15 +21,18 @@
 #include "ui/Canvas.h"
 #include "ui/UIEventSystem.h"
 #include "ui/UIButton.h"
+#include "ui/UILabel.h"
+#include "ui/UIImage.h"
+
+#include "assets/AssetManager.h"
+#include "assets/TextureAsset.h"
+#include "assets/AssetCooker.h"
+#include "assets/TextureCodec.h"
 
 #include "utils/MemoryPoolHandler.h"
 #include "utils/EventSystem.h"
 
 #include "scripts/ScriptEngine.h"
-
-#include "assets/AssetCooker.h"
-#include "assets/AssetManager.h"
-#include "assets/TextureCodec.h"
 
 #include "DemoScene.h"
 #include "DemoCook.h"
@@ -244,6 +247,48 @@ int main(int argc, char** argv)
     std::cout << "[UI] Exit submitted via keyboard — closing window\n";
     window.close();
   });
+
+  // ── UILabel demo ──────────────────────────────────────────────────────
+  auto font = MakeShared<sf::Font>();
+  // Try common font paths across Linux distros.
+  const char* fontPaths[] = {
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/Hack-Regular.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/TTF/MesloLGS-NF-Regular.ttf",
+  };
+  bool fontLoaded = false;
+  for (const char* fp : fontPaths) {
+    if (font->openFromFile(fp)) {
+      fontLoaded = true;
+      break;
+    }
+  }
+
+  if (fontLoaded) {
+    auto* lblNode = canvasNode->createChild("TitleLabel");
+    auto* label = lblNode->addComponent<UILabel>(sf::Vector2f{400.f, 40.f});
+    label->setPosition({windowWidth * 0.5f - 200.f, 20.f});
+    label->setFont(font);
+    label->setText("SFMX Engine — UI Widget Demo");
+    label->setCharacterSize(22);
+    label->setTextColor(sf::Color::White);
+    uiCanvas.addWidget(label);
+  } else {
+    std::cout << "[UI] Could not load DejaVuSans font; skipping label\n";
+  }
+
+  // ── UIImage demo ───────────────────────────────────────────────────────
+  SPtr<TextureAsset> uiTex = AssetManager::instance().load<TextureAsset>(
+      sfmx::UUID::createFromName("particle.png"));
+  if (uiTex) {
+    auto* imgNode = canvasNode->createChild("DemoImage");
+    auto* image = imgNode->addComponent<UIImage>(sf::Vector2f{32.f, 32.f});
+    image->setPosition({20.f, 20.f});
+    image->setTextureAsset(uiTex);
+    uiCanvas.addWidget(image);
+  }
 
   std::cout << "[UI] System ready — click buttons or press Escape\n"
             << "[UI] Navigate: Arrow keys / WASD  |  Submit: Space / Enter  |  Cancel: Escape\n";
