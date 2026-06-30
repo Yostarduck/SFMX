@@ -47,7 +47,14 @@ class Scene
    */
   SceneNode* createNode(StringView name, SceneNode* parent = nullptr);
 
-  /** @brief Destroy @p node and its whole subtree, freeing pool slots. */
+  /**
+   * @brief Destroy @p node and its whole subtree, freeing pool slots.
+   *
+   * Outside the per-frame traversal this destroys immediately. When called
+   * during @ref update (e.g. from a script's onUpdate destroying its own node),
+   * the node is instead queued and reclaimed once the traversal finishes, so the
+   * object is never freed while the update loop still holds a pointer to it.
+   */
   void destroyNode(SceneNode* node);
   /** @brief Destroy the node with id @p id (if any) and its subtree. */
   void destroyNode(NodeId id);
@@ -87,11 +94,22 @@ class Scene
   void unregisterNode(NodeId id);
   void destroyNodeRecursive(SceneNode* node);
 
+  /** @brief Destroy every node queued by @ref destroyNode during the traversal. */
+  void flushDestroyQueue();
+
   Array<char, kMaxNameLength> m_name;
   SceneNode* m_root;
   Vector<CameraComponent*> m_cameras;
   NodeId m_nextId;
   UnorderedMap<NodeId, SceneNode*> m_registry;
+
+  // Nodes whose destruction was deferred because it was requested mid-traversal;
+  // drained by flushDestroyQueue at the end of update. Holds ids (not pointers)
+  // so an entry already freed as a descendant of another queued node resolves to
+  // nullptr and is skipped.
+  Vector<NodeId> m_pendingDestroy;
+  // True while update() is running its traversal; makes destroyNode defer.
+  bool m_updating = false;
 };
 
 }  // namespace sfmx

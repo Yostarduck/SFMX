@@ -12,6 +12,7 @@ SceneNode::SceneNode(NodeId id, StringView name, Scene* scene)
   : m_id(id),
     m_enabled(true),
     m_visible(true),
+    m_pendingDestroy(false),
     m_parent(nullptr),
     m_firstChild(nullptr),
     m_lastChild(nullptr),
@@ -182,7 +183,7 @@ SceneNode::detachFromParent() {
 
 void
 SceneNode::update(float deltaTime) {
-  if (!m_enabled) {
+  if (!m_enabled || m_pendingDestroy) {
     return;
   }
   for (Component* component = m_firstComponent;

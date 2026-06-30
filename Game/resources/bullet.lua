@@ -1,7 +1,7 @@
 -- Simple Lua script to control a bullet
 -- File: bullet.lua
 
-local speed = 2000
+local speed = 100
 
 local lifetime = 0.0
 local maxLifetime = 1.0
@@ -26,9 +26,9 @@ local vy = 0.0
 -- Two nodes can share this same file but each receives its own owner.
 local Bullet = {}
 
-function Bullet.onCreated(self)
+--function Bullet.onCreated(self)
   -- The node is fully linked here, so owner queries like getName() are valid.
-end
+--end
 
 function Bullet.onStart(self)
   lifetime = 0.0
@@ -50,7 +50,7 @@ function Bullet.onUpdate(self, deltaTime)
   end
 end
 
-function Bullet.onDestroyed(self)
-end
+--function Bullet.onDestroyed(self)
+--end
 
 return Bullet

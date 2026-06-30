@@ -1,7 +1,7 @@
 -- Simple Lua script to control a character
 -- File: character.lua
 
-local speed = 500
+local speed = 500.0
 
 -- Script driven by a ScriptComponent.
 --

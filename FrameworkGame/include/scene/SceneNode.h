@@ -163,6 +163,10 @@ class SceneNode
   Array<char, kMaxNameLength> m_name;
   bool m_enabled;
   bool m_visible;
+  // Set by Scene::destroyNode when the node is queued for deferred destruction
+  // during a traversal. While true the node is skipped by update() and is
+  // reclaimed at the end of the frame; see Scene::flushDestroyQueue.
+  bool m_pendingDestroy;
   SceneNode* m_parent;
   SceneNode* m_firstChild;
   SceneNode* m_lastChild;
