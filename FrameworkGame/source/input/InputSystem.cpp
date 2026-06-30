@@ -6,7 +6,6 @@
 #include "input/Gamepad.h"
 #include "input/InputControl.h"
 #include "input/Keyboard.h"
-#include "input/Mapping.h"
 #include "input/Mouse.h"
 
 namespace sfmx
