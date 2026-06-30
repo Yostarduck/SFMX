@@ -136,7 +136,7 @@ for:
 
   on_finish:
     - sh: |
-        URL="$env:WEBHOOK_URL"
+        URL="$WEBHOOK_URL"
         BUILD_URL="$APPVEYOR_URL/project/$APPVEYOR_ACCOUNT_NAME/$APPVEYOR_PROJECT_SLUG/build/$APPVEYOR_BUILD_VERSION"
         SHORT_SHA=$(printf '%.7s' "$APPVEYOR_REPO_COMMIT")
         TEST_STATUS=$(cat test_summary.txt 2>/dev/null || echo "Not run")
