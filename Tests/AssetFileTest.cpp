@@ -66,8 +66,8 @@ TEST_CASE("AssetFile multiple chunks keep tags and offsets") {
   AssetFileWriter writer;
   writer.setMetadata(AssetMetadata{});  // all defaults
 
-  const Vector<uint8> a = {1, 2, 3};
-  const Vector<uint8> b(1000, 0xABu);
+  const Vector<uint8> a(1000, 0xABu);   // highly compressible (zstd shrinks it)
+  const Vector<uint8> b = {1, 2, 3};
   const Vector<uint8> empty;
 
   writer.addChunk(a.data(), a.size(), ChunkFormat::kRaw, ChunkCompression::kZstd);
@@ -81,21 +81,50 @@ TEST_CASE("AssetFile multiple chunks keep tags and offsets") {
   AssetFileReader reader;
   REQUIRE(reader.open(buffer));
   REQUIRE(reader.chunkCount() == 3u);
+  // Chunk 0 was actually zstd-compressed: tag kept and on-disk size < raw size.
   CHECK(reader.chunk(0).compression == ChunkCompression::kZstd);
+  CHECK(reader.chunk(0).rawSize == a.size());
+  CHECK(reader.chunk(0).size < reader.chunk(0).rawSize);
   CHECK(reader.chunk(1).format == ChunkFormat::kOgg);
   CHECK(reader.chunk(2).size == 0u);
-  // Chunks are laid out back to back: chunk 1 starts right after chunk 0.
+  // Chunks are laid out back to back: chunk 1 starts right after chunk 0 (by the
+  // on-disk/compressed size).
   CHECK(reader.chunk(1).offset == reader.chunk(0).offset + reader.chunk(0).size);
 
   Vector<uint8> r0;
   Vector<uint8> r1;
   Vector<uint8> r2;
-  REQUIRE(reader.readChunk(0, r0));
+  REQUIRE(reader.readChunk(0, r0));  // transparently inflated back to the original
   REQUIRE(reader.readChunk(1, r1));
   REQUIRE(reader.readChunk(2, r2));
   CHECK(r0 == a);
   CHECK(r1 == b);
   CHECK(r2.empty());
+}
+
+TEST_CASE("AssetFile zstd falls back to uncompressed when it would not shrink") {
+  AssetFileWriter writer;
+  writer.setMetadata(AssetMetadata{});
+
+  // 3 bytes: zstd's frame overhead exceeds the input, so the writer stores it raw
+  // and clears the tag (the no-grow fallback) rather than bloating the chunk.
+  const Vector<uint8> tiny = {1, 2, 3};
+  writer.addChunk(tiny.data(), tiny.size(), ChunkFormat::kRaw, ChunkCompression::kZstd);
+
+  auto buffer = MakeShared<MemoryDataStream>();
+  REQUIRE(writer.writeTo(*buffer));
+  buffer->seek(0);
+
+  AssetFileReader reader;
+  REQUIRE(reader.open(buffer));
+  REQUIRE(reader.chunkCount() == 1u);
+  CHECK(reader.chunk(0).compression == ChunkCompression::kNone);  // downgraded
+  CHECK(reader.chunk(0).size == tiny.size());
+  CHECK(reader.chunk(0).rawSize == tiny.size());
+
+  Vector<uint8> r0;
+  REQUIRE(reader.readChunk(0, r0));
+  CHECK(r0 == tiny);
 }
 
 TEST_CASE("AssetFile rejects a non-SFMX stream") {
