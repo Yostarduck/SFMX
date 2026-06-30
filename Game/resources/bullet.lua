@@ -1,10 +1,13 @@
 -- Simple Lua script to control a bullet
 -- File: bullet.lua
 
-local speed = 2000
+local speed = 100
 
 local lifetime = 0.0
 local maxLifetime = 1.0
+
+local myTransform
+local movement = Vector2f(0, 0)
 
 -- Script driven by a ScriptComponent.
 --
@@ -22,17 +25,17 @@ local Bullet = {}
 
 function Bullet.onCreated(self)
   -- The node is fully linked here, so owner queries like getName() are valid.
-  print("[bullet] created on node: " .. self:getName())
-end
-
-function Bullet.onStart(self)
+  
   lifetime = 0.0
 end
 
-function Bullet.onUpdate(self, deltaTime)
-  local myTransform = self:transform()
+function Bullet.onStart(self)
+  myTransform = self:transform()
   local rotation = myTransform:getRotation()
-  local movement = Vector2f(1, 0):rotatedBy(rotation)
+  movement = Vector2f(1, 0):rotatedBy(rotation)
+end
+
+function Bullet.onUpdate(self, deltaTime)
   myTransform:move(movement * speed * deltaTime)
 
   lifetime = lifetime + deltaTime
@@ -42,7 +45,7 @@ function Bullet.onUpdate(self, deltaTime)
 end
 
 function Bullet.onDestroyed(self)
-  print("[bullet] destroyed node: " .. self:getName())
+  
 end
 
 return Bullet

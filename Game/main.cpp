@@ -39,6 +39,7 @@
 #include "assets/TextureAsset.h"
 #include "assets/TextureCodec.h"
 
+#include <cmath>
 #include <cstring>
 
 using namespace sfmx;
@@ -432,68 +433,8 @@ int main(int argc, char** argv)
   }
   
 
-  // InputSystem: Example of "Mapping Mode", you create a "Mapping", which
-  // contains a "Map", a map contains "Actions", an action contains "Bindings",
-  // a binding defines what inputs trigger the action, it also has an
-  // "Interaction" type, and "Processors", an interaction defines the conditions
-  // of the input to trigger the action, and the processor is a modification to
-  // the input value before paasing it to the callback.
-  // Demo: Jump (tap), Crouch (hold), Move (passthrough Vector2, normalized).
-  Mapping* controls = InputSystem::instance().createMapping("DefaultControls");
-  ActionMap* gameplay = controls->addMap("Gameplay");
-
-  InputAction* jump = gameplay->addAction("Jump", ActionValueType::kButton);
-  jump->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kSpace), -1, false});
-  Interaction tap;
-  tap.m_type = InteractionType::kTap;
-  tap.m_duration = 0.2f;
-  jump->setInteraction(tap);
-
-  InputAction* crouch = gameplay->addAction("Crouch", ActionValueType::kButton);
-  crouch->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kLControl), -1, false});
-  Interaction hold;
-  hold.m_type = InteractionType::kHold;
-  hold.m_duration = 0.4f;
-  crouch->setInteraction(hold);
-
-  InputAction* move = gameplay->addAction("Move", ActionValueType::kAxis2D);
-  CompositeBinding& moveComposite = move->addComposite(CompositeType::kVector2D);
-  moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kA), -1, false}, CompositeRole::kNegativeX, {}});
-  moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kD), -1, false}, CompositeRole::kPositiveX, {}});
-  moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kS), -1, false}, CompositeRole::kNegativeY, {}});
-  moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kW), -1, false}, CompositeRole::kPositiveY, {}});
-  move->addProcessor(Processor{ProcessorType::kNormalize, {}, {}});
-
-  InputSystem::instance().setActiveMapping(controls);
-
-  HEvent jumpSub = jump->onPerformed([](const InputContext&) {
-    std::cout << "[Action] Jump performed\n";
-  });
-  HEvent crouchSub = crouch->onPerformed([](const InputContext&) {
-    std::cout << "[Action] Crouch performed (held past threshold)\n";
-  });
-  HEvent crouchStart = crouch->onStarted([](const InputContext&) {
-    std::cout << "[Action] Crouch started\n";
-  });
-  HEvent crouchEnd = crouch->onCanceled([](const InputContext&) {
-    std::cout << "[Action] Crouch canceled\n";
-  });
-  float moveReportTimer = 0.1f;
-  HEvent moveSub = move->onPerformed([&moveReportTimer](const InputContext& ctx) {
-    // Performed fires every non-zero frame; throttle the print.
-    moveReportTimer += ctx.m_deltaTime;
-    if (moveReportTimer >= 0.1f) {
-      const Vector2f value = ctx.m_value.asVector2();
-      std::cout << "[Action] Move (" << value.x << ", " << value.y << ")\n";
-      moveReportTimer = 0.f;
-    }
-  });
-
   sf::Clock clock;
+  
   std::cout << "Random demo:\n"
             << "Get: "    << Random::get<float>()       << "\n"
             << "Get: "    << Random::get<float>()       << "\n"
@@ -534,20 +475,22 @@ int main(int argc, char** argv)
     if (Keyboard::instance().wasPressedThisFrame(Key::kEscape)) {
       window.close();
     }
-    if (Keyboard::instance().wasPressedThisFrame(Key::kSpace)) {
-      std::cout << "[Input] Space pressed\n";
-      moonSfx->stop();
-      moonSfx->play();
-    }
-    if (Mouse::instance().wasPressedThisFrame(MouseButton::kLeft)) {
-      const Vector2i pos = Mouse::instance().getPosition();
-      std::cout << "[Input] Left click at (" << pos.x << ", " << pos.y << ")\n";
-    }
-    if (Gamepad::instance().isConnected(0)) {
-      const float lx = Gamepad::instance().get(0).getAxis(Axis::kLeftX);
-      if (lx != 0.f) {
-        std::cout << "[Input] Gamepad 0 LeftX = " << lx << "\n";
-      }
+
+    if (Keyboard::instance().wasPressedThisFrame(Key::kI)) {
+      std::cout << "[Info] FPS: " << std::ceil(1.0f / deltaTime) << "\n";
+      std::cout << "[Info] Scene total nodes: " << SceneManager::instance().getActiveScene()->getNodeCount() << "\n";
+      std::cout << "[Info] Total SceneNode elements: " << MemoryPoolHandler::instance().pool<SceneNode>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total CircleComponent elements: " << MemoryPoolHandler::instance().pool<CircleComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total SourceComponent elements: " << MemoryPoolHandler::instance().pool<SourceComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total ListenerComponent elements: " << MemoryPoolHandler::instance().pool<ListenerComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total CameraComponent elements: " << MemoryPoolHandler::instance().pool<CameraComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total SpriteComponent elements: " << MemoryPoolHandler::instance().pool<SpriteComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total AnimatorComponent elements: " << MemoryPoolHandler::instance().pool<AnimatorComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total Particle elements: " << MemoryPoolHandler::instance().pool<Particle>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total ParticleSystemComponent elements: " << MemoryPoolHandler::instance().pool<ParticleSystemComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total ColliderComponent elements: " << MemoryPoolHandler::instance().pool<ColliderComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total RigidBodyComponent elements: " << MemoryPoolHandler::instance().pool<RigidBodyComponent>().getAllocatedCount() << std::endl;
+      std::cout << "[Info] Total ScriptComponent elements: " << MemoryPoolHandler::instance().pool<ScriptComponent>().getAllocatedCount() << std::endl;
     }
 
     // Rotating the parent drags the child with it: proof of transform

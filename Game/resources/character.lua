@@ -1,7 +1,7 @@
 -- Simple Lua script to control a character
 -- File: character.lua
 
-local speed = 500
+local speed = 500.0
 
 -- Script driven by a ScriptComponent.
 --
@@ -20,7 +20,7 @@ function Character.onUpdate(self, deltaTime)
   local dKey = Keyboard:isPressed(keyFromString("D"))
   local lShiftKey = Keyboard:isPressed(keyFromString("LShift"))
 
-  local shoot = Mouse:wasPressedThisFrame(MouseButton.Left)
+  local shoot = Mouse:isPressed(MouseButton.Left)
 
   local movement = Vector2f((dKey and 1 or 0) - (aKey and 1 or 0),
                             (sKey and 1 or 0) - (wKey and 1 or 0))
