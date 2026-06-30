@@ -144,6 +144,7 @@ TEST_CASE("SpriteComponent re-resolves a real texture by UUID and round-trips re
   REQUIRE(a->getTextureAsset() != nullptr);
   a->setRect(sf::IntRect({1, 2}, {3, 4}));
   a->setColor(sf::Color(10, 20, 30, 40));
+  a->setScale(0.1f);
   a->flipX(true);
   a->flipY(true);
 
@@ -167,6 +168,7 @@ TEST_CASE("SpriteComponent re-resolves a real texture by UUID and round-trips re
   CHECK(rect.size.x == 3);
   CHECK(rect.size.y == 4);
   CHECK(b->getColor() == sf::Color(10, 20, 30, 40));
+  CHECK(b->getScale() == sf::Vector2f{0.1f, 0.1f});
   CHECK(b->isFlippedX());
   CHECK(b->isFlippedY());
 
