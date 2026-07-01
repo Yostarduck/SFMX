@@ -4,6 +4,11 @@
 namespace sfmx
 {
 
+namespace {
+/** @brief UILabel blob layout version; bump on format changes. */
+constexpr uint32 kUILabelVersion = 1;
+} // namespace
+
 UILabel::UILabel(sf::Vector2f size)
   : UIWidgetT<UILabel, WidgetType::kLabel>(),
     ComponentT<UILabel>(nullptr) {
@@ -41,8 +46,7 @@ void UILabel::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
 }
 
 void UILabel::onSerialize(DataStream& stream) const {
-  constexpr uint32 kVersion = 1;
-  stream << kVersion;
+  stream << kUILabelVersion;
   stream.writeString(m_text ? m_text->getString().toAnsiString() : String());
   stream << static_cast<uint32>(m_text ? m_text->getCharacterSize() : 20);
   const sf::Color c = m_text ? m_text->getFillColor() : sf::Color::White;
@@ -53,7 +57,7 @@ void UILabel::onDeserialize(DataStream& stream) {
   // TODO: When the FontAsset is made, add here the UUID
   uint32 version = 0;
   stream >> version;
-  if (version != 1) {
+  if (version != kUILabelVersion) {
     return;
   }
 

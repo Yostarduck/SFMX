@@ -15,7 +15,7 @@ namespace sfmx
 
 namespace {
 /** @brief SpriteComponent blob layout version; bump on format changes. */
-constexpr uint32 kSpriteComponentVersion = 2;  // v2: + sprite scale
+constexpr uint32 kSpriteComponentVersion = 3;  // v3: + sprite position/rotation/origin
 } // namespace
 
 SpriteComponent::SpriteComponent(SceneNode* owner)
@@ -324,6 +324,11 @@ SpriteComponent::onSerialize(DataStream& stream) const
     stream << color.r << color.g << color.b << color.a;
     const sf::Vector2f scale = m_sprite->getScale();
     stream << scale.x << scale.y;
+    const sf::Vector2f position = m_sprite->getPosition();
+    stream << position.x << position.y;
+    stream << m_sprite->getRotation().asRadians();
+    const sf::Vector2f origin = m_sprite->getOrigin();
+    stream << origin.x << origin.y;
   }
 }
 
@@ -364,10 +369,19 @@ SpriteComponent::onDeserialize(DataStream& stream)
     float sx = 1.f;
     float sy = 1.f;
     stream >> sx >> sy;
+    float px = 0.f;
+    float py = 0.f;
+    float rot = 0.f;
+    float ox = 0.f;
+    float oy = 0.f;
+    stream >> px >> py >> rot >> ox >> oy;
     if (nullptr != m_sprite) {
       m_sprite->setTextureRect(sf::IntRect({rx, ry}, {rw, rh}));
       m_sprite->setColor(sf::Color(cr, cg, cb, ca));
       m_sprite->setScale({sx, sy});
+      m_sprite->setPosition({px, py});
+      m_sprite->setRotation(sf::radians(rot));
+      m_sprite->setOrigin({ox, oy});
     }
   }
 }
