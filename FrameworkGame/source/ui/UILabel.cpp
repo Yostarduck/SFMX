@@ -50,6 +50,7 @@ void UILabel::onSerialize(DataStream& stream) const {
 }
 
 void UILabel::onDeserialize(DataStream& stream) {
+  // TODO: When the FontAsset is made, add here the UUID
   uint32 version = 0;
   stream >> version;
   if (version != 1) {

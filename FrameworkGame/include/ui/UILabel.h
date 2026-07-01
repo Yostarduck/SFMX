@@ -80,6 +80,7 @@ class UILabel final : public UIWidgetT<UILabel, WidgetType::kLabel>, public Comp
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
   mutable UniquePtr<sf::Text> m_text;
+  // TODO: Create later a FontAsset class for fonts
   SPtr<sf::Font> m_font;
 };
 

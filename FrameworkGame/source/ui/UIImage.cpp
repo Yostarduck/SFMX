@@ -8,6 +8,11 @@
 namespace sfmx
 {
 
+namespace
+{
+constexpr uint32 kUIImageVersion = 1;
+}
+
 UIImage::UIImage(sf::Vector2f size)
   : UIWidgetT<UIImage, WidgetType::kImage>(),
     ComponentT<UIImage>(nullptr) {
@@ -81,19 +86,24 @@ void UIImage::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
 
   const sf::Vector2f pos = getPosition();
   const sf::Vector2f size = getSize();
+  const sf::FloatRect bounds = m_sprite->getLocalBounds();
+
+  // Guard against degenerate texture (division by zero).
+  if (bounds.size.x <= 0.f || bounds.size.y <= 0.f) {
+    return;
+  }
 
   m_sprite->setPosition(pos);
   m_sprite->setScale({
-    (m_flipX ? -1.f : 1.f) * (size.x / m_sprite->getLocalBounds().size.x),
-    (m_flipY ? -1.f : 1.f) * (size.y / m_sprite->getLocalBounds().size.y)
+    (m_flipX ? -1.f : 1.f) * (size.x / bounds.size.x),
+    (m_flipY ? -1.f : 1.f) * (size.y / bounds.size.y)
   });
 
   target.draw(*m_sprite, states);
 }
 
 void UIImage::onSerialize(DataStream& stream) const {
-  constexpr uint32 kVersion = 1;
-  stream << kVersion;
+  stream << kUIImageVersion;
   stream << m_textureAssetId;
   stream << static_cast<uint8>(m_flipX ? 1 : 0);
   stream << static_cast<uint8>(m_flipY ? 1 : 0);
@@ -110,7 +120,7 @@ void UIImage::onSerialize(DataStream& stream) const {
 void UIImage::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != 1) {
+  if (version != kUIImageVersion) {
     return;
   }
 
