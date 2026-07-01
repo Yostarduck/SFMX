@@ -8,6 +8,7 @@
 #include "utils/MemoryPoolHandler.h"
 #include "assets/AssetManager.h"
 #include "assets/TextureCodec.h"
+#include "assets/LuaCodec.h"
 
 #include <iostream>
 
@@ -29,6 +30,7 @@ cookScene() {
   registerDemoPools(MemoryPoolHandler::instance());
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
+  AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   AssetManager::instance().mount("Game/assets");
 
   Scene scene("Main");

@@ -30,6 +30,7 @@
 #include "assets/AssetCooker.h"
 #include "assets/AssetManager.h"
 #include "assets/TextureCodec.h"
+#include "assets/LuaCodec.h"
 
 #include "DemoScene.h"
 #include "DemoCook.h"
@@ -85,6 +86,7 @@ int main(int argc, char** argv)
   // resolve by UUID through the AssetManager; audio stays mp3-by-path (streams).
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
+  AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   const size_t mountedAssets = AssetManager::instance().mount("Game/assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from Game/assets\n";
 
