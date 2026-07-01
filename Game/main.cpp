@@ -23,6 +23,9 @@
 #include "ui/UIButton.h"
 #include "ui/UILabel.h"
 #include "ui/UIImage.h"
+#include "ui/UISlider.h"
+#include "ui/UITextBox.h"
+#include "ui/UICheckbox.h"
 
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
@@ -108,7 +111,7 @@ int main(int argc, char** argv)
   // music/animation playback, the refs the game loop drives).
   demo::DemoRuntime rt = demo::wireDemoRuntime(scene);
 
-  // InputSystem: "Mapping Mode" demo — a Mapping holds an ActionMap, which holds
+  // InputSystem: "Mapping Mode" demo - a Mapping holds an ActionMap, which holds
   // Actions, each with bindings + an Interaction (tap/hold) and Processors.
   // Jump (tap), Crouch (hold), Move (normalized Vector2).
   Mapping* controls = InputSystem::instance().createMapping("DefaultControls");
@@ -240,11 +243,11 @@ int main(int argc, char** argv)
   });
   HEvent exitSub = btnExit->onPointerClick([&window](sf::Vector2f pos) {
     SFMX_PARAMETER_UNUSED(pos);
-    std::cout << "[UI] Exit clicked — closing window\n";
+    std::cout << "[UI] Exit clicked - closing window\n";
     window.close();
   });
   HEvent exitSubNav = btnExit->onSubmit([&window]() {
-    std::cout << "[UI] Exit submitted via keyboard — closing window\n";
+    std::cout << "[UI] Exit submitted via keyboard - closing window\n";
     window.close();
   });
 
@@ -271,7 +274,7 @@ int main(int argc, char** argv)
     auto* label = lblNode->addComponent<UILabel>(sf::Vector2f{400.f, 40.f});
     label->setPosition({windowWidth * 0.5f - 200.f, 20.f});
     label->setFont(font);
-    label->setText("SFMX Engine — UI Widget Demo");
+    label->setText("SFMX Engine - UI Widget Demo");
     label->setCharacterSize(22);
     label->setTextColor(sf::Color::White);
     uiCanvas.addWidget(label);
@@ -290,7 +293,43 @@ int main(int argc, char** argv)
     uiCanvas.addWidget(image);
   }
 
-  std::cout << "[UI] System ready — click buttons or press Escape\n"
+  // ── UISlider demo ──────────────────────────────────────────────────────
+  auto* sliderNode = canvasNode->createChild("DemoSlider");
+  UISlider* slider = sliderNode->addComponent<UISlider>(sf::Vector2f{250.f, 20.f});
+  slider->setPosition({windowWidth * 0.5f - 125.f, windowHeight * 0.85f});
+  slider->syncColliderToRect();
+  slider->setRange(0.f, 100.f);
+  slider->setValue(50.f);
+  uiCanvas.addWidget(slider);
+
+  HEvent slSub = slider->onValueChanged([](float val) {
+    std::cout << "[UI] Slider value: " << val << "\n";
+  });
+
+  // ── UICheckbox demo ────────────────────────────────────────────────────
+  auto* cbNode = canvasNode->createChild("DemoCheckbox");
+  UICheckbox* checkbox = cbNode->addComponent<UICheckbox>(sf::Vector2f{28.f, 28.f});
+  checkbox->setPosition({60.f, windowHeight * 0.5f});
+  checkbox->syncColliderToRect();
+  uiCanvas.addWidget(checkbox);
+
+  HEvent cbSub = checkbox->onValueChanged([](bool checked) {
+    std::cout << "[UI] Checkbox: " << (checked ? "checked" : "unchecked") << "\n";
+  });
+
+  // ── UITextBox demo ─────────────────────────────────────────────────────
+  if (fontLoaded) {
+    auto* textBoxNode = canvasNode->createChild("DemoTextBox");
+    UITextBox* textBox = textBoxNode->addComponent<UITextBox>(sf::Vector2f{300.f, 40.f});
+    textBox->setPosition({windowWidth * 0.5f - 150.f, windowHeight * 0.75f});
+    textBox->syncColliderToRect();
+    textBox->setFont(font);
+    textBox->setCharacterSize(20);
+    textBox->setPlaceholder("Type here...");
+    uiCanvas.addWidget(textBox);
+  }
+
+  std::cout << "[UI] System ready - interact with the widgets\n"
             << "[UI] Navigate: Arrow keys / WASD  |  Submit: Space / Enter  |  Cancel: Escape\n";
 
   while (window.isOpen())
@@ -303,6 +342,18 @@ int main(int argc, char** argv)
       if (event->is<sf::Event::Closed>())
       {
         window.close();
+      }
+      else if (const auto* text = event->getIf<sf::Event::TextEntered>())
+      {
+        if (auto* textBox = dynamic_cast<UITextBox*>(
+              UIEventSystem::instance().getSelected())) {
+          const char32_t ch = text->unicode;
+          if (ch == 8) {
+            textBox->deleteCharacter();
+          } else if (ch >= 32) {
+            textBox->insertCharacter(static_cast<uint32>(ch));
+          }
+        }
       }
 
       InputSystem::instance().onEvent(*event);
@@ -347,9 +398,6 @@ int main(int argc, char** argv)
 
     window.clear(sf::Color(24, 24, 28));
     scenes.draw(window);
-    // Screen-space canvas: reset the view so coordinates match window pixels.
-    window.setView(window.getDefaultView());
-    uiCanvas.draw(window, sf::RenderStates::Default);
     window.display();
   }
 

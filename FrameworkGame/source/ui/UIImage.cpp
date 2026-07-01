@@ -80,6 +80,7 @@ sf::IntRect UIImage::getTextureRect() const {
 }
 
 void UIImage::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
+  if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible() || !m_sprite) {
     return;
   }

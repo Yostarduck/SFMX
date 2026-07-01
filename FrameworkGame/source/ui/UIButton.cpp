@@ -51,6 +51,7 @@ void UIButton::onPointerUp(sf::Vector2f position) {
 // -- Drawing -----------------------------------------------------------------
 
 void UIButton::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
+  if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible()) {
     return;
   }

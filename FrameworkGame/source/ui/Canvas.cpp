@@ -63,12 +63,13 @@ UIWidget* Canvas::hitTest(sf::Vector2f localPoint) const {
 
 void Canvas::draw(sf::RenderTarget& target, sf::RenderStates states) const {
   states.transform *= m_transform;
-
+  UIWidget::s_canvasDrawing = true;
   for (auto* w : m_widgets) {
     if (w->isVisible()) {
       w->onDraw(target, states);
     }
   }
+  UIWidget::s_canvasDrawing = false;
 }
 
 } // namespace sfmx
