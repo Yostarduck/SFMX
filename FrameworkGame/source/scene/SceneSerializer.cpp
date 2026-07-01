@@ -198,7 +198,10 @@ SceneSerializer::saveToFile(const Scene& scene, const FileSystemPath& path) {
   meta.assetType = sceneAssetType();
   std::snprintf(meta.name, sizeof(meta.name), "%s", scene.getName());
   writer.setMetadata(meta);
-  writer.addChunk(blob.data(), blob.size(), ChunkFormat::kRaw);
+  // The scene blob is structured/raw data (very compressible), so cook it zstd-
+  // compressed; the reader inflates it transparently on load. (Falls back to
+  // uncompressed automatically if it would not shrink — see AssetFileWriter.)
+  writer.addChunk(blob.data(), blob.size(), ChunkFormat::kRaw, ChunkCompression::kZstd);
 
   SPtr<DataStream> out = FileSystem::createAndOpenFile(FileSystem::resolve(path));
   if (nullptr == out) {

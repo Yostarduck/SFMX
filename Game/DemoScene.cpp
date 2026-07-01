@@ -15,6 +15,8 @@
 #include "scene/ComponentRegistry.h"
 #include "scene/CanvasComponent.h"
 #include "ui/UIButton.h"
+#include "ui/UILabel.h"
+#include "ui/UIImage.h"
 
 #include "resource/SpriteAtlas.h"
 #include "resource/Frame.h"
@@ -124,6 +126,8 @@ registerDemoPools(MemoryPoolHandler& pools) {
   pools.registerPool<RigidBodyComponent>(64);
   pools.registerPool<ScriptComponent>(1024);
   pools.registerPool<UIButton>(64);
+  pools.registerPool<UILabel>(64);
+  pools.registerPool<UIImage>(64);
   pools.registerPool<CanvasComponent>(8);
 }
 
@@ -142,6 +146,8 @@ registerDemoComponents() {
   reg.registerComponent<ScriptComponent>();
   reg.registerComponent<CanvasComponent>();
   reg.registerComponent<UIButton>();
+  reg.registerComponent<UILabel>();
+  reg.registerComponent<UIImage>();
 }
 
 void

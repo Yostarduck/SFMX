@@ -61,7 +61,8 @@ class SFMX_UTILITY_EXPORT AssetFileWriter
 
  private:
   struct PendingChunk {
-    Vector<uint8>    data;
+    Vector<uint8>    data;                            // on-disk bytes (compressed if compression != kNone)
+    uint64           rawSize     = 0;                 // bytes before compression
     ChunkFormat      format      = ChunkFormat::kRaw;
     ChunkCompression compression = ChunkCompression::kNone;
   };
