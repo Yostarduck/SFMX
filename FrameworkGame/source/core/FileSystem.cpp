@@ -1,6 +1,7 @@
 #include "core/FileSystem.h"
 
 #include <filesystem>
+#include <iostream>
 
 // Platform headers for locating the executable (only the active OS branch).
 #if USING(SFMX_PLATFORM_WIN32)
@@ -153,11 +154,10 @@ FileSystem::tempDirectory() {
   return fs::temp_directory_path(ec);
 }
 
-FileSystemPath
+const FileSystemPath&
 FileSystem::executableDir() {
   // Computed once: the executable's location does not change while it runs.
   static const FileSystemPath dir = []() -> FileSystemPath {
-    std::error_code ec;
 #if USING(SFMX_PLATFORM_WIN32)
     wchar_t buffer[MAX_PATH] = {};
     const DWORD len = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
@@ -178,13 +178,21 @@ FileSystem::executableDir() {
       return FileSystemPath(buffer).parent_path();
     }
 #endif
-    return fs::current_path(ec);  // fallback: behave like the old CWD-relative paths
+    // The OS call failed or truncated — very rare. Make noise (in release it
+    // silently degrades content resolution to the old CWD-relative behavior),
+    // then fall back to the current directory.
+    std::cerr << "FileSystem::executableDir: could not resolve the executable path; "
+                 "falling back to the working directory" << std::endl;
+    SFMX_ASSERT(false && "FileSystem::executableDir failed to resolve the exe path");
+    std::error_code ec;
+    return fs::current_path(ec);
   }();
   return dir;
 }
 
-FileSystemPath
+const FileSystemPath&
 FileSystem::contentRoot() {
+  // Both branches have static storage duration, so returning a reference is safe.
   return g_contentRoot.empty() ? executableDir() : g_contentRoot;
 }
 
