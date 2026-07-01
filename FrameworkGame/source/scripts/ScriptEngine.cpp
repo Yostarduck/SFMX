@@ -2,6 +2,7 @@
 
 #include "scripts/RegisterAll.h"
 #include "scene/ScriptComponent.h"
+#include "core/FileSystem.h"   // resolve() the script path against the content root
 
 namespace sfmx
 {
@@ -23,7 +24,9 @@ ScriptEngine::loadScript(ScriptComponent* scriptComponent) {
   const std::string& scriptName = scriptComponent->m_scriptName;
 
   // TODO: log errors
-  sol::load_result chunk = m_lua.load_file(scriptName);
+  // Relative script paths resolve under the content root (exe dir at runtime);
+  // the component keeps the original relative name so the scene stays portable.
+  sol::load_result chunk = m_lua.load_file(FileSystem::resolve(scriptName).string());
   if (!chunk.valid()) {
     const sol::error err = chunk;
     fprintf(stderr, "[Script] load %s: %s\n", scriptName.c_str(), err.what());

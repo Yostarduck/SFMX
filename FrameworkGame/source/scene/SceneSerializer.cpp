@@ -203,7 +203,7 @@ SceneSerializer::saveToFile(const Scene& scene, const FileSystemPath& path) {
   // uncompressed automatically if it would not shrink — see AssetFileWriter.)
   writer.addChunk(blob.data(), blob.size(), ChunkFormat::kRaw, ChunkCompression::kZstd);
 
-  SPtr<DataStream> out = FileSystem::createAndOpenFile(path);
+  SPtr<DataStream> out = FileSystem::createAndOpenFile(FileSystem::resolve(path));
   if (nullptr == out) {
     return false;
   }
@@ -214,7 +214,7 @@ SceneSerializer::saveToFile(const Scene& scene, const FileSystemPath& path) {
 
 bool
 SceneSerializer::loadFromFile(Scene& scene, const FileSystemPath& path) {
-  SPtr<DataStream> in = FileSystem::openFile(path, AccessMode::kRead);
+  SPtr<DataStream> in = FileSystem::openFile(FileSystem::resolve(path), AccessMode::kRead);
   if (nullptr == in) {
     return false;
   }

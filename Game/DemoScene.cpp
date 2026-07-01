@@ -206,7 +206,7 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   earth->transform().setPosition({140.f, 0.f});
   earth->addComponent<CircleComponent>(20.f, sf::Color(100, 180, 255));
   auto* bgm = earth->addComponent<SourceComponent>();
-  if (bgm->loadMusicFromFile("Game/resources/background.mp3")) {
+  if (bgm->loadMusicFromFile("resources/background.mp3")) {
     bgm->setLooping(true);
     bgm->setVolume(1.0f);
     bgm->setSpatializationEnabled(false);
@@ -248,7 +248,7 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   moon->transform().setPosition({40.f, 0.f});
   moon->addComponent<CircleComponent>(4.f, sf::Color(100, 100, 100));
   auto* sfx = moon->addComponent<SourceComponent>();
-  if (sfx->loadMusicFromFile("Game/resources/sfx.mp3")) {
+  if (sfx->loadMusicFromFile("resources/sfx.mp3")) {
     sfx->setVolume(200.f);
   }
   else {
@@ -258,7 +258,7 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   SceneNode* chinese = scene.createNode("Chinese");
   chinese->transform().setPosition({0.f, center.y});
   auto* cgm = chinese->addComponent<SourceComponent>();
-  if (cgm->loadMusicFromFile("Game/resources/chinese.mp3")) {
+  if (cgm->loadMusicFromFile("resources/chinese.mp3")) {
     cgm->setLooping(true);
     cgm->setVolume(10.f);
     cgm->setMinDistance(50.f);
@@ -272,7 +272,7 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   SceneNode* mozart = scene.createNode("Mozart");
   mozart->transform().setPosition({windowWidth, center.y});
   auto* mgm = mozart->addComponent<SourceComponent>();
-  if (mgm->loadMusicFromFile("Game/resources/mozart.mp3")) {
+  if (mgm->loadMusicFromFile("resources/mozart.mp3")) {
     mgm->setLooping(true);
     mgm->setVolume(10.f);
     mgm->setPitch(2.0f);
@@ -422,7 +422,7 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   SceneNode* spaceship = scene.createNode("Spaceship");
   spaceship->transform().setPosition({center.x, 0.f});
   spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
-  spaceship->addComponent<ScriptComponent>("Game/resources/character.lua");
+  spaceship->addComponent<ScriptComponent>("resources/character.lua");
 }
 
 DemoRuntime

@@ -2,12 +2,35 @@
 
 #include <filesystem>
 
+// Platform headers for locating the executable (only the active OS branch).
+#if USING(SFMX_PLATFORM_WIN32)
+#  if !defined(WIN32_LEAN_AND_MEAN)
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  if !defined(NOMINMAX)
+#    define NOMINMAX
+#  endif
+#  include <windows.h>
+#elif USING(SFMX_PLATFORM_OSX)
+#  include <climits>
+#  include <mach-o/dyld.h>
+#elif USING(SFMX_PLATFORM_LINUX_COMPAT)
+#  include <climits>
+#  include <unistd.h>
+#endif
+
 #include "core/FileDataStream.h"
 
 namespace sfmx
 {
 
 namespace fs = std::filesystem;
+
+namespace {
+// Empty => contentRoot() falls back to executableDir(). The offline cooker sets
+// this to the repo's "Game" dir so the same relative content paths resolve there.
+FileSystemPath g_contentRoot;
+} // namespace
 
 SPtr<DataStream>
 FileSystem::openFile(const FileSystemPath& path, AccessModeFlags mode) {
@@ -128,6 +151,56 @@ FileSystemPath
 FileSystem::tempDirectory() {
   std::error_code ec;
   return fs::temp_directory_path(ec);
+}
+
+FileSystemPath
+FileSystem::executableDir() {
+  // Computed once: the executable's location does not change while it runs.
+  static const FileSystemPath dir = []() -> FileSystemPath {
+    std::error_code ec;
+#if USING(SFMX_PLATFORM_WIN32)
+    wchar_t buffer[MAX_PATH] = {};
+    const DWORD len = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+    if (0 != len && len < MAX_PATH) {
+      return FileSystemPath(buffer).parent_path();
+    }
+#elif USING(SFMX_PLATFORM_OSX)
+    char buffer[PATH_MAX] = {};
+    uint32 size = sizeof(buffer);
+    if (0 == _NSGetExecutablePath(buffer, &size)) {
+      return FileSystemPath(buffer).parent_path();
+    }
+#elif USING(SFMX_PLATFORM_LINUX_COMPAT)
+    char buffer[PATH_MAX] = {};
+    const ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (len > 0) {
+      buffer[len] = '\0';
+      return FileSystemPath(buffer).parent_path();
+    }
+#endif
+    return fs::current_path(ec);  // fallback: behave like the old CWD-relative paths
+  }();
+  return dir;
+}
+
+FileSystemPath
+FileSystem::contentRoot() {
+  return g_contentRoot.empty() ? executableDir() : g_contentRoot;
+}
+
+void
+FileSystem::setContentRoot(const FileSystemPath& root) {
+  g_contentRoot = root;
+}
+
+FileSystemPath
+FileSystem::resolve(const FileSystemPath& path) {
+  // Absolute paths (e.g. temp files in tests) pass through untouched; relative
+  // content paths are taken under the content root.
+  if (path.is_absolute()) {
+    return path;
+  }
+  return contentRoot() / path;
 }
 
 void

@@ -3,6 +3,7 @@
 #include "DemoScene.h"
 
 #include "config/IniFile.h"
+#include "core/FileSystem.h"
 #include "scene/Scene.h"
 #include "scene/SceneSerializer.h"
 #include "utils/MemoryPoolHandler.h"
@@ -17,8 +18,13 @@ using namespace sfmx;
 
 int
 cookScene() {
+  // Cooking runs from the repo root; point the content root at the repo's "Game"
+  // dir so the same relative content paths (config/, assets/, resources/) that the
+  // shipped game resolves next to the exe resolve here to the repo layout.
+  FileSystem::setContentRoot("Game");
+
   IniFile config;
-  config.loadAll({"Game/config/Engine.ini", "Game/config/Game.ini"});
+  config.loadAll({"config/Engine.ini", "config/Game.ini"});
   const float w = static_cast<float>(config.getUInt("Window", "Width", 800u));
   const float h = static_cast<float>(config.getUInt("Window", "Height", 600u));
 
@@ -29,7 +35,7 @@ cookScene() {
   registerDemoPools(MemoryPoolHandler::instance());
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
-  AssetManager::instance().mount("Game/assets");
+  AssetManager::instance().mount("assets");
 
   Scene scene("Main");
   buildDemoScene(scene, w, h);
