@@ -82,12 +82,14 @@ class SFMX_UTILITY_EXPORT FileSystem
   // executable's directory so a shipped game finds its content next to the exe,
   // regardless of the working directory it was launched from.
 
-  /** @brief Absolute directory containing the running executable. */
-  NODISCARD static FileSystemPath
+  /** @brief Absolute directory containing the running executable (cached; both
+   *         this and @ref contentRoot return references into static storage, so
+   *         resolve() joins without copying the root). */
+  NODISCARD static const FileSystemPath&
   executableDir();
 
   /** @brief The content root used by @ref resolve. Defaults to @ref executableDir. */
-  NODISCARD static FileSystemPath
+  NODISCARD static const FileSystemPath&
   contentRoot();
 
   /** @brief Override the content root (e.g. the offline cooker points it at the
