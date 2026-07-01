@@ -62,6 +62,8 @@ add_library(FrameworkGame STATIC
     source/ui/Canvas.cpp
     source/ui/UIEventSystem.cpp
     source/ui/UIButton.cpp
+    source/ui/UILabel.cpp
+    source/ui/UIImage.cpp
 
     source/scene/CanvasComponent.cpp
     source/scene/Scene.cpp
