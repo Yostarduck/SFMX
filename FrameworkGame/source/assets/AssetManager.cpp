@@ -16,7 +16,10 @@ AssetManager::registerCodec(SPtr<IAssetCodec> codec) {
 }
 
 size_t
-AssetManager::mount(const FileSystemPath& directory) {
+AssetManager::mount(const FileSystemPath& directoryArg) {
+  // Relative dirs resolve under the content root (exe dir at runtime); absolute
+  // dirs (e.g. tests' temp dirs) pass through unchanged.
+  const FileSystemPath directory = FileSystem::resolve(directoryArg);
   if (!FileSystem::isDirectory(directory)) {
     std::cerr << "AssetManager::mount: not a directory: " << directory.string()
               << std::endl;

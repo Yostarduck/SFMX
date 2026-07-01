@@ -1,6 +1,7 @@
 #include "config/IniFile.h"
 
 #include "core/platform/PlatformTypes.h"
+#include "core/FileSystem.h"
 #include "mini/ini.h"
 
 namespace
@@ -38,7 +39,8 @@ IniFile::~IniFile() = default;
 
 bool IniFile::load(const FileSystemPath& filePath)
 {
-  mINI::INIFile file(filePath.string());
+  // Relative paths resolve under the content root (exe dir at runtime).
+  mINI::INIFile file(FileSystem::resolve(filePath).string());
   mINI::INIStructure incoming;
 
   if (!file.read(incoming))

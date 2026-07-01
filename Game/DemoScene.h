@@ -9,8 +9,9 @@ class MemoryPoolHandler;
 
 namespace demo {
 
-// Path of the cooked demo scene (repo-root relative, like the other assets).
-inline constexpr const char* kSceneFile = "Game/assets/demo.sfmxasset";
+// Path of the cooked demo scene, relative to the content root (exe dir at
+// runtime; the repo's "Game" dir during cook via FileSystem::setContentRoot).
+inline constexpr const char* kSceneFile = "assets/demo.sfmxasset";
 
 // Node/component refs the game loop drives, resolved by name after the scene is
 // ready (loaded or built).

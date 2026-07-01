@@ -20,7 +20,9 @@ class Canvas;
 enum class WidgetType : uint8
 {
   kUnknown,
-  kButton
+  kButton,
+  kLabel,
+  kImage
 };
 
 /**

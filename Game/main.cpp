@@ -21,16 +21,19 @@
 #include "ui/Canvas.h"
 #include "ui/UIEventSystem.h"
 #include "ui/UIButton.h"
+#include "ui/UILabel.h"
+#include "ui/UIImage.h"
+
+#include "assets/AssetManager.h"
+#include "assets/TextureAsset.h"
+#include "assets/AssetCooker.h"
+#include "assets/TextureCodec.h"
+#include "assets/LuaCodec.h"
 
 #include "utils/MemoryPoolHandler.h"
 #include "utils/EventSystem.h"
 
 #include "scripts/ScriptEngine.h"
-
-#include "assets/AssetCooker.h"
-#include "assets/AssetManager.h"
-#include "assets/TextureCodec.h"
-#include "assets/LuaCodec.h"
 
 #include "DemoScene.h"
 #include "DemoCook.h"
@@ -58,7 +61,9 @@ int main(int argc, char** argv)
   }
 
   IniFile config;
-  config.loadAll({"Game/config/Engine.ini", "Game/config/Game.ini"});
+  // Content paths are relative to the content root (defaults to the exe dir), so
+  // the game finds its content next to the exe regardless of the launch CWD.
+  config.loadAll({"config/Engine.ini", "config/Game.ini"});
 
   const uint32 windowWidth = config.getUInt("Window", "Width", 800u);
   const uint32 windowHeight = config.getUInt("Window", "Height", 600u);
@@ -81,14 +86,14 @@ int main(int argc, char** argv)
   demo::registerDemoPools(MemoryPoolHandler::instance());
   demo::registerDemoComponents();
 
-  // Mount the cooked .sfmxasset directory (the build's POST_BUILD step runs
-  // `Game --cook` then `Game --cook-scene`, so Game/assets is populated). Images
-  // resolve by UUID through the AssetManager; audio stays mp3-by-path (streams).
+  // Mount the cooked .sfmxasset directory (resolved under the content root; the
+  // build's POST_BUILD cooks and stages `assets/` next to the exe). Images resolve
+  // by UUID through the AssetManager; audio stays mp3-by-path (streams).
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
   AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
-  const size_t mountedAssets = AssetManager::instance().mount("Game/assets");
-  std::cout << "[Assets] mounted " << mountedAssets << " from Game/assets\n";
+  const size_t mountedAssets = AssetManager::instance().mount("assets");
+  std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
 
   // Load the cooked demo scene into a SceneManager-owned scene; fall back to
   // building it in code (dev convenience if `--cook-scene` has not run yet).
@@ -246,6 +251,48 @@ int main(int argc, char** argv)
     std::cout << "[UI] Exit submitted via keyboard — closing window\n";
     window.close();
   });
+
+  // ── UILabel demo ──────────────────────────────────────────────────────
+  auto font = MakeShared<sf::Font>();
+  // Try common font paths across Linux distros.
+  const char* fontPaths[] = {
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/Hack-Regular.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/TTF/MesloLGS-NF-Regular.ttf",
+  };
+  bool fontLoaded = false;
+  for (const char* fp : fontPaths) {
+    if (font->openFromFile(fp)) {
+      fontLoaded = true;
+      break;
+    }
+  }
+
+  if (fontLoaded) {
+    auto* lblNode = canvasNode->createChild("TitleLabel");
+    auto* label = lblNode->addComponent<UILabel>(sf::Vector2f{400.f, 40.f});
+    label->setPosition({windowWidth * 0.5f - 200.f, 20.f});
+    label->setFont(font);
+    label->setText("SFMX Engine — UI Widget Demo");
+    label->setCharacterSize(22);
+    label->setTextColor(sf::Color::White);
+    uiCanvas.addWidget(label);
+  } else {
+    std::cout << "[UI] Could not load DejaVuSans font; skipping label\n";
+  }
+
+  // ── UIImage demo ───────────────────────────────────────────────────────
+  SPtr<TextureAsset> uiTex = AssetManager::instance().load<TextureAsset>(
+      sfmx::UUID::createFromName("particle.png"));
+  if (uiTex) {
+    auto* imgNode = canvasNode->createChild("DemoImage");
+    auto* image = imgNode->addComponent<UIImage>(sf::Vector2f{32.f, 32.f});
+    image->setPosition({20.f, 20.f});
+    image->setTextureAsset(uiTex);
+    uiCanvas.addWidget(image);
+  }
 
   std::cout << "[UI] System ready — click buttons or press Escape\n"
             << "[UI] Navigate: Arrow keys / WASD  |  Submit: Space / Enter  |  Cancel: Escape\n";
