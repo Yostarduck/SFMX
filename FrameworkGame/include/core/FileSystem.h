@@ -77,6 +77,29 @@ class SFMX_UTILITY_EXPORT FileSystem
   NODISCARD static FileSystemPath
   tempDirectory();
 
+  // -- Content root ----------------------------------------------------------
+  // Where runtime content (assets/config/resources) lives. Defaults to the
+  // executable's directory so a shipped game finds its content next to the exe,
+  // regardless of the working directory it was launched from.
+
+  /** @brief Absolute directory containing the running executable. */
+  NODISCARD static FileSystemPath
+  executableDir();
+
+  /** @brief The content root used by @ref resolve. Defaults to @ref executableDir. */
+  NODISCARD static FileSystemPath
+  contentRoot();
+
+  /** @brief Override the content root (e.g. the offline cooker points it at the
+   *         repo's `Game/` dir). Pass an empty path to fall back to the default. */
+  static void
+  setContentRoot(const FileSystemPath& root);
+
+  /** @brief Resolve a content path: absolute paths pass through unchanged,
+   *         relative ones are taken under @ref contentRoot. */
+  NODISCARD static FileSystemPath
+  resolve(const FileSystemPath& path);
+
   // -- Iteration -------------------------------------------------------------
   /** @brief Invoke @p fn for each immediate child of @p path. */
   static void

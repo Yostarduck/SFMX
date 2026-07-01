@@ -57,7 +57,9 @@ int main(int argc, char** argv)
   }
 
   IniFile config;
-  config.loadAll({"Game/config/Engine.ini", "Game/config/Game.ini"});
+  // Content paths are relative to the content root (defaults to the exe dir), so
+  // the game finds its content next to the exe regardless of the launch CWD.
+  config.loadAll({"config/Engine.ini", "config/Game.ini"});
 
   const uint32 windowWidth = config.getUInt("Window", "Width", 800u);
   const uint32 windowHeight = config.getUInt("Window", "Height", 600u);
@@ -80,13 +82,13 @@ int main(int argc, char** argv)
   demo::registerDemoPools(MemoryPoolHandler::instance());
   demo::registerDemoComponents();
 
-  // Mount the cooked .sfmxasset directory (the build's POST_BUILD step runs
-  // `Game --cook` then `Game --cook-scene`, so Game/assets is populated). Images
-  // resolve by UUID through the AssetManager; audio stays mp3-by-path (streams).
+  // Mount the cooked .sfmxasset directory (resolved under the content root; the
+  // build's POST_BUILD cooks and stages `assets/` next to the exe). Images resolve
+  // by UUID through the AssetManager; audio stays mp3-by-path (streams).
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
-  const size_t mountedAssets = AssetManager::instance().mount("Game/assets");
-  std::cout << "[Assets] mounted " << mountedAssets << " from Game/assets\n";
+  const size_t mountedAssets = AssetManager::instance().mount("assets");
+  std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
 
   // Load the cooked demo scene into a SceneManager-owned scene; fall back to
   // building it in code (dev convenience if `--cook-scene` has not run yet).

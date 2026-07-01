@@ -9,6 +9,7 @@
 #include "assets/SoundAsset.h"
 #include "core/DataStream.h"
 #include "core/DataStreamTypes.h"   // operator<< / >> for UUID
+#include "core/FileSystem.h"        // resolve() against the content root
 
 namespace sfmx
 {
@@ -49,7 +50,7 @@ SourceComponent::loadSoundFromFile(const String& filePath) {
   m_backend = AudioBackend::kNone;
   m_source = nullptr;
 
-  if (!m_buffer.loadFromFile(filePath))
+  if (!m_buffer.loadFromFile(FileSystem::resolve(filePath)))
     return false;
 
   m_sound.setBuffer(m_buffer);
@@ -65,8 +66,11 @@ SourceComponent::loadMusicFromFile(const String& filePath) {
   m_backend = AudioBackend::kNone;
   m_source = nullptr;
 
-  if (!m_music.openFromFile(filePath))
+  // Resolve to open, but remember the ORIGINAL (relative) path so the serialized
+  // scene stays portable and re-opens against the content root on load.
+  if (!m_music.openFromFile(FileSystem::resolve(filePath))) {
     return false;
+  }
 
   m_source = &m_music;
   m_backend = AudioBackend::kMusic;
