@@ -145,6 +145,9 @@ TEST_CASE("SpriteComponent re-resolves a real texture by UUID and round-trips re
   a->setRect(sf::IntRect({1, 2}, {3, 4}));
   a->setColor(sf::Color(10, 20, 30, 40));
   a->setScale(0.1f);
+  a->setPosition({5.f, 6.f});
+  a->setRotation(30.f);
+  a->setOrigin({7.f, 8.f});
   a->flipX(true);
   a->flipY(true);
 
@@ -169,6 +172,9 @@ TEST_CASE("SpriteComponent re-resolves a real texture by UUID and round-trips re
   CHECK(rect.size.y == 4);
   CHECK(b->getColor() == sf::Color(10, 20, 30, 40));
   CHECK(b->getScale() == sf::Vector2f{0.1f, 0.1f});
+  CHECK(b->getPosition() == sf::Vector2f{5.f, 6.f});
+  CHECK(b->getRotationDegrees() == doctest::Approx(30.f));
+  CHECK(b->getOrigin() == sf::Vector2f{7.f, 8.f});
   CHECK(b->isFlippedX());
   CHECK(b->isFlippedY());
 
