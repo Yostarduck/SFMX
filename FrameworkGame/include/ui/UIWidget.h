@@ -22,7 +22,10 @@ enum class WidgetType : uint8
   kUnknown,
   kButton,
   kLabel,
-  kImage
+  kImage,
+  kCheckbox,
+  kTextBox,
+  kSlider
 };
 
 /**
@@ -220,6 +223,9 @@ class UIWidget
   /** @brief Called when the user presses the cancel/back action. */
   virtual void onCancel();
 
+  /** @brief Whether this widget is a text editor (skips navigation while focused). */
+  NODISCARD virtual bool isTextEditor() const { return false; }
+
   // -- Navigation links (explicit neighbor) -----------------------------------
 
   FORCEINLINE void setNavUp(UIWidget* widget) { m_navUp = widget; }
@@ -275,6 +281,10 @@ class UIWidget
   /**
    * @brief Draw this widget onto @p target.
    *
+   * Only draws when called through Canvas::draw (checks internal flag).
+   * When a widget is attached to both a Canvas and a SceneNode (via ComponentT),
+   * the SceneNode draw path is skipped to avoid double-rendering.
+   *
    * @param target The surface to draw onto.
    * @param states Render states carrying the accumulated transform of the
    *               parent canvas / component chain.
@@ -284,6 +294,10 @@ class UIWidget
  protected:
   friend class Canvas;
   friend class UIEventSystem;
+  friend class CanvasComponent;
+
+  /** @brief True while Canvas::draw is iterating widgets. */
+  static bool s_canvasDrawing;
 
   FORCEINLINE void setCanvas(Canvas* canvas) { m_canvas = canvas; }
 

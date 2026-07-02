@@ -164,6 +164,8 @@ void UIEventSystem::processPointer(const sf::WindowBase& window) {
     if (hit != nullptr) {
       hit->onPointerDown(canvasPos);
       setSelected(hit);
+    } else {
+      setSelected(nullptr);
     }
   } 
   else if (!isDown && m_pointer.buttonDown) {
@@ -183,6 +185,10 @@ void UIEventSystem::processPointer(const sf::WindowBase& window) {
 
 void UIEventSystem::processNavigation(float deltaTime) {
   if (m_navigateAction == nullptr) {
+    return;
+  }
+
+  if (m_selected != nullptr && m_selected->isTextEditor()) {
     return;
   }
 

@@ -4,6 +4,8 @@
 namespace sfmx
 {
 
+bool UIWidget::s_canvasDrawing = false;
+
 UIWidget::UIWidget() = default;
 
 UIWidget::~UIWidget() {
