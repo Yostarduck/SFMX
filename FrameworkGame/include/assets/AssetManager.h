@@ -1,9 +1,12 @@
 #pragma once
 
+#include <typeindex>
+
 #include "core/platform/Prerequisites.h"
 #include "assets/Asset.h"
 #include "assets/AssetCodecRegistry.h"
 #include "assets/AssetMetadata.h"
+#include "assets/IDecoder.h"
 #include "utils/Module.h"
 #include "utils/TypeTraits.h"
 
@@ -40,6 +43,45 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
   /** @brief Register a codec (delegates to the owned registry). */
   void
   registerCodec(SPtr<IAssetCodec> codec);
+
+  /**
+   * @brief Register a decoder that turns @p format bytes into a @c TOutput.
+   *
+   * The one generic seam for format modules (e.g. @c SFMX::ImageWebP): the module
+   * registers a decoder at startup so an asset can decode that format without the core
+   * linking the format's library. ONE mechanism for every output domain — images use
+   * @c registerDecoder<sf::Image>, a future audio format @c registerDecoder<sf::SoundBuffer>,
+   * with no per-domain register/find pair. The @ref ChunkFormat tag is the key given here
+   * (the decoder does not declare it), matched against the chunk's tag at load. Last
+   * registration for a (@c TOutput, @c format) pair wins.
+   */
+  template <typename TOutput>
+  void
+  registerDecoder(ChunkFormatId format, SPtr<IDecoder<TOutput>> decoder) {
+    if (nullptr == decoder) {
+      return;
+    }
+    SPtr<IDecoderTable>& slot = m_decoders[std::type_index(typeid(TOutput))];
+    if (nullptr == slot) {
+      slot = MakeShared<DecoderTable<TOutput>>();
+    }
+    static_cast<DecoderTable<TOutput>*>(slot.get())->byFormat[format] =
+        std::move(decoder);
+  }
+
+  /** @brief The @c TOutput decoder for @p format, or @c nullptr if none is registered. */
+  template <typename TOutput>
+  NODISCARD const IDecoder<TOutput>*
+  findDecoder(ChunkFormatId format) const {
+    const auto table = m_decoders.find(std::type_index(typeid(TOutput)));
+    if (table == m_decoders.end()) {
+      return nullptr;
+    }
+    const auto& byFormat =
+        static_cast<const DecoderTable<TOutput>*>(table->second.get())->byFormat;
+    const auto it = byFormat.find(format);
+    return it != byFormat.end() ? it->second.get() : nullptr;
+  }
 
   /**
    * @brief Recursively scan @p directory for `.sfmxasset` files and catalog them
@@ -108,10 +150,23 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
     AssetMetadata  metadata;
   };
 
+  // Type-erased per-output-type decoder tables: one DecoderTable<TOutput> per output
+  // type (sf::Image, sf::SoundBuffer, ...), each mapping ChunkFormat -> decoder. This
+  // is what makes registerDecoder<T>/findDecoder<T> generic with no per-domain member.
+  struct IDecoderTable {
+    virtual ~IDecoderTable() = default;
+  };
+  template <typename TOutput>
+  struct DecoderTable : IDecoderTable {
+    UnorderedMap<ChunkFormatId, SPtr<IDecoder<TOutput>>> byFormat;
+  };
+
   UnorderedMap<UUID, CatalogEntry>  m_catalog;
   UnorderedMap<UUID, SPtr<IAsset>>  m_cache;     // Loaded
   UnorderedSet<UUID>                m_loading;   // guards against reference cycles
   AssetCodecRegistry                m_codecs;
+  // Keyed by the output C++ type; the inner table is keyed by ChunkFormat.
+  UnorderedMap<std::type_index, SPtr<IDecoderTable>> m_decoders;
 };
 
 template<AssetType T>

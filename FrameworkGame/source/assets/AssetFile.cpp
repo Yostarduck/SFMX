@@ -28,7 +28,7 @@ constexpr uint64 kChunkEntryBytes =
     sizeof(uint64) +  // offset
     sizeof(uint64) +  // size
     sizeof(uint64) +  // rawSize
-    sizeof(uint16) +  // format      (ChunkFormat written as uint16)
+    kUuidBytes +      // format      (ChunkFormatId, a name-derived UUID)
     sizeof(uint16);   // compression (ChunkCompression written as uint16)
 
 // zstd compression level. Levels run 1 (fastest, weakest) to 22 (slowest,
@@ -110,17 +110,16 @@ spanFits(uint64 offset, uint64 len, uint64 total) {
 void
 writeChunkEntry(DataStream& s, const ChunkEntry& e) {
   s << e.id << e.offset << e.size << e.rawSize;
-  s << static_cast<uint16>(e.format);
+  s << e.format;  // ChunkFormatId (UUID), via DataStreamTypes UUID operator<<
   s << static_cast<uint16>(e.compression);
 }
 
 void
 readChunkEntry(DataStream& s, ChunkEntry& e) {
   s >> e.id >> e.offset >> e.size >> e.rawSize;
-  uint16 format = 0;
+  s >> e.format;  // ChunkFormatId (UUID)
   uint16 compression = 0;
-  s >> format >> compression;
-  e.format      = static_cast<ChunkFormat>(format);
+  s >> compression;
   e.compression = static_cast<ChunkCompression>(compression);
 }
 
@@ -138,7 +137,7 @@ AssetFileWriter::addReference(const UUID& dependency) {
 uint32
 AssetFileWriter::addChunk(const void* data,
                           size_t size,
-                          ChunkFormat format,
+                          ChunkFormatId format,
                           ChunkCompression compression) {
   m_chunks.emplace_back();
   PendingChunk& chunk = m_chunks.back();

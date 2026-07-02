@@ -13,6 +13,7 @@
 #include "core/FileSystem.h"
 #include "assets/AssetCooker.h"
 #include "assets/AssetFile.h"
+#include "assets/AssetImporterRegistry.h"
 #include "assets/AssetManager.h"
 #include "assets/AssetMetadata.h"
 #include "assets/SoundAsset.h"
@@ -40,6 +41,23 @@ struct ManagerScope {
   ~ManagerScope() {
     if (AssetManager::isStarted()) {
       AssetManager::shutDown();
+    }
+  }
+};
+
+// RAII: the cooker consults the AssetImporterRegistry (extension -> asset/format),
+// so any test that cooks must start it and seed the built-in formats first.
+struct ImporterScope {
+  ImporterScope() {
+    if (AssetImporterRegistry::isStarted()) {
+      AssetImporterRegistry::shutDown();
+    }
+    AssetImporterRegistry::startUp();
+    AssetImporterRegistry::instance().registerBuiltins();
+  }
+  ~ImporterScope() {
+    if (AssetImporterRegistry::isStarted()) {
+      AssetImporterRegistry::shutDown();
     }
   }
 };
@@ -89,6 +107,7 @@ writeBytes(const FileSystemPath& path, const char* text) {
 } // namespace
 
 TEST_CASE("AssetCooker wraps a PNG into a .sfmxasset (no GL)") {
+  ImporterScope importers;
   CookDirs dirs("sfmx_cooker_png");
   writePng(dirs.src / "foo.png");
 
@@ -116,6 +135,7 @@ TEST_CASE("AssetCooker wraps a PNG into a .sfmxasset (no GL)") {
 }
 
 TEST_CASE("AssetCooker output loads through the AssetManager") {
+  ImporterScope importers;
   CookDirs dirs("sfmx_cooker_e2e");
   writePng(dirs.src / "hero.png");
   REQUIRE(AssetCooker::cookDirectory(dirs.src, dirs.out).cooked == 1);
@@ -133,6 +153,7 @@ TEST_CASE("AssetCooker output loads through the AssetManager") {
 }
 
 TEST_CASE("AssetCooker wraps a WAV into a SoundAsset") {
+  ImporterScope importers;
   CookDirs dirs("sfmx_cooker_wav");
   writeWav(dirs.src / "blip.wav");
   REQUIRE(AssetCooker::cookDirectory(dirs.src, dirs.out).cooked == 1);
@@ -160,6 +181,7 @@ TEST_CASE("AssetCooker wraps a WAV into a SoundAsset") {
 }
 
 TEST_CASE("AssetCooker skips unsupported files and cooks deterministically") {
+  ImporterScope importers;
   CookDirs dirs("sfmx_cooker_skip");
   writePng(dirs.src / "keep.png");
   writeBytes(dirs.src / "music.mp3", "not really mp3");
@@ -180,4 +202,37 @@ TEST_CASE("AssetCooker skips unsupported files and cooks deterministically") {
   const Vector<uint8> b = FileSystem::fastRead(out2 / "keep.sfmxasset");
   REQUIRE_FALSE(a.empty());
   CHECK(a == b);
+}
+
+TEST_CASE("AssetImporterRegistry: a module-registered extension + minted format id") {
+  ImporterScope importers;  // built-ins only; ".xyz" is unknown until registered
+
+  // A module mints its OWN format id by name — no enum entry, no core edit. This is
+  // the open-format-id path a runtime DLL would use for a brand-new encoding.
+  const ChunkFormatId kXyz = chunkFormatId("xyz-custom");
+  CHECK(kXyz != ChunkFormat::kRaw);  // distinct from every built-in
+
+  // The extension is unsupported until a "module" teaches the registry about it —
+  // exactly how SFMX::ImageWebP registers ".webp" from imagewebp::registerModule.
+  CHECK(AssetImporterRegistry::instance().findForExtension(".xyz") == nullptr);
+  AssetImporterRegistry::instance().registerImporter<TextureAsset>(kXyz, ".xyz");
+
+  const ImportRule* rule = AssetImporterRegistry::instance().findForExtension(".xyz");
+  REQUIRE(rule != nullptr);
+  CHECK(rule->format == kXyz);
+  CHECK(rule->assetType.toString() == TypeTraits<TextureAsset>::getTypeId().toString());
+
+  // The minted id round-trips through the cooked chunk on disk (write + read).
+  CookDirs dirs("sfmx_cooker_registry");
+  writeBytes(dirs.src / "blob.xyz", "arbitrary module bytes");
+  REQUIRE(AssetCooker::cookDirectory(dirs.src, dirs.out).cooked == 1);
+
+  SPtr<DataStream> stream =
+      FileSystem::openFile(dirs.out / "blob.sfmxasset", AccessMode::kRead);
+  AssetFileReader reader;
+  REQUIRE(reader.open(stream));
+  CHECK(reader.metadata().assetType.toString() ==
+        TypeTraits<TextureAsset>::getTypeId().toString());
+  REQUIRE(reader.chunkCount() == 1);
+  CHECK(reader.chunk(0).format == kXyz);  // survived cook -> disk -> read
 }

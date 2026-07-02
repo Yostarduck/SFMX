@@ -20,6 +20,7 @@ add_executable(UnitTests
     AnimatorComponentSerializationTest.cpp
     ParticleSystemComponentSerializationTest.cpp
     AssetCookerTest.cpp
+    ImageDecoderSeamTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE

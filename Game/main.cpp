@@ -27,6 +27,7 @@
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
 #include "assets/AssetCooker.h"
+#include "assets/AssetImporterRegistry.h"
 #include "assets/TextureCodec.h"
 #include "assets/SoundCodec.h"
 
@@ -55,7 +56,13 @@ int main(int argc, char** argv)
     if (std::strcmp(argv[i], "--cook") == 0) {
       const FileSystemPath srcDir = (i + 1 < argc) ? argv[i + 1] : "Game/resources";
       const FileSystemPath outDir = (i + 2 < argc) ? argv[i + 2] : "Game/assets";
+      // The cooker consults the importer registry (extension -> asset type + chunk
+      // format). Seed the built-in engine formats; a format module would register
+      // its own extension here too (see the AssetImporterRegistry docs).
+      AssetImporterRegistry::startUp();
+      AssetImporterRegistry::instance().registerBuiltins();
       AssetCooker::cookDirectory(srcDir, outDir);
+      AssetImporterRegistry::shutDown();
       return 0;
     }
     if (std::strcmp(argv[i], "--cook-scene") == 0) {

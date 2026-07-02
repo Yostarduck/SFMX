@@ -10,7 +10,7 @@ namespace sfmx
 /** @brief Magic at the start of every `.sfmxasset` ("SFMX", not terminated). */
 constexpr ansichar kAssetMagic[4] = {'S', 'F', 'M', 'X'};
 /** @brief Container format version (bump on layout changes). */
-constexpr uint32 kAssetFormatVersion = 1;
+constexpr uint32 kAssetFormatVersion = 2;  // v2: chunk format tag is a UUID id, not uint16
 
 /**
  * @brief One entry in the chunk directory.
@@ -24,7 +24,7 @@ struct ChunkEntry {
   uint64           offset      = 0;   // absolute byte offset of the payload in the file
   uint64           size        = 0;   // bytes on disk
   uint64           rawSize     = 0;   // bytes after decompression
-  ChunkFormat      format      = ChunkFormat::kRaw;
+  ChunkFormatId    format      = ChunkFormat::kRaw;
   ChunkCompression compression = ChunkCompression::kNone;
 };
 
@@ -52,7 +52,7 @@ class SFMX_UTILITY_EXPORT AssetFileWriter
   uint32
   addChunk(const void* data,
            size_t size,
-           ChunkFormat format = ChunkFormat::kRaw,
+           ChunkFormatId format = ChunkFormat::kRaw,
            ChunkCompression compression = ChunkCompression::kNone);
 
   /** @brief Serialize header + metadata + references + directory + chunks. */
@@ -63,7 +63,7 @@ class SFMX_UTILITY_EXPORT AssetFileWriter
   struct PendingChunk {
     Vector<uint8>    data;                            // on-disk bytes (compressed if compression != kNone)
     uint64           rawSize     = 0;                 // bytes before compression
-    ChunkFormat      format      = ChunkFormat::kRaw;
+    ChunkFormatId    format      = ChunkFormat::kRaw;
     ChunkCompression compression = ChunkCompression::kNone;
   };
 
