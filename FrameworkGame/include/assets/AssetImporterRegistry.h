@@ -28,11 +28,11 @@ struct ImportRule
  * @brief Extension -> @ref ImportRule registry driving the offline @ref AssetCooker.
  *
  * The extensibility seam for the IMPORT side, mirroring @ref AssetCodecRegistry on
- * the decode side (and modelled on Chimera's AssetCodecManager): a format module
- * teaches the engine a new source extension by calling @ref registerImporter from
- * its own init — no core edit. WebP does exactly this (its `.webp` rule lives in
- * @c SFMX::ImageWebP, not here), which is why @ref registerBuiltins covers only the
- * engine-native formats SFML/SFMX decode directly (PNG/JPG/BMP, OGG/WAV/FLAC).
+ * the decode side: a format module teaches the engine a new source extension by 
+ * calling @ref registerImporter from its own init — no core edit. WebP does 
+ * exactly this (its `.webp` rule lives in @c SFMX::ImageWebP, not here), which is 
+ * why @ref registerBuiltins covers only the engine-native formats SFML/SFMX decode 
+ * directly (PNG/JPG/BMP, OGG/WAV/FLAC).
  *
  * A @ref Module because it is cross-cutting global state the cooker consults; only
  * the cook path starts it (the runtime game loop never cooks). It stores plain
