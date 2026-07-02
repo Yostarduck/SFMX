@@ -9,6 +9,7 @@
 #include "utils/MemoryPoolHandler.h"
 #include "assets/AssetManager.h"
 #include "assets/TextureCodec.h"
+#include "assets/LuaCodec.h"
 #include "assets/SoundCodec.h"
 
 #include <iostream>
@@ -36,6 +37,7 @@ cookScene() {
   registerDemoPools(MemoryPoolHandler::instance());
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
+  AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
   AssetManager::instance().mount("assets");
 

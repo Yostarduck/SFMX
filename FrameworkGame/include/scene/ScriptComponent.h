@@ -2,6 +2,7 @@
 
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
+#include "utils/UUID.h"
 
 #include <sol/sol.hpp>
 
@@ -9,14 +10,16 @@ namespace sfmx
 {
 
 class ScriptEngine;
+class LuaAsset;
 
 class ScriptComponent : public ComponentT<ScriptComponent>
 {
  public:
-  ScriptComponent(SceneNode* owner, std::string_view scriptName);
+  /** @brief Attach and bind the script referenced by @p scriptAssetId (a @ref LuaAsset). */
+  ScriptComponent(SceneNode* owner, const UUID& scriptAssetId);
 
-  /** @brief Deferred ctor: empty script, not initialized. Used by the component
-   *         registry / deserializer, which fills the name via @ref onDeserialize
+  /** @brief Deferred ctor: no script yet, not initialized. Used by the component
+   *         registry / deserializer, which sets the asset id via @ref onDeserialize
    *         and re-binds through the ScriptEngine. */
   explicit ScriptComponent(SceneNode* owner);
 
@@ -24,26 +27,41 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   void
   onUpdate(float deltaTime) override;
 
-  /** @brief Serializes the script name (path); the bound function is rebuilt on load. */
+  /** @brief Bind to a @ref LuaAsset, keeping it alive and recording its UUID; the
+   *         script re-binds through the ScriptEngine when both are running. */
+  void
+  setScriptAsset(SPtr<LuaAsset> asset);
+
+  /** @brief Record the script asset UUID and resolve it via AssetManager when
+   *         running; otherwise keep the id so it re-serializes and resolves later. */
+  void
+  setScriptAssetId(const UUID& id);
+
+  /** @brief UUID of the referenced @ref LuaAsset (the serialized handle). */
+  NODISCARD FORCEINLINE const UUID&
+  getScriptAssetId() const { return m_scriptAssetId; }
+
+  /** @brief The kept-alive @ref LuaAsset, or nullptr if not resolved. */
+  NODISCARD FORCEINLINE SPtr<LuaAsset>
+  getScriptAsset() const { return m_scriptAsset; }
+
+  /** @brief Serializes the script asset UUID; the bound function is rebuilt on load. */
   void
   onSerialize(DataStream& stream) const override;
-  /** @brief Restores the script name and re-binds via the ScriptEngine when started. */
+  /** @brief Restores the UUID and re-binds via the ScriptEngine when started. */
   void
   onDeserialize(DataStream& stream) override;
 
   NODISCARD FORCEINLINE bool
   isInitialized() const { return m_initialized; }
 
-  /** @brief The script name/path this component runs (the serialized handle). */
-  NODISCARD FORCEINLINE const String&
-  getScriptName() const { return m_scriptName; }
-
  private:
   friend ScriptEngine;
 
-  String m_scriptName;
+  SPtr<LuaAsset>          m_scriptAsset;                 // keep-alive for the resolved script
+  UUID                    m_scriptAssetId = UUID::null();
   sol::protected_function m_script;
-  bool m_initialized = false;
+  bool                    m_initialized = false;
 };
 
 }

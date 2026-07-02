@@ -8,6 +8,7 @@
 #include "assets/AssetFile.h"
 #include "assets/AssetImporterRegistry.h"
 #include "assets/AssetMetadata.h"
+#include "assets/LuaAsset.h"
 #include "core/DataStream.h"
 #include "core/FileSystem.h"
 #include "utils/UUID.h"

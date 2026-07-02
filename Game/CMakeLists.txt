@@ -18,13 +18,12 @@ target_link_libraries(Game PRIVATE SFMX::FrameworkGame)
 # build exactly like a shipped one, no matter the launch CWD. We stage:
 #   - assets/  : the cooked .sfmxasset (textures/scene loaded by UUID).
 #   - config/  : the .ini files.
-#   - resources/: ONLY the loose files the runtime still reads by path (mp3 music
-#     streams, character.lua). We deliberately do NOT copy the cooked SOURCE media
-#     (png/jpg/bmp/ogg/wav/flac) — those already ship cooked in assets/, so copying
-#     the sources next to the exe would be redundant (and bloat the payload).
+#   - resources/: ONLY the loose files the runtime still reads by path — just the
+#     mp3 music (streams, not cooked). We deliberately do NOT copy any cooked SOURCE
+#     (png/jpg/bmp/ogg/wav/flac, and now .lua → LuaAsset) — those already ship cooked
+#     in assets/, loaded by UUID, so staging the sources would be redundant.
 file(GLOB SFMX_LOOSE_RUNTIME CONFIGURE_DEPENDS
-    ${CMAKE_SOURCE_DIR}/Game/resources/*.mp3
-    ${CMAKE_SOURCE_DIR}/Game/resources/*.lua)
+    ${CMAKE_SOURCE_DIR}/Game/resources/*.mp3)
 
 add_custom_command(TARGET Game POST_BUILD
     COMMAND $<TARGET_FILE:Game> --cook

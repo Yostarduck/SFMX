@@ -1,9 +1,15 @@
 #include <doctest/doctest.h>
 
+#include <cstdio>
+
 #include "core/platform/Prerequisites.h"
 #include "core/DataStream.h"
 #include "core/MemoryDataStream.h"
 #include "core/FileSystem.h"
+#include "assets/AssetFile.h"
+#include "assets/AssetManager.h"
+#include "assets/LuaAsset.h"
+#include "assets/LuaCodec.h"
 #include "scene/ComponentRegistry.h"
 #include "scene/Scene.h"
 #include "scene/SceneNode.h"
@@ -15,14 +21,12 @@
 
 using namespace sfmx;
 
-// M5.3 — ScriptComponent serialization. The only persistent state is the script
-// name (a path); the bound sol function is rebuilt on load via the ScriptEngine.
-// This also required a (SceneNode*) ctor so ComponentRegistry can recreate it.
+// sfmx::UUID is qualified because on Windows <rpcdce.h> (via stduuid) defines a
+// global ::UUID. LuaAsset migration: ScriptComponent now serializes a LuaAsset
+// UUID (was a path); the sol function is rebuilt on load from the asset's text.
 
 namespace {
 
-// Idempotent, never-shutdown setup (suite convention — other suites share the
-// global MemoryPoolHandler).
 void
 ensureEnv() {
   if (!MemoryPoolHandler::isStarted()) {
@@ -35,7 +39,6 @@ ensureEnv() {
   if (!pools.hasPool<ScriptComponent>()) {
     pools.registerPool<ScriptComponent>(64);
   }
-
   if (!ComponentRegistry::isStarted()) {
     ComponentRegistry::startUp();
   }
@@ -54,24 +57,40 @@ ensureScriptEngine() {
   }
 }
 
-// Writes a minimal valid Lua script (returns a per-frame function) to a temp dir
-// and returns its absolute path. Caller removes the dir when done.
-String
-writeTempScript(const FileSystemPath& dir) {
-  FileSystem::removeAll(dir);
-  const FileSystemPath path = dir / "s.lua";
+// RAII: clean startUp/shutDown of the AssetManager even if a REQUIRE throws.
+struct ManagerScope {
+  ManagerScope() {
+    if (AssetManager::isStarted()) { AssetManager::shutDown(); }
+    AssetManager::startUp();
+  }
+  ~ManagerScope() {
+    if (AssetManager::isStarted()) { AssetManager::shutDown(); }
+  }
+};
+
+// Cook a minimal valid Lua script (returns a per-frame function) into a LuaAsset
+// `.sfmxasset` with the given id, inside dir.
+void
+writeLuaAsset(const FileSystemPath& dir, const sfmx::UUID& id) {
   const String body = "return function(self, dt) end\n";
 
-  SPtr<DataStream> out = FileSystem::createAndOpenFile(path);
+  AssetFileWriter writer;
+  AssetMetadata meta;
+  meta.uuid      = id;
+  meta.assetType = TypeTraits<LuaAsset>::getTypeId();
+  std::snprintf(meta.name, sizeof(meta.name), "%s", "script");
+  writer.setMetadata(meta);
+  writer.addChunk(body.data(), body.size(), ChunkFormat::kRaw);
+
+  SPtr<DataStream> out = FileSystem::createAndOpenFile(dir / "script.sfmxasset");
   REQUIRE(out != nullptr);
-  out->write(body.data(), body.size());
+  REQUIRE(writer.writeTo(*out));
   out->close();
-  return path.string();
 }
 
 } // namespace
 
-TEST_CASE("ScriptComponent round-trips the script name without the engine") {
+TEST_CASE("ScriptComponent round-trips the script UUID without resolving") {
   ensureEnv();
 
   Scene scene("s");
@@ -80,11 +99,13 @@ TEST_CASE("ScriptComponent round-trips the script name without the engine") {
   REQUIRE(src != nullptr);
   REQUIRE(dst != nullptr);
 
-  // Engine not required: the 2-arg ctor is guarded, so the name is set but no
-  // binding happens. (A bogus path also stays uninitialized if the engine IS up.)
-  ScriptComponent* a = src->addComponent<ScriptComponent>("scripts/does_not_exist.lua");
+  // A random, un-cataloged id never resolves → no binding, but the id is kept so
+  // it still re-serializes (stays GL/engine-free regardless).
+  const sfmx::UUID id = sfmx::UUID::createRandom();
+  ScriptComponent* a = src->addComponent<ScriptComponent>(id);
   REQUIRE(a != nullptr);
-  CHECK(a->getScriptName() == "scripts/does_not_exist.lua");
+  CHECK(a->getScriptAssetId().toString() == id.toString());
+  CHECK_FALSE(a->isInitialized());
 
   MemoryDataStream blob;
   a->onSerialize(blob);
@@ -94,24 +115,31 @@ TEST_CASE("ScriptComponent round-trips the script name without the engine") {
   REQUIRE(b != nullptr);
   b->onDeserialize(blob);
 
-  CHECK(b->getScriptName() == "scripts/does_not_exist.lua");
-  CHECK_FALSE(b->isInitialized());  // unloadable path → never bound
+  CHECK(b->getScriptAssetId().toString() == id.toString());
+  CHECK_FALSE(b->isInitialized());
 }
 
-TEST_CASE("ScriptComponent re-binds its Lua function on deserialize with the engine") {
+TEST_CASE("ScriptComponent re-binds its Lua function from a cataloged LuaAsset") {
   ensureEnv();
   ensureScriptEngine();
 
   const FileSystemPath dir = FileSystem::tempDirectory() / "sfmx_script_test";
-  const String scriptPath = writeTempScript(dir);
+  FileSystem::removeAll(dir);
+  const sfmx::UUID id = sfmx::UUID::createRandom();
+  writeLuaAsset(dir, id);
+
+  ManagerScope scope;
+  AssetManager& mgr = AssetManager::instance();
+  mgr.registerCodec(MakeShared<LuaCodec>());
+  REQUIRE(mgr.mount(dir) == 1u);
 
   Scene scene("s");
   SceneNode* src = scene.createNode("src");
   REQUIRE(src != nullptr);
 
-  ScriptComponent* a = src->addComponent<ScriptComponent>(scriptPath);
+  ScriptComponent* a = src->addComponent<ScriptComponent>(id);
   REQUIRE(a != nullptr);
-  CHECK(a->isInitialized());  // engine up + valid script → bound at construction
+  CHECK(a->isInitialized());  // engine up + resolved LuaAsset → bound at construction
 
   MemoryDataStream blob;
   a->onSerialize(blob);
@@ -124,8 +152,8 @@ TEST_CASE("ScriptComponent re-binds its Lua function on deserialize with the eng
   REQUIRE_FALSE(b->isInitialized());
   b->onDeserialize(blob);
 
-  CHECK(b->getScriptName() == scriptPath);
-  CHECK(b->isInitialized());  // re-bound from the name via the ScriptEngine
+  CHECK(b->getScriptAssetId().toString() == id.toString());
+  CHECK(b->isInitialized());  // re-bound from the LuaAsset via the ScriptEngine
 
   FileSystem::removeAll(dir);
 }
@@ -135,12 +163,19 @@ TEST_CASE("ScriptComponent re-binds through a full SceneSerializer round-trip") 
   ensureScriptEngine();
 
   const FileSystemPath dir = FileSystem::tempDirectory() / "sfmx_script_scene_test";
-  const String scriptPath = writeTempScript(dir);
+  FileSystem::removeAll(dir);
+  const sfmx::UUID id = sfmx::UUID::createRandom();
+  writeLuaAsset(dir, id);
+
+  ManagerScope scope;
+  AssetManager& mgr = AssetManager::instance();
+  mgr.registerCodec(MakeShared<LuaCodec>());
+  REQUIRE(mgr.mount(dir) == 1u);
 
   Scene src("src");
   SceneNode* node = src.createNode("brain");
   REQUIRE(node != nullptr);
-  ScriptComponent* script = node->addComponent<ScriptComponent>(scriptPath);
+  ScriptComponent* script = node->addComponent<ScriptComponent>(id);
   REQUIRE(script != nullptr);
   REQUIRE(script->isInitialized());
 
@@ -155,7 +190,7 @@ TEST_CASE("ScriptComponent re-binds through a full SceneSerializer round-trip") 
   REQUIRE(found.size() == 1u);
   ScriptComponent* script2 = found[0]->getComponent<ScriptComponent>();
   REQUIRE(script2 != nullptr);
-  CHECK(script2->getScriptName() == scriptPath);
+  CHECK(script2->getScriptAssetId().toString() == id.toString());
   CHECK(script2->isInitialized());
 
   FileSystem::removeAll(dir);

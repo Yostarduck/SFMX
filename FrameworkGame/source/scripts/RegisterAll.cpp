@@ -132,16 +132,18 @@ registerAll(sol::state_view lua) {
     });
   */
 
-  // ScriptComponent's only constructor requires a script path, so it supplies a
-  // custom add thunk that reads it from the trailing Lua argument; without a
-  // path there is no valid overload, so it returns nil:
-  //   node:addComponent(ScriptComponent, "scripts/foo.lua")
+  // ScriptComponent references its Lua script by asset UUID, so the thunk takes
+  // the asset NAME from the trailing Lua argument and resolves it via
+  // createFromName (the same id the cooker assigns); without a name there is no
+  // valid overload, so it returns nil:
+  //   node:addComponent(ScriptComponent, "character.lua")
   registerComponentType<ScriptComponent>(
     [](sol::state_view lua, SceneNode& node, const sol::variadic_args& args)
       -> sol::object {
       if (args.size() >= 1 && args[0].is<std::string>()) {
         return sol::make_object(lua,
-          node.addComponent<ScriptComponent>(args[0].as<std::string>()));
+          node.addComponent<ScriptComponent>(
+            UUID::createFromName(args[0].as<std::string>())));
       }
       return sol::make_object(lua, sol::lua_nil);
     });
