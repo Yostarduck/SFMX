@@ -420,7 +420,9 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   SceneNode* spaceship = scene.createNode("Spaceship");
   spaceship->transform().setPosition({center.x, 0.f});
   spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
-  spaceship->addComponent<ScriptComponent>("resources/character.lua");
+  // The script is a cooked LuaAsset, referenced by UUID (the cooker's id for the
+  // source path relative to resources/).
+  spaceship->addComponent<ScriptComponent>(sfmx::UUID::createFromName("character.lua"));
 }
 
 DemoRuntime

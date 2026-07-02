@@ -7,6 +7,7 @@
 
 #include "assets/AssetFile.h"
 #include "assets/AssetMetadata.h"
+#include "assets/LuaAsset.h"
 #include "assets/SoundAsset.h"
 #include "assets/TextureAsset.h"
 #include "core/DataStream.h"
@@ -125,6 +126,8 @@ const ImportRule kImportRules[] = {
   makeRule<SoundAsset>(ChunkFormat::kOgg,  ".ogg"),
   makeRule<SoundAsset>(ChunkFormat::kWav,  ".wav"),
   makeRule<SoundAsset>(ChunkFormat::kFlac, ".flac"),
+  // Lua scripts cook as opaque text bytes (kRaw); LuaAsset keeps them as a String.
+  makeRule<LuaAsset>(ChunkFormat::kRaw, ".lua"),
 };
 
 /** @brief Map a lowercase extension (".png", ...) to its cook target.
