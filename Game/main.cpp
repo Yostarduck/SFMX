@@ -29,6 +29,9 @@
 #include "assets/AssetCooker.h"
 #include "assets/TextureCodec.h"
 #include "assets/LuaCodec.h"
+#include "assets/SoundCodec.h"
+
+#include "core/FileSystem.h"
 
 #include "utils/MemoryPoolHandler.h"
 #include "utils/EventSystem.h"
@@ -38,6 +41,7 @@
 #include "DemoScene.h"
 #include "DemoCook.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 
@@ -57,6 +61,32 @@ int main(int argc, char** argv)
     }
     if (std::strcmp(argv[i], "--cook-scene") == 0) {
       return demo::cookScene();
+    }
+  }
+
+  // Optional content-root override, applied before any content loads: a launcher
+  // or installer can point the game at content that is not next to the exe.
+  // Precedence: --content-dir <path> (CLI) > SFMX_CONTENT_ROOT (env) > exe dir.
+  {
+    FileSystemPath contentOverride;
+    for (int i = 1; i + 1 < argc; ++i) {
+      if (std::strcmp(argv[i], "--content-dir") == 0) {
+        contentOverride = argv[i + 1];
+        break;
+      }
+    }
+    if (contentOverride.empty()) {
+      if (const char* env = std::getenv("SFMX_CONTENT_ROOT");
+          nullptr != env && '\0' != env[0]) {
+        contentOverride = env;
+      }
+    }
+    if (!contentOverride.empty()) {
+      FileSystem::setContentRoot(contentOverride);
+      // Flush now: this is a one-time startup diagnostic worth seeing even if a
+      // later step aborts before the buffered stdout is flushed.
+      std::cout << "[Content] root override -> " << contentOverride.string()
+                << std::endl;
     }
   }
 
@@ -92,6 +122,7 @@ int main(int argc, char** argv)
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
   AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
+  AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
   const size_t mountedAssets = AssetManager::instance().mount("assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
 

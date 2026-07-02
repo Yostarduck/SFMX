@@ -248,12 +248,10 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   moon->transform().setPosition({40.f, 0.f});
   moon->addComponent<CircleComponent>(4.f, sf::Color(100, 100, 100));
   auto* sfx = moon->addComponent<SourceComponent>();
-  if (sfx->loadMusicFromFile("resources/sfx.mp3")) {
-    sfx->setVolume(200.f);
-  }
-  else {
-    std::cout << "[Audio] Failed to load sfx.mp3\n";
-  }
+  // A one-shot SFX is short and resident: cook it as a SoundAsset (kSound
+  // backend) and reference it by UUID — unlike the streaming mp3 music above.
+  sfx->setSoundAssetId(sfmx::UUID::createFromName("sfx.ogg"));
+  sfx->setVolume(200.f);
 
   SceneNode* chinese = scene.createNode("Chinese");
   chinese->transform().setPosition({0.f, center.y});
