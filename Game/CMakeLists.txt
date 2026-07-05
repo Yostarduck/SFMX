@@ -3,7 +3,11 @@ add_executable(Game
     DemoScene.cpp
     DemoCook.cpp)
 
-target_link_libraries(Game PRIVATE SFMX::FrameworkGame)
+# SFMX::ImageWebP is a format module: it self-registers a WebP decoder + import rule
+# at runtime (see imagewebp::registerModule in main.cpp). Linked here so both the cook
+# path (--cook) and the runtime path get WebP; libwebp stays PRIVATE to the module, so
+# the Game exe links it transitively but the core never references it.
+target_link_libraries(Game PRIVATE SFMX::FrameworkGame SFMX::ImageWebP)
 
 # Auto-cook after building so a fresh clone works with just "build + run":
 #   1. --cook       wraps Game/resources/* media into Game/assets/*.sfmxasset.

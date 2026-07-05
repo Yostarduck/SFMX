@@ -32,6 +32,8 @@
 #include "assets/LuaCodec.h"
 #include "assets/SoundCodec.h"
 
+#include "ImageWebP.h"   // format module: self-registers WebP decoder + import rule
+
 #include "core/FileSystem.h"
 
 #include "utils/MemoryPoolHandler.h"
@@ -62,6 +64,9 @@ int main(int argc, char** argv)
       // its own extension here too (see the AssetImporterRegistry docs).
       AssetImporterRegistry::startUp();
       AssetImporterRegistry::instance().registerBuiltins();
+      // TODO: this probably needs to be loaded in runtime or something, for now we are dependent and calling this here. 
+      // We might want to use LoadPlugin later in the game(?)
+      imagewebp::registerModule();  // adds the .webp import rule (decoder skipped: no AssetManager in cook)
       AssetCooker::cookDirectory(srcDir, outDir);
       AssetImporterRegistry::shutDown();
       return 0;
@@ -130,6 +135,9 @@ int main(int argc, char** argv)
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
   AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
+  // WebP support: the module registers an IDecoder<sf::Image> for kWebP (import-rule
+  // half is a no-op here — the AssetImporterRegistry isn't started in the runtime path).
+  imagewebp::registerModule();
   const size_t mountedAssets = AssetManager::instance().mount("assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
 

@@ -321,6 +321,38 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   }
   marioNode->transform().setPosition({0.f, 0.f});
 
+  // -- Mario atlas animation, WebP variant (end-to-end test of the ImageWebP module) --
+  // Same atlas as above but cooked from marioatlasW.webp: proves a WebP-encoded chunk
+  // decodes through SFMX::ImageWebP (frame detection at cook, texture resolve at run).
+  SceneNode* marioWebPNode = scene.createNode("MarioWebP");
+  SPtr<TextureAsset> marioWebPAsset = loadTex("marioatlasW.webp");
+  if (nullptr != marioWebPAsset && marioWebPAsset->isLoaded()) {
+    SPtr<sf::Texture> marioWebPTex(marioWebPAsset, &marioWebPAsset->texture());
+    const sf::Image marioWebPImg = marioWebPTex->copyToImage();
+
+    auto rects = Atlas::detectSpriteRects(marioWebPImg);
+    rects.resize(6);  // take only the first frames
+    SPtr<Animation> marioWebPAnim = MakeShared<Animation>();
+    marioWebPAnim->m_loops = true;
+    marioWebPAnim->m_duration = static_cast<float>(rects.size()) * 0.1f;
+    marioWebPAnim->m_speedMultiplier = 1.0f;
+    marioWebPAnim->m_textureAssetId = marioWebPAsset->metadata().uuid;
+
+    for (const auto& r : rects) {
+      marioWebPAnim->m_frames.push_back({marioWebPTex, r});
+    }
+
+    auto* marioWebPAnimator = marioWebPNode->addComponent<AnimatorComponent>();
+    marioWebPAnimator->addAnimation(marioWebPAnim, "run");
+    marioWebPAnimator->play("run");
+  }
+  else {
+    std::cerr << "[SpriteAtlas] Failed to load marioatlasW.webp "
+                 "(missing Game/resources/marioatlasW.webp, or ImageWebP not registered)\n";
+  }
+  // Directly below the PNG Mario for an easy side-by-side PNG-vs-WebP comparison.
+  marioWebPNode->transform().setPosition({0.f, 220.f});
+
   // -- Physics colliders --
   SceneNode* ground = scene.createNode("Ground");
   ground->transform().setPosition({center.x, windowHeight - 5.f});
@@ -464,6 +496,7 @@ wireDemoRuntime(Scene& scene) {
     }
   };
   resumeAnimator("Mario");
+  resumeAnimator("MarioWebP");
   resumeAnimator("Player");
 
   if (SceneNode* moon = firstByName(scene, "Moon")) {
