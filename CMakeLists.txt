@@ -57,5 +57,6 @@ enable_testing()
 
 add_subdirectory(SketchGfx)
 add_subdirectory(FrameworkGame)
+add_subdirectory(Modules/Decoders/ImageWebP)   # format module: decodes WebP via libwebp (core stays lib-free)
 add_subdirectory(Game)
 add_subdirectory(Tests)

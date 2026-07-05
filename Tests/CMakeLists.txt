@@ -22,6 +22,7 @@ add_executable(UnitTests
     ParticleSystemComponentSerializationTest.cpp
     AssetCookerTest.cpp
     ImageDecoderSeamTest.cpp
+    ImageWebPModuleTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE
@@ -29,7 +30,10 @@ target_include_directories(UnitTests PRIVATE
     ${CMAKE_SOURCE_DIR}/ThirdParty/nanobench
 )
 
-target_link_libraries(UnitTests PRIVATE SFMX::FrameworkGame)
+# SFMX::ImageWebP: the WebP format module, exercised by ImageWebPModuleTest.cpp. It
+# links libwebp PRIVATE, so UnitTests gets WebP decode transitively without the core
+# ever referencing libwebp.
+target_link_libraries(UnitTests PRIVATE SFMX::FrameworkGame SFMX::ImageWebP)
 
 add_test(NAME UnitTests COMMAND UnitTests)
 
