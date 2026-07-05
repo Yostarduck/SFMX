@@ -49,6 +49,7 @@ add_library(FrameworkGame STATIC
 
     source/assets/AssetFile.cpp
     source/assets/AssetCooker.cpp
+    source/assets/AssetImporterRegistry.cpp
     source/assets/AssetCodecRegistry.cpp
     source/assets/TextureAsset.cpp
     source/assets/TextureCodec.cpp

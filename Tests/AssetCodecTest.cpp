@@ -44,7 +44,7 @@ namespace {
 SPtr<MemoryDataStream>
 makeAssetStream(const sfmx::UUID& assetType,
                 const Vector<uint8>& chunk,
-                ChunkFormat format = ChunkFormat::kRaw) {
+                ChunkFormatId format = ChunkFormat::kRaw) {
   AssetFileWriter writer;
   AssetMetadata meta;
   meta.uuid      = sfmx::UUID::createRandom();

@@ -7,28 +7,45 @@ namespace sfmx
 {
 
 /**
- * @brief Payload encoding of a chunk: the true byte format of the chunk.
+ * @brief Identity of a chunk's payload encoding — an OPEN, name-derived id.
  *
- * Describes *what the bytes are*, accurately. A self-describing media decoder may
- * still sniff the bytes (e.g. SFML's @c loadFromMemory) instead of trusting this,
- * but the tag stays honest for tooling, re-cook decisions, and any future decoder
- * that dispatches on it. @c kRaw is reserved for genuinely engine-native/opaque
- * bytes (scene blob, mesh, raw pixels); a foreign media format is never @c kRaw.
+ * A @ref UUID minted from a short format name (exactly as @ref TypeTraits mints type
+ * ids), NOT a closed enum. That openness is the point: any module/DLL can mint its
+ * own id for a new encoding via @ref chunkFormatId (e.g. "avif", "opus", "3ds")
+ * WITHOUT editing the core — a compile-time enum could never be extended by a
+ * runtime-loaded DLL. The well-known engine formats live in namespace
+ * @ref ChunkFormat below. @c kRaw is reserved for engine-native/opaque bytes (scene
+ * blob, mesh, raw pixels); a foreign media format is never @c kRaw.
  *
- * Serialized to disk as @c uint16, so values are **append-only**: add new formats
- * at the end, never renumber, or old cooked files would misread.
+ * The NAME is the identity, so a well-known name (see @ref ChunkFormat) must stay
+ * stable forever, or old cooked files would resolve to a different id.
  * @see ChunkCompression
  */
-enum class ChunkFormat : uint16 {
-  kRaw  = 0,   // engine-native bytes (scene blob, mesh, raw pixels, ...)
-  kWebP = 1,
-  kPng  = 2,
-  kOgg  = 3,
-  kJpeg = 4,
-  kBmp  = 5,
-  kWav  = 6,
-  kFlac = 7,
-};
+using ChunkFormatId = UUID;
+
+/** @brief Mint a @ref ChunkFormatId from a format name (what a module/DLL calls). */
+NODISCARD inline ChunkFormatId
+chunkFormatId(StringView name) {
+  return UUID::createFromName(String(name));
+}
+
+/**
+ * @brief The well-known engine chunk formats (built-ins). Modules mint their own via
+ *        @ref chunkFormatId; these are just the ones the engine ships decoders for
+ *        (or, for @c kRaw, treats as engine-native). Values are name-derived, so they
+ *        stay identical across builds and machines.
+ */
+namespace ChunkFormat
+{
+  inline const ChunkFormatId kRaw  = chunkFormatId("raw");   // engine-native bytes
+  inline const ChunkFormatId kWebP = chunkFormatId("webp");
+  inline const ChunkFormatId kPng  = chunkFormatId("png");
+  inline const ChunkFormatId kOgg  = chunkFormatId("ogg");
+  inline const ChunkFormatId kJpeg = chunkFormatId("jpeg");
+  inline const ChunkFormatId kBmp  = chunkFormatId("bmp");
+  inline const ChunkFormatId kWav  = chunkFormatId("wav");
+  inline const ChunkFormatId kFlac = chunkFormatId("flac");
+} // namespace ChunkFormat
 
 /** @brief Whether a chunk's on-disk bytes are compressed (and with what). */
 enum class ChunkCompression : uint16 {
