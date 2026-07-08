@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file UIImage.h
+ * @author Swampertor
+ * @date 2026/06/10
+ * @brief  UI widget that displays a texture (asset-backed).
+ */
+/************************************************************************/
 #pragma once
 
 #include <SFML/Graphics/Sprite.hpp>

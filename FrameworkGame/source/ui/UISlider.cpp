@@ -1,6 +1,12 @@
 #include "ui/UISlider.h"
 #include "ui/UIEventSystem.h"
+#include "assets/AssetManager.h"
+#include "assets/TextureAsset.h"
 #include "core/DataStream.h"
+#include "core/DataStreamTypes.h"
+#include "utils/Arithmetic.h"
+
+#include <cmath>
 
 namespace sfmx
 {
@@ -19,14 +25,16 @@ UISlider::UISlider(SceneNode* node, sf::Vector2f size)
   syncColliderToRect();
 }
 
-UISlider::~UISlider() = default;
-
 UUID UISlider::getTypeId() const {
   return TypeTraits<UISlider>::getTypeId();
 }
 
 void UISlider::setValue(float value) {
   value = std::max(m_minValue, std::min(m_maxValue, value));
+  if (m_stepValue > 0.f) {
+    value = m_minValue + std::round((value - m_minValue) / m_stepValue) * m_stepValue;
+    value = std::max(m_minValue, std::min(m_maxValue, value));
+  }
   if (m_value != value) {
     m_value = value;
     m_onValueChangedEvent(value);
@@ -39,13 +47,55 @@ void UISlider::setRange(float min, float max) {
   setValue(m_value);
 }
 
+// -- Texture asset for the thumb -----------------------------------------------
+
+void UISlider::setThumbTextureAsset(SPtr<TextureAsset> asset) {
+  if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
+    SPtr<TextureAsset> loaded =
+        AssetManager::instance().load<TextureAsset>(asset->metadata().uuid);
+    if (nullptr != loaded) {
+      asset = loaded;
+    }
+  }
+
+  m_thumbTextureAsset = asset;
+  m_thumbTextureAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  if (nullptr != asset && asset->isLoaded()) {
+    m_thumbSprite = MakeUnique<sf::Sprite>(asset->texture());
+  } else {
+    m_thumbSprite.reset();
+  }
+}
+
+void UISlider::setThumbTextureAssetId(const UUID& id) {
+  if (id != UUID::null() && AssetManager::isStarted()) {
+    SPtr<TextureAsset> asset = AssetManager::instance().load<TextureAsset>(id);
+    if (nullptr != asset) {
+      setThumbTextureAsset(asset);
+      return;
+    }
+  }
+  m_thumbTextureAssetId = id;
+  m_thumbSprite.reset();
+}
+
+const UUID& UISlider::getThumbTextureAssetId() const {
+  return m_thumbTextureAssetId;
+}
+
+SPtr<TextureAsset> UISlider::getThumbTextureAsset() const {
+  return m_thumbTextureAsset;
+}
+
+// ------------------------------------------------------------------------------
+
 void UISlider::updateValueFromLocalX(float localX) {
   const float w = getSize().x;
   if (w <= 0.f) {
     return;
   }
   const float t = std::max(0.f, std::min(1.f, localX / w));
-  setValue(m_minValue + t * (m_maxValue - m_minValue));
+  setValue(lerp::number(m_minValue, m_maxValue, t));
 }
 
 float UISlider::getThumbCenterX() const {
@@ -68,31 +118,29 @@ void UISlider::onPointerUp(sf::Vector2f position) {
   UIWidget::onPointerUp(position);
 }
 
+void UISlider::onUpdate(float /*deltaTime*/) {
+  if (!m_dragging || !UIEventSystem::isStarted()) {
+    return;
+  }
+
+  const auto& ptr = UIEventSystem::instance().getPointerState();
+  if (ptr.buttonDown) {
+    const sf::Vector2f localPos = ptr.canvasPos - getPosition();
+    const float w = getSize().x;
+    if (w > 0.f) {
+      const float t = std::max(0.f, std::min(1.f, localPos.x / w));
+      setValue(lerp::number(m_minValue, m_maxValue, t));
+    }
+  } else {
+    m_dragging = false;
+  }
+}
+
 void UISlider::onDraw(sf::RenderTarget& target,
                        sf::RenderStates states) const {
   if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible()) {
     return;
-  }
-
-  if (m_dragging) {
-    if (UIEventSystem::isStarted()) {
-      const auto& ptr = UIEventSystem::instance().getPointerState();
-      if (ptr.buttonDown) {
-        const sf::Vector2f localPos = ptr.canvasPos - getPosition();
-        const float w = getSize().x;
-        if (w > 0.f) {
-          const float t = std::max(0.f, std::min(1.f, localPos.x / w));
-          const float newValue = m_minValue + t * (m_maxValue - m_minValue);
-          if (m_value != newValue) {
-            m_value = newValue;
-            m_onValueChangedEvent(m_value);
-          }
-        }
-      } else {
-        m_dragging = false;
-      }
-    }
   }
 
   const sf::Vector2f pos = getPosition();
@@ -114,15 +162,25 @@ void UISlider::onDraw(sf::RenderTarget& target,
     target.draw(m_fill, states);
   }
 
-  m_thumb.setRadius(m_thumbSize * 0.5f);
-  m_thumb.setOrigin({m_thumbSize * 0.5f, m_thumbSize * 0.5f});
-  m_thumb.setPosition({thumbCX, pos.y + size.y * 0.5f});
-  m_thumb.setFillColor(m_thumbColor);
-  target.draw(m_thumb, states);
+  if (m_thumbSprite) {
+    const sf::FloatRect tb = m_thumbSprite->getLocalBounds();
+    if (tb.size.x > 0.f && tb.size.y > 0.f) {
+      const float half = m_thumbSize * 0.5f;
+      m_thumbSprite->setPosition({thumbCX - half, pos.y + (size.y - m_thumbSize) * 0.5f});
+      m_thumbSprite->setScale({m_thumbSize / tb.size.x, m_thumbSize / tb.size.y});
+      target.draw(*m_thumbSprite, states);
+    }
+  } else {
+    m_thumb.setRadius(m_thumbSize * 0.5f);
+    m_thumb.setOrigin({m_thumbSize * 0.5f, m_thumbSize * 0.5f});
+    m_thumb.setPosition({thumbCX, pos.y + size.y * 0.5f});
+    m_thumb.setFillColor(m_thumbColor);
+    target.draw(m_thumb, states);
+  }
 }
 
 void UISlider::onSerialize(DataStream& stream) const {
-  constexpr uint32 kVersion = 1;
+  constexpr uint32 kVersion = 2;
   stream << kVersion;
 
   uint8 flags = 0;
@@ -143,18 +201,19 @@ void UISlider::onSerialize(DataStream& stream) const {
   const sf::Color& c = getColor();
   stream << c.r << c.g << c.b << c.a;
 
-  stream << m_value << m_minValue << m_maxValue;
+  stream << m_value << m_minValue << m_maxValue << m_stepValue;
   stream << m_thumbSize;
 
   stream << m_trackColor.r << m_trackColor.g << m_trackColor.b << m_trackColor.a;
   stream << m_fillColor.r << m_fillColor.g << m_fillColor.b << m_fillColor.a;
   stream << m_thumbColor.r << m_thumbColor.g << m_thumbColor.b << m_thumbColor.a;
+  stream << m_thumbTextureAssetId;
 }
 
 void UISlider::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != 1) {
+  if (version < 1 || version > 2) {
     return;
   }
 
@@ -180,6 +239,9 @@ void UISlider::onDeserialize(DataStream& stream) {
   setColor(sf::Color(cr, cg, cb, ca));
 
   stream >> m_value >> m_minValue >> m_maxValue;
+  if (version >= 2) {
+    stream >> m_stepValue;
+  }
   stream >> m_thumbSize;
   setValue(m_value);
 
@@ -187,6 +249,11 @@ void UISlider::onDeserialize(DataStream& stream) {
   stream >> tr >> tg >> tb >> ta; m_trackColor = sf::Color(tr, tg, tb, ta);
   stream >> tr >> tg >> tb >> ta; m_fillColor = sf::Color(tr, tg, tb, ta);
   stream >> tr >> tg >> tb >> ta; m_thumbColor = sf::Color(tr, tg, tb, ta);
+  if (version >= 2) {
+    UUID id;
+    stream >> id;
+    setThumbTextureAssetId(id);
+  }
 }
 
 } // namespace sfmx

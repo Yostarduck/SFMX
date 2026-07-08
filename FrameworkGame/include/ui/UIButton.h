@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file UIButton.h
+ * @author Swampertor
+ * @date 2026/06/10
+ * @brief  Clickable push-button with visual states (Normal, Hovered, Pressed, Focused, Disabled).
+ */
+/************************************************************************/
 #pragma once
 
 #include <SFML/Graphics/RectangleShape.hpp>

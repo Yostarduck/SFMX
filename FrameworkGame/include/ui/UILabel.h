@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file UILabel.h
+ * @author Swampertor
+ * @date 2026/06/10
+ * @brief  Non-interactive text label for the UI canvas.
+ */
+/************************************************************************/
 #pragma once
 
 #include <SFML/Graphics/Text.hpp>

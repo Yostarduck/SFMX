@@ -21,8 +21,6 @@ UITextBox::UITextBox(SceneNode* node, sf::Vector2f size)
   syncColliderToRect();
 }
 
-UITextBox::~UITextBox() = default;
-
 UUID UITextBox::getTypeId() const {
   return TypeTraits<UITextBox>::getTypeId();
 }
@@ -75,6 +73,7 @@ void UITextBox::deleteForward() {
 
 void UITextBox::onPointerDown(sf::Vector2f position) {
   UIWidget::onPointerDown(position);
+  // TODO:
   // Position cursor by click position (approximate: place at end for now).
   // Full character-index-from-position would need per-glyph advance queries.
   if (m_text) {
@@ -91,17 +90,23 @@ void UITextBox::onDraw(sf::RenderTarget& target,
 
   const sf::Vector2f pos = getPosition();
   const sf::Vector2f size = getSize();
-  constexpr float borderThickness = 2.f;
 
-  m_background.setSize(size);
-  m_background.setPosition(pos);
+  // Rebuild background / border geometry only when position or size changes.
+  if (m_dirty || pos != m_lastPos || size != m_lastSize) {
+    m_lastPos = pos;
+    m_lastSize = size;
+    m_dirty = false;
+
+    constexpr float bt = 2.f;
+    m_background.setSize(size);
+    m_background.setPosition(pos);
+    m_border.setSize(size);
+    m_border.setPosition(pos);
+    m_border.setFillColor(sf::Color::Transparent);
+    m_border.setOutlineThickness(bt);
+  }
   m_background.setFillColor(m_bgColor);
   target.draw(m_background, states);
-
-  m_border.setSize(size);
-  m_border.setPosition(pos);
-  m_border.setFillColor(sf::Color::Transparent);
-  m_border.setOutlineThickness(borderThickness);
   m_border.setOutlineColor(isFocused() ? m_focusedBorderColor : m_borderColor);
   target.draw(m_border, states);
 
@@ -140,10 +145,7 @@ void UITextBox::onDraw(sf::RenderTarget& target,
       const float cursorX = pos.x + textPadding
         + charWidth * std::min(m_cursorPos,
             static_cast<uint32>(m_textContent.size()));
-      const sf::Vector2f cursorSize = {
-        2.f, static_cast<float>(m_charSize)
-      };
-      m_cursorShape.setSize(cursorSize);
+      m_cursorShape.setSize({2.f, static_cast<float>(m_charSize)});
       m_cursorShape.setPosition({std::min(cursorX, innerRight), pos.y + textPadding});
       m_cursorShape.setFillColor(m_cursorColor);
       target.draw(m_cursorShape, states);

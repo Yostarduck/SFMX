@@ -1,5 +1,8 @@
 #include "ui/UICheckbox.h"
+#include "assets/AssetManager.h"
+#include "assets/TextureAsset.h"
 #include "core/DataStream.h"
+#include "core/DataStreamTypes.h"
 
 #include <cmath>
 
@@ -20,18 +23,60 @@ UICheckbox::UICheckbox(SceneNode* node, sf::Vector2f size)
   syncColliderToRect();
 }
 
-UICheckbox::~UICheckbox() = default;
-
 UUID UICheckbox::getTypeId() const {
   return TypeTraits<UICheckbox>::getTypeId();
 }
 
-void UICheckbox::setChecked(bool checked) {
+void UICheckbox::setChecked(bool checked, bool notify) {
   if (m_checked != checked) {
     m_checked = checked;
-    m_onValueChangedEvent(checked);
+    if (notify) {
+      m_onValueChangedEvent(checked);
+    }
   }
 }
+
+// -- Texture asset ---------------------------------------------------------------
+
+void UICheckbox::setTextureAsset(SPtr<TextureAsset> asset) {
+  if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
+    SPtr<TextureAsset> loaded =
+        AssetManager::instance().load<TextureAsset>(asset->metadata().uuid);
+    if (nullptr != loaded) {
+      asset = loaded;
+    }
+  }
+
+  m_textureAsset = asset;
+  m_textureAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  if (nullptr != asset && asset->isLoaded()) {
+    m_sprite = MakeUnique<sf::Sprite>(asset->texture());
+  } else {
+    m_sprite.reset();
+  }
+}
+
+void UICheckbox::setTextureAssetId(const UUID& id) {
+  if (id != UUID::null() && AssetManager::isStarted()) {
+    SPtr<TextureAsset> asset = AssetManager::instance().load<TextureAsset>(id);
+    if (nullptr != asset) {
+      setTextureAsset(asset);
+      return;
+    }
+  }
+  m_textureAssetId = id;
+  m_sprite.reset();
+}
+
+const UUID& UICheckbox::getTextureAssetId() const {
+  return m_textureAssetId;
+}
+
+SPtr<TextureAsset> UICheckbox::getTextureAsset() const {
+  return m_textureAsset;
+}
+
+// --------------------------------------------------------------------------------
 
 void UICheckbox::onPointerEnter(sf::Vector2f position) {
   m_hovered = true;
@@ -58,6 +103,16 @@ void UICheckbox::onDraw(sf::RenderTarget& target,
   const sf::Vector2f pos = getPosition();
   const sf::Vector2f size = getSize();
 
+  if (m_sprite) {
+    m_sprite->setPosition(pos);
+    const sf::FloatRect sb = m_sprite->getLocalBounds();
+    if (sb.size.x > 0.f && sb.size.y > 0.f) {
+      m_sprite->setScale({size.x / sb.size.x, size.y / sb.size.y});
+    }
+    target.draw(*m_sprite, states);
+    return;
+  }
+
   if (m_checked) {
     m_box.setFillColor(m_checkedBoxColor);
   } else if (m_hovered) {
@@ -80,32 +135,17 @@ void UICheckbox::onDraw(sf::RenderTarget& target,
     const sf::Vector2f corner{areaLeft + areaSize * 0.4f, areaTop + areaSize * 0.75f};
     const sf::Vector2f end{areaLeft + areaSize * 0.85f, areaTop + areaSize * 0.25f};
 
-    const sf::Vector2f d1 = corner - start;
-    const float len1 = std::sqrt(d1.x * d1.x + d1.y * d1.y);
-    const float angle1 = std::atan2(d1.y, d1.x) * 180.f / 3.14159265f;
-
-    m_checkLine1.setSize({len1, thickness});
-    m_checkLine1.setOrigin({0.f, thickness * 0.5f});
-    m_checkLine1.setPosition(start);
-    m_checkLine1.setRotation(sf::degrees(angle1));
-    m_checkLine1.setFillColor(m_checkColor);
-    target.draw(m_checkLine1, states);
-
-    const sf::Vector2f d2 = end - corner;
-    const float len2 = std::sqrt(d2.x * d2.x + d2.y * d2.y);
-    const float angle2 = std::atan2(d2.y, d2.x) * 180.f / 3.14159265f;
-
-    m_checkLine2.setSize({len2, thickness});
-    m_checkLine2.setOrigin({0.f, thickness * 0.5f});
-    m_checkLine2.setPosition(corner);
-    m_checkLine2.setRotation(sf::degrees(angle2));
-    m_checkLine2.setFillColor(m_checkColor);
-    target.draw(m_checkLine2, states);
+    m_checkMark.setPrimitiveType(sf::PrimitiveType::LineStrip);
+    m_checkMark.resize(3);
+    m_checkMark[0] = sf::Vertex(start, m_checkColor);
+    m_checkMark[1] = sf::Vertex(corner, m_checkColor);
+    m_checkMark[2] = sf::Vertex(end, m_checkColor);
+    target.draw(m_checkMark, states);
   }
 }
 
 void UICheckbox::onSerialize(DataStream& stream) const {
-  constexpr uint32 kVersion = 1;
+  constexpr uint32 kVersion = 2;
   stream << kVersion;
 
   uint8 flags = 0;
@@ -133,12 +173,13 @@ void UICheckbox::onSerialize(DataStream& stream) const {
   stream << m_checkedBoxColor.r << m_checkedBoxColor.g
          << m_checkedBoxColor.b << m_checkedBoxColor.a;
   stream << m_checkColor.r << m_checkColor.g << m_checkColor.b << m_checkColor.a;
+  stream << m_textureAssetId;
 }
 
 void UICheckbox::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != 1) {
+  if (version < 1 || version > 2) {
     return;
   }
 
@@ -170,6 +211,11 @@ void UICheckbox::onDeserialize(DataStream& stream) {
   stream >> m_checkedBoxColor.r >> m_checkedBoxColor.g
          >> m_checkedBoxColor.b >> m_checkedBoxColor.a;
   stream >> m_checkColor.r >> m_checkColor.g >> m_checkColor.b >> m_checkColor.a;
+  if (version >= 2) {
+    UUID id;
+    stream >> id;
+    setTextureAssetId(id);
+  }
 }
 
 } // namespace sfmx

@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file UIWidget.h
+ * @author Swampertor
+ * @date 2026/06/10
+ * @brief  Base class for every UI element placed on a Canvas.
+ */
+/************************************************************************/
 #pragma once
 
 #include <SFML/Graphics/RenderStates.hpp>
