@@ -2,7 +2,7 @@
 
 #include <SFML/Graphics/Font.hpp>
 
-#include "core/platform/Prerequisites.h
+#include "core/platform/Prerequisites.h"
 #include "assets/Asset.h"
 
 namespace sfmx
@@ -24,5 +24,5 @@ class SFMX_UTILITY_EXPORT FontAsset : public AssetT<FontAsset>
 
   private:
   sf::Font m_font;
-}
+};
 }
