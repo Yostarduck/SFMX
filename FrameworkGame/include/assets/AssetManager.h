@@ -135,6 +135,38 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
   void
   unloadAll();
 
+  /**
+   * @brief Re-decode @p id from its current on-disk state, replacing the cache entry.
+   *
+   * Evicts then re-loads, so the fresh asset reflects whatever the file (or, in debug
+   * raw-script mode, the source `.lua`) currently holds. Callers holding the old
+   * @c SPtr keep it until they re-resolve @p id. Used by dev hot-reload; reusable for
+   * any asset type. @return the freshly decoded asset, or @c nullptr.
+   */
+  NODISCARD SPtr<IAsset>
+  reload(const UUID& id);
+
+#if USING(SFMX_DEBUG_MODE)
+  // -- Debug: raw script mode (dev hot-reload) --------------------------------------
+  // Debug-only surface: the whole trio is compiled out of release, so raw script
+  // loading cannot be enabled there (it is not a silent no-op — it does not exist).
+  /**
+   * @brief Load Lua scripts from their raw source file instead of the cooked chunk.
+   * @param enabled   Turn raw script loading on.
+   * @param sourceDir Content-root-relative dir the sources live under (e.g. "resources").
+   */
+  void
+  setRawScriptMode(bool enabled, StringView sourceDir);
+
+  /** @brief Whether raw script loading is on (false unless set; debug builds only). */
+  NODISCARD FORCEINLINE bool
+  getRawScriptMode() const { return m_rawScripts; }
+
+  /** @brief Content-root-relative dir raw script sources are read from. */
+  NODISCARD FORCEINLINE const String&
+  getRawScriptDir() const { return m_rawScriptDir; }
+#endif // USING(SFMX_DEBUG_MODE)
+
  protected:
   // Destroys cached assets while SFML is still alive (call shutDown before the
   // render window dies — same ordering rule as the other Modules).
@@ -165,6 +197,10 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
   UnorderedMap<UUID, SPtr<IAsset>>  m_cache;     // Loaded
   UnorderedSet<UUID>                m_loading;   // guards against reference cycles
   AssetCodecRegistry                m_codecs;
+#if USING(SFMX_DEBUG_MODE)
+  bool                              m_rawScripts   = false;       // debug-only dev flag
+  String                            m_rawScriptDir = "resources"; // raw source dir (content-root-relative)
+#endif
   // Keyed by the output C++ type; the inner table is keyed by ChunkFormat.
   UnorderedMap<std::type_index, SPtr<IDecoderTable>> m_decoders;
 };
