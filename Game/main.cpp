@@ -26,6 +26,7 @@
 #include "ui/UISlider.h"
 #include "ui/UITextBox.h"
 #include "ui/UICheckbox.h"
+#include "ui/UICheckboxGroup.h"
 
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
@@ -316,6 +317,97 @@ int main(int argc, char** argv)
   HEvent cbSub = checkbox->onValueChanged([](bool checked) {
     std::cout << "[UI] Checkbox: " << (checked ? "checked" : "unchecked") << "\n";
   });
+
+  // ── UICheckboxGroup demo (multi-select + radio) ────────────────────────
+  SPtr<UICheckboxGroup> fruitGroup;
+  SPtr<UICheckboxGroup> radioGroup;
+  Vector<HEvent> groupLogs;
+
+  if (fontLoaded) {
+    // --- Multi-select group (regular checkbox behaviour) ---
+    fruitGroup = MakeShared<UICheckboxGroup>();
+    fruitGroup->setExclusive(false);
+
+    auto* fruitTitle = canvasNode->createChild("FruitGroupTitle");
+    auto* fruitTitleLbl = fruitTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
+    fruitTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 80.f});
+    fruitTitleLbl->setFont(font);
+    fruitTitleLbl->setText("Fruits (multi-select):");
+    fruitTitleLbl->setCharacterSize(14);
+    fruitTitleLbl->setTextColor(sf::Color::White);
+    uiCanvas.addWidget(fruitTitleLbl);
+
+    static constexpr struct { const char* node; const char* label; } kFruits[] = {
+      {"AppleCb", "Apple"}, {"BananaCb", "Banana"}, {"CherryCb", "Cherry"}
+    };
+    float fx = windowWidth * 0.5f + 60.f;
+    const float fy = windowHeight * 0.5f - 50.f;
+    for (auto& def : kFruits) {
+      auto* node = canvasNode->createChild(def.node);
+      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
+      cb->setPosition({fx, fy});
+      cb->syncColliderToRect();
+      cb->setGroup(fruitGroup.get());
+      uiCanvas.addWidget(cb);
+
+      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
+      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{80.f, 24.f});
+      lbl->setPosition({fx + 28.f, fy + 2.f});
+      lbl->setFont(font);
+      lbl->setText(def.label);
+      lbl->setCharacterSize(14);
+      lbl->setTextColor(sf::Color::White);
+      uiCanvas.addWidget(lbl);
+
+      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
+        std::cout << "[UI Group] " << name << ": " << (checked ? "checked" : "unchecked") << "\n";
+      }));
+
+      fx += 90.f;
+    }
+
+    // --- Exclusive group (radio behaviour) ---
+    radioGroup = MakeShared<UICheckboxGroup>();
+    radioGroup->setExclusive(true);
+
+    auto* radioTitle = canvasNode->createChild("RadioGroupTitle");
+    auto* radioTitleLbl = radioTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
+    radioTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 10.f});
+    radioTitleLbl->setFont(font);
+    radioTitleLbl->setText("Options (radio):");
+    radioTitleLbl->setCharacterSize(14);
+    radioTitleLbl->setTextColor(sf::Color::White);
+    uiCanvas.addWidget(radioTitleLbl);
+
+    static constexpr struct { const char* node; const char* label; } kRadios[] = {
+      {"OptARb", "Option A"}, {"OptBRb", "Option B"}, {"OptCRb", "Option C"}
+    };
+    float rx = windowWidth * 0.5f + 60.f;
+    const float ry = windowHeight * 0.5f + 20.f;
+    for (auto& def : kRadios) {
+      auto* node = canvasNode->createChild(def.node);
+      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
+      cb->setPosition({rx, ry});
+      cb->syncColliderToRect();
+      cb->setGroup(radioGroup.get());
+      uiCanvas.addWidget(cb);
+
+      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
+      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{100.f, 24.f});
+      lbl->setPosition({rx + 28.f, ry + 2.f});
+      lbl->setFont(font);
+      lbl->setText(def.label);
+      lbl->setCharacterSize(14);
+      lbl->setTextColor(sf::Color::White);
+      uiCanvas.addWidget(lbl);
+
+      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
+        std::cout << "[UI Radio] " << name << ": " << (checked ? "selected" : "deselected") << "\n";
+      }));
+
+      rx += 100.f;
+    }
+  }
 
   // ── UITextBox demo ─────────────────────────────────────────────────────
   if (fontLoaded) {

@@ -1,4 +1,5 @@
 #include "ui/UICheckbox.h"
+#include "ui/UICheckboxGroup.h"
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
 #include "core/DataStream.h"
@@ -23,17 +24,45 @@ UICheckbox::UICheckbox(SceneNode* node, sf::Vector2f size)
   syncColliderToRect();
 }
 
+UICheckbox::~UICheckbox()
+{
+  if (m_group)
+  {
+    m_group->removeCheckbox(this);
+  }
+}
+
 UUID UICheckbox::getTypeId() const {
   return TypeTraits<UICheckbox>::getTypeId();
 }
 
 void UICheckbox::setChecked(bool checked, bool notify) {
   if (m_checked != checked) {
+    if (checked && m_group && m_group->isExclusive()) {
+      m_group->onCheckboxChecked(this);
+    }
     m_checked = checked;
     if (notify) {
       m_onValueChangedEvent(checked);
     }
   }
+}
+
+// -- Group -------------------------------------------------------------------
+
+void UICheckbox::setGroup(UICheckboxGroup* group) {
+  if (m_group == group) return;
+  if (m_group) {
+    m_group->removeCheckbox(this);
+  }
+  m_group = group;
+  if (m_group) {
+    m_group->m_checkboxes.push_back(this);
+  }
+}
+
+UICheckboxGroup* UICheckbox::getGroup() const {
+  return m_group;
 }
 
 // -- Texture asset ---------------------------------------------------------------
@@ -89,6 +118,9 @@ void UICheckbox::onPointerExit(sf::Vector2f position) {
 }
 
 void UICheckbox::onPointerClick(sf::Vector2f position) {
+  if (m_group && m_group->isExclusive() && m_checked) {
+    return;
+  }
   setChecked(!m_checked);
   UIWidget::onPointerClick(position);
 }

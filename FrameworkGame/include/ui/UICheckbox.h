@@ -19,6 +19,7 @@ namespace sfmx
 {
 
 class TextureAsset;
+class UICheckboxGroup;
 
 class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
                          public ComponentT<UICheckbox>
@@ -49,7 +50,7 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
   UICheckbox(sf::Vector2f size = {24.f, 24.f});
   /** @brief  Component constructor attached to a SceneNode. */
   UICheckbox(SceneNode* node, sf::Vector2f size = {24.f, 24.f});
-  ~UICheckbox() override = default;
+  ~UICheckbox() override;
 
   /** @brief  Type UUID for serialization. */
   NODISCARD UUID getTypeId() const override;
@@ -98,7 +99,15 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
   /** @brief  True if a texture sprite is available for drawing. */
   NODISCARD FORCEINLINE bool hasTexture() const { return m_sprite != nullptr; }
 
+  // -- Group ------------------------------------------------------------------
+
+  /** @brief  Assign this checkbox to a group (or nullptr to leave). */
+  void setGroup(UICheckboxGroup* group);
+  /** @brief  Current group, or nullptr. */
+  NODISCARD UICheckboxGroup* getGroup() const;
+
  private:
+  friend class UICheckboxGroup;
   /** @brief  Hover highlight on enter. */
   void onPointerEnter(sf::Vector2f position) override;
   /** @brief  Remove hover highlight on exit. */
@@ -110,6 +119,7 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
 
   bool m_checked = false;
   bool m_hovered = false;
+  UICheckboxGroup* m_group = nullptr;
 
   mutable sf::RectangleShape m_box;
   mutable sf::VertexArray m_checkMark;
