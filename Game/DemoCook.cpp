@@ -11,6 +11,7 @@
 #include "assets/TextureCodec.h"
 #include "assets/LuaCodec.h"
 #include "assets/SoundCodec.h"
+#include "assets/FontCodec.h"
 
 #include "ImageWebP.h"   // WebP decoder: the scene animates a .webp atlas (frame detect)
 
@@ -41,6 +42,7 @@ cookScene() {
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
   AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
+  AssetManager::instance().registerCodec(MakeShared<FontCodec>());
   // The demo scene animates a WebP atlas; frame detection here decodes it via the
   // module (registers the kWebP image decoder; import-rule half is a no-op — no cook).
   imagewebp::registerModule();

@@ -24,5 +24,8 @@ class SFMX_UTILITY_EXPORT FontAsset : public AssetT<FontAsset>
 
   private:
   sf::Font m_font;
+  Vector<uint8> m_bytes;
 };
-}
+} // namespace sfmx
+
+DECLARE_TYPE_TRAITS(sfmx::FontAsset)

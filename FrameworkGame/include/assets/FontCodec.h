@@ -17,5 +17,5 @@ class SFMX_UTILITY_EXPORT FontCodec : public IAssetCodec
   decode(AssetFileReader& reader) const override;
 };
 
-}
+} // namespace sfmx
 

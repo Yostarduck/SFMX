@@ -17,13 +17,13 @@ FontAsset::decodeFrom(AssetFileReader& reader) {
   }
 
   // The scratch buffer is load-time only; this (should) never run in the game loop.
-  Vector<uint8> bytes;
-  if (!reader.readChunk(0, bytes) || bytes.empty()) {
+  m_bytes.clear();
+  if (!reader.readChunk(0, m_bytes) || m_bytes.empty()) {
     setState(AssetState::kFailed);
     return false;
   }
 
-  bool ok = m_font.openFromMemory(bytes.data(), bytes.size());
+  bool ok = m_font.openFromMemory(m_bytes.data(), m_bytes.size());
   setState(ok ? AssetState::kLoaded : AssetState::kFailed);
   return ok;
 }
