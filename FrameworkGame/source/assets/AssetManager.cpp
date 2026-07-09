@@ -139,6 +139,22 @@ AssetManager::unloadAll() {
   m_cache.clear();
 }
 
+SPtr<IAsset>
+AssetManager::reload(const UUID& id) {
+  // Drop the cached copy so load() re-decodes from the current file (or, in debug
+  // raw-script mode, re-reads the source). The catalog entry is untouched.
+  unload(id);
+  return load(id);
+}
+
+#if USING(SFMX_DEBUG_MODE)
+void
+AssetManager::setRawScriptMode(bool enabled, StringView sourceDir) {
+  m_rawScripts   = enabled;
+  m_rawScriptDir = String(sourceDir);
+}
+#endif
+
 void
 AssetManager::onShutDown() {
   // Destroy cached assets (e.g. sf::Texture) while SFML is still alive.

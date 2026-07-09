@@ -29,23 +29,25 @@ ScriptEngine::loadScript(ScriptComponent* scriptComponent) {
   }
   const String label = scriptComponent->m_scriptAssetId.toString();
 
-  // TODO: log errors
+  // On any failure below we return WITHOUT setting m_initialized, so the caller
+  // (setScriptAsset reset it to false first) leaves the component disabled — a broken
+  // script stops running until a good reload, logged, never crashing.
   sol::load_result chunk = m_lua.load(asset->script());
   if (!chunk.valid()) {
     const sol::error err = chunk;
-    fprintf(stderr, "[Script] load %s: %s\n", label.c_str(), err.what());
+    fprintf(stderr, "[Script] load %s: %s (script disabled)\n", label.c_str(), err.what());
     return;
   }
 
   sol::protected_function_result returned = chunk();
   if (!returned.valid()) {
     const sol::error err = returned;
-    fprintf(stderr, "[Script] init %s: %s\n", label.c_str(), err.what());
+    fprintf(stderr, "[Script] init %s: %s (script disabled)\n", label.c_str(), err.what());
     return;
   }
 
   if (sol::type::function != returned.get_type()) {
-    fprintf(stderr, "[Script] %s must return a function\n", label.c_str());
+    fprintf(stderr, "[Script] %s must return a function (script disabled)\n", label.c_str());
     return;
   }
 

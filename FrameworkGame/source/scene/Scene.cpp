@@ -127,6 +127,13 @@ Scene::findNodesByName(StringView name) const {
 }
 
 void
+Scene::forEachNode(const Function<void(SceneNode*)>& fn) const {
+  for (const auto& entry : m_registry) {
+    fn(entry.second);
+  }
+}
+
+void
 Scene::registerNode(SceneNode* node) {
   m_registry[node->getId()] = node;
 }

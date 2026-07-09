@@ -14,6 +14,7 @@
 #include "scene/Scene.h"
 #include "scene/SceneManager.h"
 #include "scene/SourceComponent.h"
+#include "scene/ScriptComponent.h"
 #include "scene/SceneSerializer.h"
 #include "scene/ComponentRegistry.h"
 #include "scene/CanvasComponent.h"
@@ -140,6 +141,14 @@ int main(int argc, char** argv)
   // WebP support: the module registers an IDecoder<sf::Image> for kWebP (import-rule
   // half is a no-op here — the AssetImporterRegistry isn't started in the runtime path).
   imagewebp::registerModule();
+#if USING(SFMX_DEBUG_MODE)
+  // Dev: load Lua scripts from their raw source (hot-reloadable via F5) instead of the
+  // cooked chunk. Debug-only — this block is compiled out of release, so the ini flag
+  // is a harmless no-op there. Set before mount/load so the first script load is raw.
+  AssetManager::instance().setRawScriptMode(
+      config.getBool("Debug", "RawScripts", true),
+      config.getString("Debug", "RawSourceDir", "resources"));
+#endif
   const size_t mountedAssets = AssetManager::instance().mount("assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
 
@@ -376,6 +385,23 @@ int main(int argc, char** argv)
         rt.moonSfx->play();
       }
     }
+#if USING(SFMX_DEBUG_MODE)
+    // Dev hot-reload: F5 re-decodes each script's LuaAsset (its raw source in raw mode)
+    // and re-binds it, so an edited .lua takes effect without restarting the game.
+    if (AssetManager::instance().getRawScriptMode() &&
+        Keyboard::instance().wasPressedThisFrame(Key::kF5)) {
+      scene.forEachNode([](SceneNode* n) {
+        if (auto* sc = n->getComponent<ScriptComponent>()) {
+          const sfmx::UUID id = sc->getScriptAssetId();
+          if (id != sfmx::UUID::null()) {
+            static_cast<void>(AssetManager::instance().reload(id));  // re-decode (raw re-read)
+            sc->setScriptAssetId(id);                                // re-bind (recompile)
+          }
+        }
+      });
+      std::cout << "[Script] hot-reloaded (F5)\n";
+    }
+#endif
     if (Mouse::instance().wasPressedThisFrame(MouseButton::kLeft)) {
       const Vector2i pos = Mouse::instance().getPosition();
       std::cout << "[Input] Left click at (" << pos.x << ", " << pos.y << ")\n";

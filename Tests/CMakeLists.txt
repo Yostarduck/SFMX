@@ -23,6 +23,7 @@ add_executable(UnitTests
     AssetCookerTest.cpp
     ImageDecoderSeamTest.cpp
     ImageWebPModuleTest.cpp
+    ScriptHotReloadTest.cpp
 )
 
 target_include_directories(UnitTests PRIVATE

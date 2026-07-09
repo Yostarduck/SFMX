@@ -46,6 +46,8 @@ namespace ChunkFormat
   inline const ChunkFormatId kWav  = chunkFormatId("wav");
   inline const ChunkFormatId kFlac = chunkFormatId("flac");
   inline const ChunkFormatId kMp3  = chunkFormatId("mp3");
+  inline const ChunkFormatId kTtf = chunkFormatId("ttf");
+  inline const ChunkFormatId kOtf = chunkFormatId("otf");
 } // namespace ChunkFormat
 
 /** @brief Whether a chunk's on-disk bytes are compressed (and with what). */
