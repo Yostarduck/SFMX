@@ -2,6 +2,7 @@
 
 #include "assets/SoundAsset.h"
 #include "assets/TextureAsset.h"
+#include "assets/FontAsset.h"
 
 namespace sfmx
 {
@@ -16,6 +17,8 @@ AssetImporterRegistry::registerBuiltins() {
   registerImporter<SoundAsset>(ChunkFormat::kOgg,  ".ogg");
   registerImporter<SoundAsset>(ChunkFormat::kWav,  ".wav");
   registerImporter<SoundAsset>(ChunkFormat::kFlac, ".flac");
+  registerImporter<FontAsset>(ChunkFormat::kTtf,  ".ttf");
+  registerImporter<FontAsset>(ChunkFormat::kOtf,  ".otf");
 }
 
 const ImportRule*
