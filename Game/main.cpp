@@ -31,6 +31,7 @@
 #include "assets/TextureCodec.h"
 #include "assets/LuaCodec.h"
 #include "assets/SoundCodec.h"
+#include "assets/MusicCodec.h"
 
 #include "ImageWebP.h"   // format module: self-registers WebP decoder + import rule
 
@@ -135,6 +136,7 @@ int main(int argc, char** argv)
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
   AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
+  AssetManager::instance().registerCodec(MakeShared<MusicCodec>());
   // WebP support: the module registers an IDecoder<sf::Image> for kWebP (import-rule
   // half is a no-op here — the AssetImporterRegistry isn't started in the runtime path).
   imagewebp::registerModule();

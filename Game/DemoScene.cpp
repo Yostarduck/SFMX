@@ -206,13 +206,17 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   earth->transform().setPosition({140.f, 0.f});
   earth->addComponent<CircleComponent>(20.f, sf::Color(100, 180, 255));
   auto* bgm = earth->addComponent<SourceComponent>();
-  if (bgm->loadMusicFromFile("resources/background.mp3")) {
+  // Streaming music by UUID: cooked as a MusicAsset (kMusic backend, encoded bytes
+  // resident, streamed on play) and referenced by catalog id — location-independent,
+  // unlike the old frágil path. The `music/` folder is what cooks it as music.
+  bgm->setMusicAssetId(sfmx::UUID::createFromName("music/background.mp3"));
+  if (nullptr != bgm->getSource()) {
     bgm->setLooping(true);
     bgm->setVolume(1.0f);
     bgm->setSpatializationEnabled(false);
   }
   else {
-    std::cout << "[Audio] Failed to load background.mp3\n";
+    std::cout << "[Audio] Failed to load music/background.mp3\n";
   }
 
   EmitterConfig earthCfg;
@@ -250,13 +254,14 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   auto* sfx = moon->addComponent<SourceComponent>();
   // A one-shot SFX is short and resident: cook it as a SoundAsset (kSound
   // backend) and reference it by UUID — unlike the streaming mp3 music above.
-  sfx->setSoundAssetId(sfmx::UUID::createFromName("sfx.ogg"));
+  sfx->setSoundAssetId(sfmx::UUID::createFromName("sfx.ogg"));  // resident PCM, not streamed
   sfx->setVolume(200.f);
 
   SceneNode* chinese = scene.createNode("Chinese");
   chinese->transform().setPosition({0.f, center.y});
   auto* cgm = chinese->addComponent<SourceComponent>();
-  if (cgm->loadMusicFromFile("resources/chinese.mp3")) {
+  cgm->setMusicAssetId(sfmx::UUID::createFromName("music/chinese.mp3"));
+  if (nullptr != cgm->getSource()) {
     cgm->setLooping(true);
     cgm->setVolume(10.f);
     cgm->setMinDistance(50.f);
@@ -264,13 +269,14 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
     cgm->setSpatializationEnabled(true);
   }
   else {
-    std::cout << "[Audio] Failed to load chinese.mp3\n";
+    std::cout << "[Audio] Failed to load music/chinese.mp3\n";
   }
 
   SceneNode* mozart = scene.createNode("Mozart");
   mozart->transform().setPosition({windowWidth, center.y});
   auto* mgm = mozart->addComponent<SourceComponent>();
-  if (mgm->loadMusicFromFile("resources/mozart.mp3")) {
+  mgm->setMusicAssetId(sfmx::UUID::createFromName("music/mozart.mp3"));
+  if (nullptr != mgm->getSource()) {
     mgm->setLooping(true);
     mgm->setVolume(10.f);
     mgm->setPitch(2.0f);
@@ -279,7 +285,7 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
     mgm->setSpatializationEnabled(true);
   }
   else {
-    std::cout << "[Audio] Failed to load mozart.mp3\n";
+    std::cout << "[Audio] Failed to load music/mozart.mp3\n";
   }
 
   SceneNode* neptune = scene.createNode("Neptune", sun2);

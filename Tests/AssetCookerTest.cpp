@@ -16,6 +16,7 @@
 #include "assets/AssetImporterRegistry.h"
 #include "assets/AssetManager.h"
 #include "assets/AssetMetadata.h"
+#include "assets/MusicAsset.h"
 #include "assets/SoundAsset.h"
 #include "assets/SoundCodec.h"
 #include "assets/TextureAsset.h"
@@ -184,14 +185,14 @@ TEST_CASE("AssetCooker skips unsupported files and cooks deterministically") {
   ImporterScope importers;
   CookDirs dirs("sfmx_cooker_skip");
   writePng(dirs.src / "keep.png");
-  writeBytes(dirs.src / "music.mp3", "not really mp3");
+  writeBytes(dirs.src / "blob.dat", "no importer for this");
   writeBytes(dirs.src / "notes.txt", "hello");
 
   const CookStats stats = AssetCooker::cookDirectory(dirs.src, dirs.out);
   CHECK(stats.cooked == 1);                 // only keep.png
-  CHECK(stats.skipped == 2);                // music.mp3 + notes.txt
+  CHECK(stats.skipped == 2);                // blob.dat + notes.txt (no import rule)
   CHECK(FileSystem::exists(dirs.out / "keep.sfmxasset"));
-  CHECK_FALSE(FileSystem::exists(dirs.out / "music.sfmxasset"));
+  CHECK_FALSE(FileSystem::exists(dirs.out / "blob.sfmxasset"));
   CHECK_FALSE(FileSystem::exists(dirs.out / "notes.sfmxasset"));
 
   // Cooking again into a second output yields byte-identical files (creationTime
@@ -202,6 +203,47 @@ TEST_CASE("AssetCooker skips unsupported files and cooks deterministically") {
   const Vector<uint8> b = FileSystem::fastRead(out2 / "keep.sfmxasset");
   REQUIRE_FALSE(a.empty());
   CHECK(a == b);
+}
+
+TEST_CASE("AssetCooker maps audio to Music/Sound by extension and the music/ folder") {
+  ImporterScope importers;
+  CookDirs dirs("sfmx_cooker_music");
+  // The cooker only copies bytes (no decode), so fake payloads are fine for asserting
+  // the TYPE + format tag the importer/folder rules produce.
+  writeBytes(dirs.src / "song.mp3", "fake mp3");            // mp3 -> Music (any folder)
+  writeBytes(dirs.src / "blip.ogg", "fake ogg");           // ogg -> Sound (default)
+  FileSystem::createDirectories(dirs.src / "music");
+  writeBytes(dirs.src / "music" / "theme.ogg", "fake ogg"); // ogg under music/ -> Music
+
+  REQUIRE(AssetCooker::cookDirectory(dirs.src, dirs.out).cooked == 3);
+
+  // Reads (assetType, chunk format) straight from a cooked container — no decode.
+  auto readTags = [](const FileSystemPath& file, sfmx::UUID& type, ChunkFormatId& fmt) {
+    SPtr<DataStream> s = FileSystem::openFile(file, AccessMode::kRead);
+    REQUIRE(s != nullptr);
+    AssetFileReader reader;
+    REQUIRE(reader.open(s));
+    type = reader.metadata().assetType;
+    REQUIRE(reader.chunkCount() == 1);
+    fmt  = reader.chunk(0).format;
+    reader.close();
+  };
+
+  const sfmx::UUID kMusicType = TypeTraits<MusicAsset>::getTypeId();
+  const sfmx::UUID kSoundType = TypeTraits<SoundAsset>::getTypeId();
+  sfmx::UUID type; ChunkFormatId fmt;
+
+  readTags(dirs.out / "song.sfmxasset", type, fmt);
+  CHECK(type.toString() == kMusicType.toString());   // mp3 is always music
+  CHECK(fmt == ChunkFormat::kMp3);
+
+  readTags(dirs.out / "blip.sfmxasset", type, fmt);
+  CHECK(type.toString() == kSoundType.toString());   // loose ogg stays a sound effect
+  CHECK(fmt == ChunkFormat::kOgg);
+
+  readTags(dirs.out / "music" / "theme.sfmxasset", type, fmt);
+  CHECK(type.toString() == kMusicType.toString());   // promoted by the music/ folder
+  CHECK(fmt == ChunkFormat::kOgg);                    // byte-format tag is preserved
 }
 
 TEST_CASE("AssetImporterRegistry: a module-registered extension + minted format id") {

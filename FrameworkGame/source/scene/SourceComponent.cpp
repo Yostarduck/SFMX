@@ -6,6 +6,7 @@
 #include "scene/Transform.h"
 
 #include "assets/AssetManager.h"
+#include "assets/MusicAsset.h"
 #include "assets/SoundAsset.h"
 #include "core/DataStream.h"
 #include "core/DataStreamTypes.h"   // operator<< / >> for UUID
@@ -15,8 +16,10 @@ namespace sfmx
 {
 
 namespace {
-/** @brief SourceComponent blob layout version; bump on format changes. */
-constexpr uint32 kSourceComponentVersion = 1;
+/** @brief SourceComponent blob layout version; bump on format changes.
+ *  v1: kMusic serialized a filesystem path. v2: kMusic serializes a MusicAsset UUID
+ *  (path is legacy/direct-only, like a raw-loaded sound). v1 is still read on load. */
+constexpr uint32 kSourceComponentVersion = 2;
 } // namespace
 
 SourceComponent::SourceComponent(SceneNode* owner)
@@ -56,7 +59,9 @@ SourceComponent::loadSoundFromFile(const String& filePath) {
   m_sound.setBuffer(m_buffer);
   m_source = &m_sound;
   m_backend = AudioBackend::kSound;
-  m_musicPath.clear();  // a raw file-loaded buffer is not the streaming backend
+  m_musicPath.clear();          // a raw file-loaded buffer is not the streaming backend
+  m_musicAsset   = nullptr;     // nor asset-backed music
+  m_musicAssetId = UUID::null();
   return true;
 }
 
@@ -74,8 +79,10 @@ SourceComponent::loadMusicFromFile(const String& filePath) {
 
   m_source = &m_music;
   m_backend = AudioBackend::kMusic;
-  m_musicPath = filePath;        // remembered so the streaming source re-opens on load
-  m_soundAssetId = UUID::null(); // music is path-backed, not asset-backed
+  m_musicPath = filePath;         // remembered so the streaming source re-opens on load
+  m_soundAssetId = UUID::null();  // music is path-backed, not asset-backed
+  m_musicAsset   = nullptr;       // legacy path backend: no MusicAsset keep-alive
+  m_musicAssetId = UUID::null();
   return true;
 }
 
@@ -90,6 +97,8 @@ SourceComponent::loadFromBuffer(const sf::SoundBuffer& data) {
   m_source = &m_sound;
   m_backend = AudioBackend::kSound;
   m_musicPath.clear();
+  m_musicAsset   = nullptr;
+  m_musicAssetId = UUID::null();
   return true;
 }
 
@@ -111,6 +120,8 @@ SourceComponent::setSoundAsset(SPtr<SoundAsset> asset) {
 
   m_soundAsset   = asset;
   m_soundAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  m_musicAsset   = nullptr;       // sound handle: not asset-backed music
+  m_musicAssetId = UUID::null();
   if (nullptr != asset && asset->isLoaded()) {
     loadFromBuffer(asset->buffer());  // copies into m_buffer, sets up the kSound backend
   }
@@ -137,6 +148,68 @@ SourceComponent::getSoundAssetId() const {
 SPtr<SoundAsset>
 SourceComponent::getSoundAsset() const {
   return m_soundAsset;
+}
+
+void
+SourceComponent::setMusicAsset(SPtr<MusicAsset> asset) {
+  // If handed an asset that isn't loaded yet, bring it up through the AssetManager
+  // by its UUID. A single attempt (no recursion) — same as sound/sprite.
+  if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
+    SPtr<MusicAsset> loaded =
+        AssetManager::instance().load<MusicAsset>(asset->metadata().uuid);
+    if (nullptr != loaded) {
+      asset = loaded;
+    }
+  }
+
+  stop();
+  m_source  = nullptr;
+  m_backend = AudioBackend::kNone;
+
+  // This handle is streaming music: drop the sound/path handles, keep the asset
+  // alive (its bytes back the sf::Music below — see the openFromMemory note).
+  m_musicAsset   = asset;
+  m_musicAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  m_soundAssetId = UUID::null();
+  m_musicPath.clear();
+
+  if (nullptr == asset || !asset->isLoaded() || asset->bytes().empty()) {
+    return;  // keep the id so it still re-serializes and can resolve later
+  }
+
+  // sf::Music::openFromMemory does NOT copy the buffer — it streams from it for the
+  // music's whole lifetime. m_musicAsset (held above) is what keeps those bytes alive.
+  const Vector<uint8>& blob = asset->bytes();
+  if (!m_music.openFromMemory(blob.data(), blob.size())) {
+    m_musicAsset = nullptr;  // open failed: the keep-alive is now useless
+    return;
+  }
+
+  m_source  = &m_music;
+  m_backend = AudioBackend::kMusic;
+}
+
+void
+SourceComponent::setMusicAssetId(const UUID& id) {
+  if (id != UUID::null() && AssetManager::isStarted()) {
+    SPtr<MusicAsset> asset = AssetManager::instance().load<MusicAsset>(id);
+    if (nullptr != asset) {
+      setMusicAsset(asset);  // records m_musicAssetId from the asset (== id)
+      return;
+    }
+  }
+  // Couldn't resolve: keep the id so it still re-serializes and can resolve later.
+  m_musicAssetId = id;
+}
+
+const UUID&
+SourceComponent::getMusicAssetId() const {
+  return m_musicAssetId;
+}
+
+SPtr<MusicAsset>
+SourceComponent::getMusicAsset() const {
+  return m_musicAsset;
 }
 
 // -----------------------------------------------------------------------------
@@ -356,8 +429,11 @@ SourceComponent::onSerialize(DataStream& stream) const {
   stream << static_cast<uint8>(m_backend);
 
   switch (m_backend) {
-    case AudioBackend::kSound: stream << m_soundAssetId;     break;
-    case AudioBackend::kMusic: stream.writeString(m_musicPath); break;
+    case AudioBackend::kSound: stream << m_soundAssetId; break;
+    // v2: music is a MusicAsset UUID (catalog/cook, location-independent). A raw
+    // path-loaded music (loadMusicFromFile) has a null id and does not round-trip,
+    // exactly like a raw-loaded sound — asset-backed is the serializable form.
+    case AudioBackend::kMusic: stream << m_musicAssetId; break;
     default: break;  // kNone: no source handle
   }
 
@@ -374,7 +450,7 @@ void
 SourceComponent::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != kSourceComponentVersion) {
+  if (version < 1 || version > kSourceComponentVersion) {
     return;  // unknown version: leave defaults rather than misread bytes
   }
 
@@ -388,9 +464,18 @@ SourceComponent::onDeserialize(DataStream& stream) {
       break;
     }
     case AudioBackend::kMusic: {
-      m_musicPath = stream.readString();
-      if (!m_musicPath.empty()) {
-        loadMusicFromFile(m_musicPath);  // re-opens the streaming source
+      if (version >= 2) {
+        UUID id;
+        stream >> id;
+        setMusicAssetId(id);  // re-resolves the MusicAsset → opens streaming from memory
+      }
+      else {
+        // v1 legacy: music was a filesystem path. Re-open by path (re-cook migrates
+        // it to a UUID). The bytes read here must match what v1 wrote.
+        m_musicPath = stream.readString();
+        if (!m_musicPath.empty()) {
+          loadMusicFromFile(m_musicPath);
+        }
       }
       break;
     }
