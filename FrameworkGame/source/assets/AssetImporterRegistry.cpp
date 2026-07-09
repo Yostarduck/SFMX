@@ -3,6 +3,7 @@
 #include "assets/LuaAsset.h"
 #include "assets/SoundAsset.h"
 #include "assets/TextureAsset.h"
+#include "assets/FontAsset.h"
 
 namespace sfmx
 {
@@ -22,6 +23,8 @@ AssetImporterRegistry::registerBuiltins() {
   // cooker skips `.lua`, the stale cooked script is rejected by the newer format
   // version, and every ScriptComponent silently fails to resolve.)
   registerImporter<LuaAsset>(ChunkFormat::kRaw, ".lua");
+  registerImporter<FontAsset>(ChunkFormat::kTtf,  ".ttf");
+  registerImporter<FontAsset>(ChunkFormat::kOtf,  ".otf");
 }
 
 const ImportRule*
