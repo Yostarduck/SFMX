@@ -20,6 +20,7 @@ namespace sfmx
 {
 
 class SoundAsset;
+class MusicAsset;
 
 /** @brief Audio channel layout hint */
 enum class AudioSpace : int32 { kNone = 0, kMono, kStereo, kSurround };
@@ -64,6 +65,21 @@ public:
   NODISCARD const UUID& getSoundAssetId() const;
   /** @brief The kept-alive SoundAsset, or nullptr if not asset-backed. */
   NODISCARD SPtr<SoundAsset> getSoundAsset() const;
+
+  // Asset-backed streaming music (the serializable, kMusic path)
+
+  /** @brief Bind to a MusicAsset, keeping it alive and recording its UUID; opens the
+   *         kMusic backend streaming from the asset's encoded bytes.
+   *  @note  The asset MUST stay alive while the music plays — sf::Music::openFromMemory
+   *         does not copy the buffer. The kept-alive m_musicAsset guarantees that. */
+  void setMusicAsset(SPtr<MusicAsset> asset);
+  /** @brief Record the music asset UUID and resolve it via AssetManager when
+   *         available; if it can't be resolved the id is still kept. */
+  void setMusicAssetId(const UUID& id);
+  /** @brief UUID of the referenced MusicAsset, or UUID::null() for sound/raw/none. */
+  NODISCARD const UUID& getMusicAssetId() const;
+  /** @brief The kept-alive MusicAsset, or nullptr if not asset-backed music. */
+  NODISCARD SPtr<MusicAsset> getMusicAsset() const;
 
   // Playback
 
@@ -156,7 +172,9 @@ private:
 
   SPtr<SoundAsset>  m_soundAsset;                 //!< keep-alive for an asset-backed buffer
   UUID              m_soundAssetId = UUID::null();
-  String            m_musicPath;                  //!< source path for the streaming backend
+  SPtr<MusicAsset>  m_musicAsset;                 //!< keep-alive: sf::Music streams from its bytes
+  UUID              m_musicAssetId = UUID::null();
+  String            m_musicPath;                  //!< legacy path for the path-backed music backend
 };
 
 } // namespace sfmx

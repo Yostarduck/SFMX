@@ -57,6 +57,8 @@ add_library(FrameworkGame STATIC
     source/assets/TextureCodec.cpp
     source/assets/SoundAsset.cpp
     source/assets/SoundCodec.cpp
+    source/assets/MusicAsset.cpp
+    source/assets/MusicCodec.cpp
     source/assets/LuaAsset.cpp
     source/assets/LuaCodec.cpp
     source/assets/AssetManager.cpp

@@ -9,8 +9,10 @@
 #include "assets/AssetImporterRegistry.h"
 #include "assets/AssetMetadata.h"
 #include "assets/LuaAsset.h"
+#include "assets/MusicAsset.h"
 #include "core/DataStream.h"
 #include "core/FileSystem.h"
+#include "utils/TypeTraits.h"
 #include "utils/UUID.h"
 
 namespace sfmx
@@ -64,6 +66,31 @@ AssetCooker::cookFile(const FileSystemPath& source,
   const FileSystemPath rel = source.lexically_relative(sourceRoot);
   const String relStr = rel.generic_string();
 
+  // Folder convention: anything under `music/` cooks as MusicAsset regardless of
+  // extension, so streaming music is opt-in by LOCATION (mp3 is already music by
+  // rule; ogg/wav/flac get promoted here). The chunk keeps its true byte-format tag
+  // (kOgg/kMp3/...) — only the asset TYPE flips, since decode dispatches on type.
+  bool underMusicDir = false;
+  if (rel.begin() != rel.end()) {
+    String first = rel.begin()->string();
+    std::transform(first.begin(), first.end(), first.begin(), [](ansichar c) {
+      return static_cast<ansichar>(std::tolower(static_cast<unsigned char>(c)));
+    });
+    underMusicDir = (first == "music");
+  }
+
+  ImportRule effective = *rule;
+  if (underMusicDir && effective.assetType != TypeTraits<MusicAsset>::getTypeId()) {
+    effective.assetType = TypeTraits<MusicAsset>::getTypeId();
+    effective.typeName  = TypeTraits<MusicAsset>::getTypeName();
+  }
+  else if (ext == ".mp3" && !underMusicDir) {
+    // mp3 is always music; finding one loose is almost certainly misplaced content.
+    std::cerr << "AssetCooker: WARNING mp3 outside music/ (" << relStr
+              << ") — cooked as MusicAsset; move it under resources/music/"
+              << std::endl;
+  }
+
   const Vector<uint8> bytes = FileSystem::fastRead(source);
   if (bytes.empty()) {
     std::cerr << "AssetCooker: could not read " << source.string() << std::endl;
@@ -72,15 +99,15 @@ AssetCooker::cookFile(const FileSystemPath& source,
 
   AssetMetadata meta;
   meta.uuid         = UUID::createFromName(relStr);
-  meta.assetType    = rule->assetType;
+  meta.assetType    = effective.assetType;
   meta.creationTime = 0;  // deterministic: re-cooks are byte-identical
-  std::snprintf(meta.typeName, sizeof(meta.typeName), "%s", rule->typeName);
+  std::snprintf(meta.typeName, sizeof(meta.typeName), "%s", effective.typeName);
   std::snprintf(meta.name, sizeof(meta.name), "%s", relStr.c_str());
   std::snprintf(meta.sourcePath, sizeof(meta.sourcePath), "%s", relStr.c_str());
 
   AssetFileWriter writer;
   writer.setMetadata(meta);
-  writer.addChunk(bytes.data(), bytes.size(), rule->format);
+  writer.addChunk(bytes.data(), bytes.size(), effective.format);
 
   FileSystemPath out = outputDir / rel;
   out.replace_extension(".sfmxasset");

@@ -11,6 +11,8 @@
 #include "core/FileSystem.h"
 #include "assets/AssetFile.h"
 #include "assets/AssetManager.h"
+#include "assets/MusicAsset.h"
+#include "assets/MusicCodec.h"
 #include "assets/SoundAsset.h"
 #include "assets/SoundCodec.h"
 #include "scene/ComponentRegistry.h"
@@ -22,10 +24,12 @@
 
 using namespace sfmx;
 
-// M5.3 — SourceComponent serialization + SoundAsset (the audio asset-handle).
-// kSound serializes the SoundAsset UUID (re-resolved via AssetManager); kMusic
-// serializes the file path (re-opened); playback params round-trip for both.
-// sfmx::UUID is qualified because Windows <rpcdce.h> defines a global ::UUID.
+// SourceComponent serialization + audio asset-handles.
+// kSound serializes a SoundAsset UUID (resident PCM). kMusic serializes a MusicAsset
+// UUID (v2: encoded bytes resident, streamed on play via openFromMemory) — the old
+// path form is v1 legacy, still read but no longer written. Playback params round-trip.
+// The MusicAsset must outlive its sf::Music (openFromMemory does not copy); the kept
+// SPtr guarantees it. sfmx::UUID is qualified because Windows <rpcdce.h> defines ::UUID.
 
 namespace {
 
@@ -107,6 +111,34 @@ writeSoundAsset(const FileSystemPath& dir, const sfmx::UUID& id) {
   out->close();
 }
 
+// Wraps a WAV's bytes in a `.sfmxasset` tagged as a MusicAsset. Returns the raw bytes
+// so a test can assert the asset kept them intact (no decode). The format tag is
+// irrelevant to MusicAsset (it holds bytes as-is); openFromMemory needs valid audio.
+Vector<uint8>
+writeMusicAsset(const FileSystemPath& dir, const sfmx::UUID& id) {
+  const FileSystemPath wav = writeWav(dir);
+
+  SPtr<DataStream> in = FileSystem::openFile(wav, AccessMode::kRead);
+  REQUIRE(in != nullptr);
+  Vector<uint8> bytes(in->size());
+  in->read(bytes.data(), bytes.size());
+  in->close();
+
+  AssetFileWriter writer;
+  AssetMetadata meta;
+  meta.uuid      = id;
+  meta.assetType = TypeTraits<MusicAsset>::getTypeId();
+  std::snprintf(meta.name, sizeof(meta.name), "%s", "song");
+  writer.setMetadata(meta);
+  writer.addChunk(bytes.data(), bytes.size(), ChunkFormat::kWav);
+
+  SPtr<DataStream> out = FileSystem::createAndOpenFile(dir / "song.sfmxasset");
+  REQUIRE(out != nullptr);
+  REQUIRE(writer.writeTo(*out));
+  out->close();
+  return bytes;
+}
+
 } // namespace
 
 TEST_CASE("SoundAsset decodes audio bytes through the codec") {
@@ -176,19 +208,57 @@ TEST_CASE("SourceComponent round-trips a SoundAsset UUID and playback params") {
   FileSystem::removeAll(dir);
 }
 
-TEST_CASE("SourceComponent round-trips a streaming music path") {
+TEST_CASE("MusicAsset keeps the encoded bytes resident without decoding") {
+  const FileSystemPath dir = FileSystem::tempDirectory() / "sfmx_musicasset_test";
+  const sfmx::UUID id = sfmx::UUID::createRandom();
+  const Vector<uint8> original = writeMusicAsset(dir, id);
+
+  ManagerScope scope;
+  AssetManager& mgr = AssetManager::instance();
+  mgr.registerCodec(MakeShared<MusicCodec>());
+  REQUIRE(mgr.mount(dir) == 1u);
+
+  SPtr<MusicAsset> music = mgr.load<MusicAsset>(id);
+  REQUIRE(music != nullptr);
+  CHECK(music->isLoaded());
+  // The point of a streaming asset: the bytes are the SOURCE encoding, untouched
+  // (not PCM). They match the cooked chunk exactly.
+  CHECK(music->bytes().size() == original.size());
+  CHECK(music->bytes() == original);
+
+  FileSystem::removeAll(dir);
+}
+
+TEST_CASE("SourceComponent round-trips a MusicAsset UUID and streams from memory") {
   ensureEnv();
 
   const FileSystemPath dir = FileSystem::tempDirectory() / "sfmx_source_music_test";
-  const FileSystemPath wav = writeWav(dir);
-  const String path = wav.string();
+  const sfmx::UUID id = sfmx::UUID::createRandom();
+  writeMusicAsset(dir, id);
+
+  ManagerScope scope;
+  AssetManager& mgr = AssetManager::instance();
+  mgr.registerCodec(MakeShared<MusicCodec>());
+  REQUIRE(mgr.mount(dir) == 1u);
 
   {
     Scene scene("s");
     SceneNode* src = scene.createNode("src");
     SourceComponent* a = src->addComponent<SourceComponent>();
     REQUIRE(a != nullptr);
-    REQUIRE(a->loadMusicFromFile(path));
+
+    // Bind via a local SPtr, then drop it: the component's kept-alive m_musicAsset
+    // is what must keep the bytes valid for the sf::Music opened over them. If the
+    // keep-alive were missing this would be a use-after-free waiting to happen.
+    {
+      SPtr<MusicAsset> local = mgr.load<MusicAsset>(id);
+      REQUIRE(local != nullptr);
+      a->setMusicAsset(local);
+    }
+    mgr.unload(id);  // evict the cache entry too — only the component holds it now
+
+    REQUIRE(a->getMusicAsset() != nullptr);   // keep-alive survives
+    REQUIRE(a->getSource() != nullptr);        // sf::Music opened from the bytes
     a->setVolume(30.f);
     a->setLooping(true);
 
@@ -201,12 +271,12 @@ TEST_CASE("SourceComponent round-trips a streaming music path") {
     REQUIRE(b != nullptr);
     b->onDeserialize(blob);
 
-    // Music is path-backed, not asset-backed.
+    // Music is asset-backed (v2): the UUID round-trips and re-resolves.
+    CHECK(b->getMusicAssetId().toString() == id.toString());
     CHECK(b->getSoundAssetId().toString() == sfmx::UUID::null().toString());
-    CHECK(b->getSource() != nullptr);  // re-opened the streaming source
     CHECK(b->getVolume() == doctest::Approx(30.f));
     CHECK(b->isLooping());
-  }  // scene destroyed here → sf::Music releases the file before removeAll
+  }  // scene destroyed here → sf::Music released before removeAll
 
   FileSystem::removeAll(dir);
 }

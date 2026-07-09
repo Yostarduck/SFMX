@@ -1,5 +1,6 @@
 #include "assets/AssetImporterRegistry.h"
 
+#include "assets/MusicAsset.h"
 #include "assets/LuaAsset.h"
 #include "assets/SoundAsset.h"
 #include "assets/TextureAsset.h"
@@ -18,6 +19,10 @@ AssetImporterRegistry::registerBuiltins() {
   registerImporter<SoundAsset>(ChunkFormat::kOgg,  ".ogg");
   registerImporter<SoundAsset>(ChunkFormat::kWav,  ".wav");
   registerImporter<SoundAsset>(ChunkFormat::kFlac, ".flac");
+  // Mp3 is ALWAYS music (never an sfx), so it cooks to MusicAsset by extension
+  // regardless of folder. Ogg/wav/flac default to SoundAsset above; the cooker
+  // promotes them to MusicAsset only under a `music/` folder (see AssetCooker).
+  registerImporter<MusicAsset>(ChunkFormat::kMp3, ".mp3");
   // Lua scripts are engine-native raw text (kRaw) -> LuaAsset. (Regression guard:
   // this rule was dropped when kImportRules became the registry; without it the
   // cooker skips `.lua`, the stale cooked script is rejected by the newer format
