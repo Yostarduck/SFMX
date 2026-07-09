@@ -53,6 +53,10 @@ ScriptComponent::setScriptAsset(SPtr<LuaAsset> asset) {
 
   m_scriptAsset   = asset;
   m_scriptAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  // Reset before (re)binding: if the (re)compile fails, m_initialized stays false and
+  // onUpdate stops running the script entirely, a broken edit disables the object
+  // (logged, never crashes) instead of silently running stale behaviour. A later
+  // successful reload flips it back on.
   m_initialized   = false;
 
   // Compile + bind the Lua function from the asset's text, when both are running.

@@ -58,6 +58,9 @@ class Scene
   /** @brief Every node whose name equals @p name (names are not unique). */
   NODISCARD Vector<SceneNode*> findNodesByName(StringView name) const;
 
+  /** @brief Invoke @p fn for every live node in the scene (unordered). */
+  void forEachNode(const Function<void(SceneNode*)>& fn) const;
+
   NODISCARD size_t getNodeCount() const { return m_registry.size(); }
 
   // -- Cameras --------------------------------------------------------------
