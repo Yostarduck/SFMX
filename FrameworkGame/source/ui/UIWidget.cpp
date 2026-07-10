@@ -102,8 +102,10 @@ void UIWidget::onCancel() {
 
 // -- Drawing -----------------------------------------------------------------
 
-void UIWidget::onDraw(sf::RenderTarget& /*target*/,
-                      sf::RenderStates /*states*/) const {
+void UIWidget::onDraw(sf::RenderTarget& target,
+                      sf::RenderStates states) const {
+  SFMX_PARAMETER_UNUSED(target);
+  SFMX_PARAMETER_UNUSED(states);
   // Base widget has no visual; subclasses override.
 }
 
