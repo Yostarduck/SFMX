@@ -44,6 +44,7 @@ add_library(FrameworkGame STATIC
     source/core/MemoryDataStream.cpp
     source/core/FileDataStream.cpp
     source/core/FileSystem.cpp
+    source/core/Window.cpp
     source/core/physics/Collider.cpp
     source/core/physics/PhysicsSystem.cpp
 
@@ -135,6 +136,18 @@ add_library(FrameworkGame STATIC
     source/scripts/RegisterSceneNode.cpp
 
     source/scripts/RegisterAll.cpp)
+
+# Per-OS window backend: the base Window is SFML-backed and cross-platform, but
+# each platform file implements the native operations SFML has no API for. Only
+# the current platform's source is compiled (each includes an OS-specific SDK).
+if(WIN32)
+    target_sources(FrameworkGame PRIVATE source/core/Window_Win32.cpp)
+elseif(UNIX AND NOT APPLE)
+    target_sources(FrameworkGame PRIVATE source/core/Window_Linux.cpp)
+    # X11 drives maximize/minimize/restore and style hints on the native window.
+    find_package(X11 REQUIRED)
+    target_link_libraries(FrameworkGame PUBLIC X11::X11)
+endif()
 
 add_library(SFMX::FrameworkGame ALIAS FrameworkGame)
 
