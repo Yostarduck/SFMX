@@ -22,15 +22,14 @@ windowStyle(const bool resizable, const bool decorated)
   return style;
 }
 
-}
+} // namespace
 
-void*
+NODISCARD void*
 Win32Window::getNativeHandle() const
 {
   return isCreated() ? static_cast<void*>(nativeHandle()) : nullptr;
 }
 
-#pragma region Window state
 // Maximize / minimize / restore have no SFML API, so they go through the
 // native window handle.
 void
@@ -57,18 +56,17 @@ Win32Window::restore()
   }
 }
 
-bool
+NODISCARD bool
 Win32Window::isMaximized() const
 {
   return isCreated() && IsZoomed(nativeHandle()) != FALSE;
 }
 
-bool
+NODISCARD bool
 Win32Window::isMinimized() const
 {
   return isCreated() && IsIconic(nativeHandle()) != FALSE;
 }
-#pragma endregion
 
 void
 Win32Window::applyStyle()
@@ -96,4 +94,4 @@ Win32Window::nativeHandle() const
   return static_cast<HWND>(getRenderWindow().getNativeHandle());
 }
 
-}
+} // namespace sfmx

@@ -76,8 +76,9 @@ sendNetWmState(Display* display,
   XFlush(display);
 }
 
-}
+} // namespace
 
+NODISCARD
 void*
 LinuxWindow::getNativeHandle() const
 {
@@ -85,8 +86,7 @@ LinuxWindow::getNativeHandle() const
     ? reinterpret_cast<void*>(static_cast<std::uintptr_t>(nativeHandle()))
     : nullptr;
 }
-
-#pragma region Window state
+// -- Window state ------------------------------------------------------
 // Maximize / minimize / restore have no SFML API, so they are driven through
 // the window manager (EWMH) on the native X11 window.
 void
@@ -150,7 +150,9 @@ LinuxWindow::restore()
   XMapWindow(d, win);
   XFlush(d);
 }
+ 
 
+NODISCARD
 bool
 LinuxWindow::isMaximized() const
 {
@@ -193,6 +195,7 @@ LinuxWindow::isMaximized() const
   return horizontal && vertical;
 }
 
+NODISCARD
 bool
 LinuxWindow::isMinimized() const
 {
@@ -234,7 +237,6 @@ LinuxWindow::isMinimized() const
 
   return iconic;
 }
-#pragma endregion
 
 void
 LinuxWindow::applyStyle()
@@ -302,6 +304,6 @@ LinuxWindow::nativeHandle() const
   return getRenderWindow().getNativeHandle();
 }
 
-}
+} // namespace sfmx
 
 #endif  // SFMX_PLATFORM_LINUX

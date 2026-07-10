@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include <SFML/Graphics/RenderWindow.hpp>
 
@@ -45,7 +44,7 @@ class Window : public Module<Window>
  public:
   virtual ~Window() = default;
 
-#pragma region Lifecycle
+  // -- Lifecycle -----------------------------------------------------------
   /**
    * @brief Start the Window module, constructing the concrete window for the
    *        current platform and creating the native window immediately.
@@ -54,16 +53,17 @@ class Window : public Module<Window>
    * form; the platform implementation is selected internally.
    */
   static void
-  startUp(const WindowCreateInfo& createInfo);
+  startUp(const WindowCreateInfo&
+     createInfo);
 
   void
   destroy();
 
-  bool
+  NODISCARD bool
   isCreated() const;
 
   /** @brief Native OS window handle (implemented per platform). */
-  virtual void*
+  NODISCARD virtual void*
   getNativeHandle() const = 0;
 
   /**
@@ -75,37 +75,31 @@ class Window : public Module<Window>
 
   const sf::RenderWindow&
   getRenderWindow() const;
-#pragma endregion
-
-#pragma region Event processing
+  
   void
   pollEvents();
 
   void
   requestClose();
 
-  bool
+  NODISCARD bool
   shouldClose() const;
-#pragma endregion
-
-#pragma region Visibility and focus
+  
   void
   show();
 
   void
   hide();
 
-  bool
+  NODISCARD bool
   isVisible() const;
 
   void
   focus();
 
-  bool
+  NODISCARD bool
   hasFocus() const;
-#pragma endregion
-
-#pragma region Position and size
+  
   void
   setPosition(const int32_t x, const int32_t y);
 
@@ -120,10 +114,7 @@ class Window : public Module<Window>
 
   void
   getFramebufferSize(uint32_t& width, uint32_t& height) const;
-#pragma endregion
-
-#pragma region Window state
-  // No SFML API exists for these, so each platform implements them natively.
+  
   virtual void
   maximize() = 0;
 
@@ -133,30 +124,28 @@ class Window : public Module<Window>
   virtual void
   restore() = 0;
 
-  virtual bool
+  NODISCARD virtual bool
   isMaximized() const = 0;
 
-  virtual bool
+  NODISCARD virtual bool
   isMinimized() const = 0;
-#pragma endregion
 
-#pragma region Window attributes
   void
   setTitle(const std::string_view title);
 
-  std::string_view
+  NODISCARD std::string_view
   getTitle() const;
 
   void
   setResizable(const bool resizable);
 
-  bool
+  NODISCARD bool
   isResizable() const;
 
   void
   setDecorated(const bool decorated);
 
-  bool
+  NODISCARD bool
   isDecorated() const;
 
   /**
@@ -164,9 +153,8 @@ class Window : public Module<Window>
    * @return @c false if the window is not created or @p rgba is null / the
    *         dimensions are zero; @c true once the icon has been applied.
    */
-  bool
+  NODISCARD bool
   setIcon(const uint32_t width, const uint32_t height, const uint8_t* rgba);
-#pragma endregion
 
  protected:
   friend class Module<Window>;
@@ -204,4 +192,4 @@ class Window : public Module<Window>
   bool m_shouldClose {false};
 };
 
-}
+} // namespace sfmx

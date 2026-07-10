@@ -31,9 +31,8 @@ sfmlStyle(const bool resizable, const bool decorated)
   return style;
 }
 
-}
+} // namespace
 
-#pragma region Module lifecycle
 void
 Window::startUp(const WindowCreateInfo& createInfo)
 {
@@ -59,9 +58,7 @@ Window::onShutDown()
 {
   destroy();
 }
-#pragma endregion
 
-#pragma region Lifecycle
 bool
 Window::createInternal(const WindowCreateInfo& createInfo)
 {
@@ -102,7 +99,7 @@ Window::destroy()
   m_shouldClose = false;
 }
 
-bool
+NODISCARD bool
 Window::isCreated() const
 {
   return m_window.isOpen();
@@ -119,9 +116,7 @@ Window::getRenderWindow() const
 {
   return m_window;
 }
-#pragma endregion
 
-#pragma region Event processing
 void
 Window::pollEvents()
 {
@@ -143,9 +138,7 @@ Window::shouldClose() const
 {
   return m_shouldClose;
 }
-#pragma endregion
 
-#pragma region Visibility and focus
 void
 Window::show()
 {
@@ -164,7 +157,7 @@ Window::hide()
   }
 }
 
-bool
+NODISCARD bool
 Window::isVisible() const
 {
   return m_isVisible;
@@ -178,14 +171,13 @@ Window::focus()
   }
 }
 
-bool
+NODISCARD bool
 Window::hasFocus() const
 {
   return isCreated() && m_window.hasFocus();
 }
-#pragma endregion
 
-#pragma region Position and size
+// -- Position and size --------------------------------------------------
 void
 Window::setPosition(const int32_t x, const int32_t y)
 {
@@ -226,9 +218,7 @@ Window::getFramebufferSize(uint32_t& width, uint32_t& height) const
   width  = size.x;
   height = size.y;
 }
-#pragma endregion
 
-#pragma region Window attributes
 void
 Window::setTitle(const std::string_view title)
 {
@@ -238,7 +228,7 @@ Window::setTitle(const std::string_view title)
   }
 }
 
-std::string_view
+NODISCARD std::string_view
 Window::getTitle() const
 {
   return m_title;
@@ -251,7 +241,7 @@ Window::setResizable(const bool resizable)
   applyStyle();
 }
 
-bool
+NODISCARD bool
 Window::isResizable() const
 {
   return m_isResizable;
@@ -264,13 +254,13 @@ Window::setDecorated(const bool decorated)
   applyStyle();
 }
 
-bool
+NODISCARD bool
 Window::isDecorated() const
 {
   return m_isDecorated;
 }
 
-bool
+NODISCARD bool
 Window::setIcon(const uint32_t width, const uint32_t height, const uint8_t* rgba)
 {
   if (!isCreated() || nullptr == rgba || 0 == width || 0 == height) {
@@ -280,6 +270,5 @@ Window::setIcon(const uint32_t width, const uint32_t height, const uint8_t* rgba
   m_window.setIcon(sf::Vector2u(width, height), rgba);
   return true;
 }
-#pragma endregion
 
 }

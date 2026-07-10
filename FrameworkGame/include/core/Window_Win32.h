@@ -22,10 +22,9 @@ class Win32Window : public Window
 
   ~Win32Window() override = default;
 
-  void*
+  NODISCARD void*
   getNativeHandle() const override;
-
-#pragma region Window state
+  
   void
   maximize() override;
 
@@ -35,12 +34,11 @@ class Win32Window : public Window
   void
   restore() override;
 
-  bool
+  NODISCARD bool
   isMaximized() const override;
 
-  bool
+  NODISCARD bool
   isMinimized() const override;
-#pragma endregion
 
  protected:
   // Push the current resize/decoration flags onto the native window style.
@@ -58,4 +56,4 @@ class Win32Window : public Window
   nativeHandle() const;
 };
 
-}
+} // namespace sfmx
