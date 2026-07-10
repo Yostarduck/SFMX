@@ -28,16 +28,12 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
   using UIWidget::isEnabled;
   using UIWidget::isVisible;
   using UIWidget::isInteractable;
-  using UIWidget::setEnabled;
   using UIWidget::setVisible;
   using UIWidget::setInteractable;
   using UIWidget::setFocused;
   using UIWidget::getPosition;
-  using UIWidget::setPosition;
   using UIWidget::getSize;
-  using UIWidget::setSize;
   using UIWidget::getRect;
-  using UIWidget::setRect;
   using UIWidget::getColor;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
@@ -69,13 +65,13 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
     { return m_onValueChangedEvent.connect(std::move(cb)); }
 
   /** @brief  Override the normal box colour. */
-  FORCEINLINE void setBoxColor(sf::Color color) { m_boxColor = color; }
+  FORCEINLINE void setBoxColor(sf::Color color) { m_boxColor = color; m_visualDirty = true; }
   /** @brief  Override the check-mark colour. */
-  FORCEINLINE void setCheckColor(sf::Color color) { m_checkColor = color; }
+  FORCEINLINE void setCheckColor(sf::Color color) { m_checkColor = color; m_visualDirty = true; }
   /** @brief  Override the hover-highlight colour. */
-  FORCEINLINE void setHoveredBoxColor(sf::Color color) { m_hoveredBoxColor = color; }
+  FORCEINLINE void setHoveredBoxColor(sf::Color color) { m_hoveredBoxColor = color; m_visualDirty = true; }
   /** @brief  Override the checked-state colour. */
-  FORCEINLINE void setCheckedBoxColor(sf::Color color) { m_checkedBoxColor = color; }
+  FORCEINLINE void setCheckedBoxColor(sf::Color color) { m_checkedBoxColor = color; m_visualDirty = true; }
 
   /** @brief  Current normal box colour. */
   NODISCARD FORCEINLINE sf::Color getBoxColor() const { return m_boxColor; }
@@ -99,6 +95,11 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
   /** @brief  True if a texture sprite is available for drawing. */
   NODISCARD FORCEINLINE bool hasTexture() const { return m_sprite != nullptr; }
 
+  void setSize(sf::Vector2f size);
+  void setPosition(sf::Vector2f position);
+  void setRect(const sf::FloatRect& rect);
+  void setEnabled(bool enabled);
+
   // -- Group ------------------------------------------------------------------
 
   /** @brief  Assign this checkbox to a group (or nullptr to leave). */
@@ -117,8 +118,12 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
   /** @brief  Draw the box + checkmark, or the texture sprite. */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
+  void syncVisual() const;
+  sf::Color resolveColor() const;
+
   bool m_checked = false;
   bool m_hovered = false;
+  mutable bool m_visualDirty = true;
   UICheckboxGroup* m_group = nullptr;
 
   mutable sf::RectangleShape m_box;

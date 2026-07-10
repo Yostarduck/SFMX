@@ -31,6 +31,26 @@ UICheckbox::~UICheckbox()
   }
 }
 
+void UICheckbox::setSize(sf::Vector2f size) {
+  UIWidget::setSize(size);
+  m_visualDirty = true;
+}
+
+void UICheckbox::setPosition(sf::Vector2f position) {
+  UIWidget::setPosition(position);
+  m_visualDirty = true;
+}
+
+void UICheckbox::setRect(const sf::FloatRect& rect) {
+  UIWidget::setRect(rect);
+  m_visualDirty = true;
+}
+
+void UICheckbox::setEnabled(bool enabled) {
+  UIWidget::setEnabled(enabled);
+  m_visualDirty = true;
+}
+
 UUID UICheckbox::getTypeId() const {
   return TypeTraits<UICheckbox>::getTypeId();
 }
@@ -41,6 +61,7 @@ void UICheckbox::setChecked(bool checked, bool notify) {
       m_group->onCheckboxChecked(this);
     }
     m_checked = checked;
+    m_visualDirty = true;
     if (notify) {
       m_onValueChangedEvent(checked);
     }
@@ -85,6 +106,7 @@ void UICheckbox::setTextureAsset(SPtr<TextureAsset> asset) {
   else {
     m_sprite.reset();
   }
+  m_visualDirty = true;
 }
 
 void UICheckbox::setTextureAssetId(const UUID& id) {
@@ -97,6 +119,7 @@ void UICheckbox::setTextureAssetId(const UUID& id) {
   }
   m_textureAssetId = id;
   m_sprite.reset();
+  m_visualDirty = true;
 }
 
 const UUID& UICheckbox::getTextureAssetId() const {
@@ -111,11 +134,13 @@ SPtr<TextureAsset> UICheckbox::getTextureAsset() const {
 
 void UICheckbox::onPointerEnter(sf::Vector2f position) {
   m_hovered = true;
+  m_visualDirty = true;
   UIWidget::onPointerEnter(position);
 }
 
 void UICheckbox::onPointerExit(sf::Vector2f position) {
   m_hovered = false;
+  m_visualDirty = true;
   UIWidget::onPointerExit(position);
 }
 
@@ -127,15 +152,24 @@ void UICheckbox::onPointerClick(sf::Vector2f position) {
   UIWidget::onPointerClick(position);
 }
 
-void UICheckbox::onDraw(sf::RenderTarget& target,
-                         sf::RenderStates states) const {
-  if (!UIWidget::s_canvasDrawing) return;
-  if (!isVisible()) {
-    return;
+sf::Color UICheckbox::resolveColor() const {
+  if (!isEnabled()) {
+    const sf::Color c = m_checked ? m_checkedBoxColor : m_boxColor;
+    return sf::Color(
+      static_cast<uint8>(static_cast<uint32>(c.r) * 128u / 255u),
+      static_cast<uint8>(static_cast<uint32>(c.g) * 128u / 255u),
+      static_cast<uint8>(static_cast<uint32>(c.b) * 128u / 255u),
+      c.a);
   }
+  if (m_checked) { return m_checkedBoxColor; }
+  if (m_hovered) { return m_hoveredBoxColor; }
+  return m_boxColor;
+}
 
+void UICheckbox::syncVisual() const {
   const sf::Vector2f pos = getPosition();
   const sf::Vector2f size = getSize();
+  const sf::Color resolved = resolveColor();
 
   if (m_sprite) {
     m_sprite->setPosition(pos);
@@ -143,40 +177,47 @@ void UICheckbox::onDraw(sf::RenderTarget& target,
     if (sb.size.x > 0.f && sb.size.y > 0.f) {
       m_sprite->setScale({size.x / sb.size.x, size.y / sb.size.y});
     }
+    m_sprite->setColor(resolved);
+  } else {
+    m_box.setFillColor(resolved);
+    m_box.setSize(size);
+    m_box.setPosition(pos);
+
+    if (m_checked) {
+      const float pad = size.x * 0.2f;
+      const float areaLeft = pos.x + pad;
+      const float areaTop = pos.y + pad;
+      const float areaSize = size.x - pad * 2.f;
+
+      const sf::Vector2f start{areaLeft + areaSize * 0.15f, areaTop + areaSize * 0.6f};
+      const sf::Vector2f corner{areaLeft + areaSize * 0.4f, areaTop + areaSize * 0.75f};
+      const sf::Vector2f end{areaLeft + areaSize * 0.85f, areaTop + areaSize * 0.25f};
+
+      m_checkMark.setPrimitiveType(sf::PrimitiveType::LineStrip);
+      m_checkMark.resize(3);
+      m_checkMark[0] = sf::Vertex(start, m_checkColor);
+      m_checkMark[1] = sf::Vertex(corner, m_checkColor);
+      m_checkMark[2] = sf::Vertex(end, m_checkColor);
+    }
+  }
+
+  m_visualDirty = false;
+}
+
+void UICheckbox::onDraw(sf::RenderTarget& target,
+                         sf::RenderStates states) const {
+  if (!UIWidget::s_canvasDrawing) return;
+  if (!isVisible()) { return; }
+
+  if (m_visualDirty) { syncVisual(); }
+
+  if (m_sprite) {
     target.draw(*m_sprite, states);
-    return;
-  }
-
-  if (m_checked) {
-    m_box.setFillColor(m_checkedBoxColor);
-  } 
-  else if (m_hovered) {
-    m_box.setFillColor(m_hoveredBoxColor);
-  } 
-  else {
-    m_box.setFillColor(m_boxColor);
-  }
-  m_box.setSize(size);
-  m_box.setPosition(pos);
-  target.draw(m_box, states);
-
-  if (m_checked) {
-    constexpr float thickness = 3.f;
-    const float pad = size.x * 0.2f;
-    const float areaLeft = pos.x + pad;
-    const float areaTop = pos.y + pad;
-    const float areaSize = size.x - pad * 2.f;
-
-    const sf::Vector2f start{areaLeft + areaSize * 0.15f, areaTop + areaSize * 0.6f};
-    const sf::Vector2f corner{areaLeft + areaSize * 0.4f, areaTop + areaSize * 0.75f};
-    const sf::Vector2f end{areaLeft + areaSize * 0.85f, areaTop + areaSize * 0.25f};
-
-    m_checkMark.setPrimitiveType(sf::PrimitiveType::LineStrip);
-    m_checkMark.resize(3);
-    m_checkMark[0] = sf::Vertex(start, m_checkColor);
-    m_checkMark[1] = sf::Vertex(corner, m_checkColor);
-    m_checkMark[2] = sf::Vertex(end, m_checkColor);
-    target.draw(m_checkMark, states);
+  } else {
+    target.draw(m_box, states);
+    if (m_checked) {
+      target.draw(m_checkMark, states);
+    }
   }
 }
 
