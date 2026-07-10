@@ -24,6 +24,10 @@
 #include "ui/UIButton.h"
 #include "ui/UILabel.h"
 #include "ui/UIImage.h"
+#include "ui/UISlider.h"
+#include "ui/UITextBox.h"
+#include "ui/UICheckbox.h"
+#include "ui/UICheckboxGroup.h"
 
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
@@ -177,7 +181,7 @@ int main(int argc, char** argv)
   // music/animation playback, the refs the game loop drives).
   demo::DemoRuntime rt = demo::wireDemoRuntime(scene);
 
-  // InputSystem: "Mapping Mode" demo — a Mapping holds an ActionMap, which holds
+  // InputSystem: "Mapping Mode" demo - a Mapping holds an ActionMap, which holds
   // Actions, each with bindings + an Interaction (tap/hold) and Processors.
   // Jump (tap), Crouch (hold), Move (normalized Vector2).
   Mapping* controls = InputSystem::instance().createMapping("DefaultControls");
@@ -309,11 +313,11 @@ int main(int argc, char** argv)
   });
   HEvent exitSub = btnExit->onPointerClick([&window](sf::Vector2f pos) {
     SFMX_PARAMETER_UNUSED(pos);
-    std::cout << "[UI] Exit clicked — closing window\n";
+    std::cout << "[UI] Exit clicked - closing window\n";
     window.close();
   });
   HEvent exitSubNav = btnExit->onSubmit([&window]() {
-    std::cout << "[UI] Exit submitted via keyboard — closing window\n";
+    std::cout << "[UI] Exit submitted via keyboard - closing window\n";
     window.close();
   });
 
@@ -340,7 +344,7 @@ int main(int argc, char** argv)
     auto* label = lblNode->addComponent<UILabel>(sf::Vector2f{400.f, 40.f});
     label->setPosition({windowWidth * 0.5f - 200.f, 20.f});
     label->setFont(font);
-    label->setText("SFMX Engine — UI Widget Demo");
+    label->setText("SFMX Engine - UI Widget Demo");
     label->setCharacterSize(22);
     label->setTextColor(sf::Color::White);
     uiCanvas.addWidget(label);
@@ -359,7 +363,134 @@ int main(int argc, char** argv)
     uiCanvas.addWidget(image);
   }
 
-  std::cout << "[UI] System ready — click buttons or press Escape\n"
+  // ── UISlider demo ──────────────────────────────────────────────────────
+  auto* sliderNode = canvasNode->createChild("DemoSlider");
+  UISlider* slider = sliderNode->addComponent<UISlider>(sf::Vector2f{250.f, 20.f});
+  slider->setPosition({windowWidth * 0.5f - 125.f, windowHeight * 0.85f});
+  slider->syncColliderToRect();
+  slider->setRange(0.f, 100.f);
+  slider->setValue(50.f);
+  uiCanvas.addWidget(slider);
+
+  HEvent slSub = slider->onValueChanged([](float val) {
+    std::cout << "[UI] Slider value: " << val << "\n";
+  });
+
+  // ── UICheckbox demo ────────────────────────────────────────────────────
+  auto* cbNode = canvasNode->createChild("DemoCheckbox");
+  UICheckbox* checkbox = cbNode->addComponent<UICheckbox>(sf::Vector2f{28.f, 28.f});
+  checkbox->setPosition({60.f, windowHeight * 0.5f});
+  checkbox->syncColliderToRect();
+  uiCanvas.addWidget(checkbox);
+
+  HEvent cbSub = checkbox->onValueChanged([](bool checked) {
+    std::cout << "[UI] Checkbox: " << (checked ? "checked" : "unchecked") << "\n";
+  });
+
+  // ── UICheckboxGroup demo (multi-select + radio) ────────────────────────
+  SPtr<UICheckboxGroup> fruitGroup;
+  SPtr<UICheckboxGroup> radioGroup;
+  Vector<HEvent> groupLogs;
+
+  if (fontLoaded) {
+    // --- Multi-select group (regular checkbox behaviour) ---
+    fruitGroup = MakeShared<UICheckboxGroup>();
+    fruitGroup->setExclusive(false);
+
+    auto* fruitTitle = canvasNode->createChild("FruitGroupTitle");
+    auto* fruitTitleLbl = fruitTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
+    fruitTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 80.f});
+    fruitTitleLbl->setFont(font);
+    fruitTitleLbl->setText("Fruits (multi-select):");
+    fruitTitleLbl->setCharacterSize(14);
+    fruitTitleLbl->setTextColor(sf::Color::White);
+    uiCanvas.addWidget(fruitTitleLbl);
+
+    static constexpr struct { const char* node; const char* label; } kFruits[] = {
+      {"AppleCb", "Apple"}, {"BananaCb", "Banana"}, {"CherryCb", "Cherry"}
+    };
+    float fx = windowWidth * 0.5f + 60.f;
+    const float fy = windowHeight * 0.5f - 50.f;
+    for (auto& def : kFruits) {
+      auto* node = canvasNode->createChild(def.node);
+      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
+      cb->setPosition({fx, fy});
+      cb->syncColliderToRect();
+      cb->setGroup(fruitGroup.get());
+      uiCanvas.addWidget(cb);
+
+      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
+      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{80.f, 24.f});
+      lbl->setPosition({fx + 28.f, fy + 2.f});
+      lbl->setFont(font);
+      lbl->setText(def.label);
+      lbl->setCharacterSize(14);
+      lbl->setTextColor(sf::Color::White);
+      uiCanvas.addWidget(lbl);
+
+      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
+        std::cout << "[UI Group] " << name << ": " << (checked ? "checked" : "unchecked") << "\n";
+      }));
+
+      fx += 90.f;
+    }
+
+    // --- Exclusive group (radio behaviour) ---
+    radioGroup = MakeShared<UICheckboxGroup>();
+    radioGroup->setExclusive(true);
+
+    auto* radioTitle = canvasNode->createChild("RadioGroupTitle");
+    auto* radioTitleLbl = radioTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
+    radioTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 10.f});
+    radioTitleLbl->setFont(font);
+    radioTitleLbl->setText("Options (radio):");
+    radioTitleLbl->setCharacterSize(14);
+    radioTitleLbl->setTextColor(sf::Color::White);
+    uiCanvas.addWidget(radioTitleLbl);
+
+    static constexpr struct { const char* node; const char* label; } kRadios[] = {
+      {"OptARb", "Option A"}, {"OptBRb", "Option B"}, {"OptCRb", "Option C"}
+    };
+    float rx = windowWidth * 0.5f + 60.f;
+    const float ry = windowHeight * 0.5f + 20.f;
+    for (auto& def : kRadios) {
+      auto* node = canvasNode->createChild(def.node);
+      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
+      cb->setPosition({rx, ry});
+      cb->syncColliderToRect();
+      cb->setGroup(radioGroup.get());
+      uiCanvas.addWidget(cb);
+
+      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
+      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{100.f, 24.f});
+      lbl->setPosition({rx + 28.f, ry + 2.f});
+      lbl->setFont(font);
+      lbl->setText(def.label);
+      lbl->setCharacterSize(14);
+      lbl->setTextColor(sf::Color::White);
+      uiCanvas.addWidget(lbl);
+
+      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
+        std::cout << "[UI Radio] " << name << ": " << (checked ? "selected" : "deselected") << "\n";
+      }));
+
+      rx += 100.f;
+    }
+  }
+
+  // ── UITextBox demo ─────────────────────────────────────────────────────
+  if (fontLoaded) {
+    auto* textBoxNode = canvasNode->createChild("DemoTextBox");
+    UITextBox* textBox = textBoxNode->addComponent<UITextBox>(sf::Vector2f{300.f, 40.f});
+    textBox->setPosition({windowWidth * 0.5f - 150.f, windowHeight * 0.75f});
+    textBox->syncColliderToRect();
+    textBox->setFont(font);
+    textBox->setCharacterSize(20);
+    textBox->setPlaceholder("Type here...");
+    uiCanvas.addWidget(textBox);
+  }
+
+  std::cout << "[UI] System ready - interact with the widgets\n"
             << "[UI] Navigate: Arrow keys / WASD  |  Submit: Space / Enter  |  Cancel: Escape\n";
 
   while (window.isOpen())
@@ -372,6 +503,18 @@ int main(int argc, char** argv)
       if (event->is<sf::Event::Closed>())
       {
         window.close();
+      }
+      else if (const auto* text = event->getIf<sf::Event::TextEntered>())
+      {
+        if (auto* textBox = dynamic_cast<UITextBox*>(
+              UIEventSystem::instance().getSelected())) {
+          const char32_t ch = text->unicode;
+          if (ch == 8) {
+            textBox->deleteCharacter();
+          } else if (ch >= 32) {
+            textBox->insertCharacter(static_cast<uint32>(ch));
+          }
+        }
       }
 
       InputSystem::instance().onEvent(*event);
@@ -433,9 +576,6 @@ int main(int argc, char** argv)
 
     window.clear(sf::Color(24, 24, 28));
     scenes.draw(window);
-    // Screen-space canvas: reset the view so coordinates match window pixels.
-    window.setView(window.getDefaultView());
-    uiCanvas.draw(window, sf::RenderStates::Default);
     window.display();
   }
 

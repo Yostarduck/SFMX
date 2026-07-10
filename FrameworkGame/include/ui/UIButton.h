@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file UIButton.h
+ * @author Swampertor
+ * @date 2026/06/10
+ * @brief  Clickable push-button with visual states (Normal, Hovered, Pressed, Focused, Disabled).
+ */
+/************************************************************************/
 #pragma once
 
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -37,16 +45,12 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   using UIWidget::isEnabled;
   using UIWidget::isVisible;
   using UIWidget::isInteractable;
-  using UIWidget::setEnabled;
   using UIWidget::setVisible;
   using UIWidget::setInteractable;
   using UIWidget::setFocused;
   using UIWidget::getPosition;
-  using UIWidget::setPosition;
   using UIWidget::getSize;
-  using UIWidget::setSize;
   using UIWidget::getRect;
-  using UIWidget::setRect;
   using UIWidget::getColor;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
@@ -101,17 +105,22 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
 
   // -- Colour overrides ------------------------------------------------------
 
-  FORCEINLINE void setNormalColor(sf::Color color) { m_normalColor = color; }
-  FORCEINLINE void setHoveredColor(sf::Color color) { m_hoveredColor = color; }
-  FORCEINLINE void setPressedColor(sf::Color color) { m_pressedColor = color; }
-  FORCEINLINE void setDisabledColor(sf::Color color) { m_disabledColor = color; }
-  FORCEINLINE void setFocusedColor(sf::Color color) { m_focusedColor = color; }
+  FORCEINLINE void setNormalColor(sf::Color color) { m_normalColor = color; m_visualDirty = true; }
+  FORCEINLINE void setHoveredColor(sf::Color color) { m_hoveredColor = color; m_visualDirty = true; }
+  FORCEINLINE void setPressedColor(sf::Color color) { m_pressedColor = color; m_visualDirty = true; }
+  FORCEINLINE void setDisabledColor(sf::Color color) { m_disabledColor = color; m_visualDirty = true; }
+  FORCEINLINE void setFocusedColor(sf::Color color) { m_focusedColor = color; m_visualDirty = true; }
 
   NODISCARD FORCEINLINE sf::Color getNormalColor() const { return m_normalColor; }
   NODISCARD FORCEINLINE sf::Color getHoveredColor() const { return m_hoveredColor; }
   NODISCARD FORCEINLINE sf::Color getPressedColor() const { return m_pressedColor; }
   NODISCARD FORCEINLINE sf::Color getFocusedColor() const { return m_focusedColor; }
   NODISCARD FORCEINLINE sf::Color getDisabledColor() const { return m_disabledColor; }
+
+  void setSize(sf::Vector2f size);
+  void setPosition(sf::Vector2f position);
+  void setRect(const sf::FloatRect& rect);
+  void setEnabled(bool enabled);
 
  private:
   // -- UIWidget virtual overrides --------------------------------------------
@@ -123,9 +132,11 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
 
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
+  void syncVisual() const;
   sf::Color resolveColor() const;
 
   mutable sf::RectangleShape m_shape{{200.f, 50.f}};
+  mutable bool m_visualDirty = true;
 
   VisualState m_visualState = VisualState::kNormal;
 

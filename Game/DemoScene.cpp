@@ -17,6 +17,9 @@
 #include "ui/UIButton.h"
 #include "ui/UILabel.h"
 #include "ui/UIImage.h"
+#include "ui/UICheckbox.h"
+#include "ui/UITextBox.h"
+#include "ui/UISlider.h"
 
 #include "resource/SpriteAtlas.h"
 #include "resource/Frame.h"
@@ -128,6 +131,9 @@ registerDemoPools(MemoryPoolHandler& pools) {
   pools.registerPool<UIButton>(64);
   pools.registerPool<UILabel>(64);
   pools.registerPool<UIImage>(64);
+  pools.registerPool<UICheckbox>(64);
+  pools.registerPool<UITextBox>(64);
+  pools.registerPool<UISlider>(64);
   pools.registerPool<CanvasComponent>(8);
 }
 
@@ -148,6 +154,9 @@ registerDemoComponents() {
   reg.registerComponent<UIButton>();
   reg.registerComponent<UILabel>();
   reg.registerComponent<UIImage>();
+  reg.registerComponent<UICheckbox>();
+  reg.registerComponent<UITextBox>();
+  reg.registerComponent<UISlider>();
 }
 
 void

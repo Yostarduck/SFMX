@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file Canvas.h
+ * @author Swampertor
+ * @date 2026/06/10
+ * @brief  Ordered list of UIWidgets with depth-sorted rendering and hit-testing.
+ */
+/************************************************************************/
 #pragma once
 
 #include <SFML/Graphics/RenderStates.hpp>
@@ -42,7 +50,7 @@ class UIEventSystem;
 class Canvas
 {
  public:
-  Canvas();
+  Canvas() = default;
   ~Canvas();
 
   Canvas(const Canvas&) = delete;

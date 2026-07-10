@@ -20,6 +20,26 @@ UIButton::UIButton(SceneNode* node, sf::Vector2f size)
 
 UIButton::~UIButton() = default;
 
+void UIButton::setSize(sf::Vector2f size) {
+  UIWidget::setSize(size);
+  m_visualDirty = true;
+}
+
+void UIButton::setPosition(sf::Vector2f position) {
+  UIWidget::setPosition(position);
+  m_visualDirty = true;
+}
+
+void UIButton::setRect(const sf::FloatRect& rect) {
+  UIWidget::setRect(rect);
+  m_visualDirty = true;
+}
+
+void UIButton::setEnabled(bool enabled) {
+  UIWidget::setEnabled(enabled);
+  m_visualDirty = true;
+}
+
 // -- Type --------------------------------------------------------------------
 
 UUID UIButton::getTypeId() const {
@@ -30,34 +50,43 @@ UUID UIButton::getTypeId() const {
 
 void UIButton::onPointerEnter(sf::Vector2f position) {
   m_visualState = VisualState::kHovered;
+  m_visualDirty = true;
   UIWidget::onPointerEnter(position);
 }
 
 void UIButton::onPointerExit(sf::Vector2f position) {
   m_visualState = VisualState::kNormal;
+  m_visualDirty = true;
   UIWidget::onPointerExit(position);
 }
 
 void UIButton::onPointerDown(sf::Vector2f position) {
   m_visualState = VisualState::kPressed;
+  m_visualDirty = true;
   UIWidget::onPointerDown(position);
 }
 
 void UIButton::onPointerUp(sf::Vector2f position) {
   m_visualState = VisualState::kHovered;
+  m_visualDirty = true;
   UIWidget::onPointerUp(position);
 }
 
 // -- Drawing -----------------------------------------------------------------
 
-void UIButton::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
-  if (!isVisible()) {
-    return;
-  }
-
+void UIButton::syncVisual() const {
   m_shape.setSize(getSize());
   m_shape.setPosition(getPosition());
   m_shape.setFillColor(resolveColor());
+  m_visualDirty = false;
+}
+
+void UIButton::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
+  if (!UIWidget::s_canvasDrawing) return;
+  if (!isVisible()) { return; }
+
+  if (m_visualDirty) { syncVisual(); }
+
   target.draw(m_shape, states);
 }
 
@@ -142,7 +171,8 @@ UIButton::onSerialize(DataStream& stream) const {
         break;
       }
     }
-  } else {
+  } 
+  else {
     stream << static_cast<uint8>(0xFF);
   }
 
@@ -224,7 +254,8 @@ UIButton::onDeserialize(DataStream& stream) {
         break;
       }
     }
-  } else {
+  } 
+  else {
     clearCollider();
   }
 

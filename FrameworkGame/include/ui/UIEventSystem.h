@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file UIEventSystem.h
+ * @author Swampertor
+ * @date 2026/06/10
+ * @brief  Singleton module that drives input event dispatching for the UI layer.
+ */
+/************************************************************************/
 #pragma once
 
 #include <SFML/Window/Mouse.hpp>
