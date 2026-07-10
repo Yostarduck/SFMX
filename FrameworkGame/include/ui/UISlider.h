@@ -58,13 +58,13 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
   void onDeserialize(DataStream& stream) override;
 
   /** @brief  Current slider value. */
-  FORCEINLINE float getValue() const { return m_value; }
+  NODISCARD FORCEINLINE float getValue() const { return m_value; }
   /** @brief  Set value (clamped to range, snapped to step). */
   void setValue(float value, bool notify = true);
   /** @brief  Lower bound of the value range. */
-  FORCEINLINE float getMinValue() const { return m_minValue; }
+  NODISCARD FORCEINLINE float getMinValue() const { return m_minValue; }
   /** @brief  Upper bound of the value range. */
-  FORCEINLINE float getMaxValue() const { return m_maxValue; }
+  NODISCARD FORCEINLINE float getMaxValue() const { return m_maxValue; }
   /** @brief  Set both min and max (re-clamps current value). */
   void setRange(float min, float max);
 
