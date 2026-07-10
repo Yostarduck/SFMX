@@ -37,6 +37,7 @@
 #include "ImageWebP.h"   // format module: self-registers WebP decoder + import rule
 
 #include "core/FileSystem.h"
+#include "core/Window.h"
 
 #include "utils/MemoryPoolHandler.h"
 #include "utils/EventSystem.h"
@@ -114,7 +115,14 @@ int main(int argc, char** argv)
   const String windowTitle = config.getString("Window", "Title", "SFMX Game");
   const bool enableVSync = config.getBool("Window", "VSync", true);
 
-  sf::RenderWindow window(sf::VideoMode({windowWidth, windowHeight}), windowTitle);
+  // The Window module owns the sf::RenderWindow and creates it on start-up.
+  WindowCreateInfo windowInfo;
+  windowInfo.title  = windowTitle;
+  windowInfo.width  = windowWidth;
+  windowInfo.height = windowHeight;
+  Window::startUp(windowInfo);
+
+  sf::RenderWindow& window = Window::instance().getRenderWindow();
   window.setVerticalSyncEnabled(enableVSync);
 
   // Engine modules. Order matters: SceneManager clears its scenes at shutDown
@@ -443,6 +451,10 @@ int main(int argc, char** argv)
   PhysicsSystem::shutDown();
   MemoryPoolHandler::shutDown();
   AssetManager::shutDown();
+
+  // Shut the window down last: keep its GL context alive until every sf::Texture
+  // owned by the (now torn-down) AssetManager has been released.
+  Window::shutDown();
 
   return 0;
 }
