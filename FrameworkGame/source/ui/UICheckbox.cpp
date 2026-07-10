@@ -26,8 +26,7 @@ UICheckbox::UICheckbox(SceneNode* node, sf::Vector2f size)
 
 UICheckbox::~UICheckbox()
 {
-  if (m_group)
-  {
+  if (m_group) {
     m_group->removeCheckbox(this);
   }
 }
@@ -51,7 +50,9 @@ void UICheckbox::setChecked(bool checked, bool notify) {
 // -- Group -------------------------------------------------------------------
 
 void UICheckbox::setGroup(UICheckboxGroup* group) {
-  if (m_group == group) return;
+  if (m_group == group) { 
+    return; 
+  }
   if (m_group) {
     m_group->removeCheckbox(this);
   }
@@ -80,7 +81,8 @@ void UICheckbox::setTextureAsset(SPtr<TextureAsset> asset) {
   m_textureAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
   if (nullptr != asset && asset->isLoaded()) {
     m_sprite = MakeUnique<sf::Sprite>(asset->texture());
-  } else {
+  } 
+  else {
     m_sprite.reset();
   }
 }
@@ -147,9 +149,11 @@ void UICheckbox::onDraw(sf::RenderTarget& target,
 
   if (m_checked) {
     m_box.setFillColor(m_checkedBoxColor);
-  } else if (m_hovered) {
+  } 
+  else if (m_hovered) {
     m_box.setFillColor(m_hoveredBoxColor);
-  } else {
+  } 
+  else {
     m_box.setFillColor(m_boxColor);
   }
   m_box.setSize(size);

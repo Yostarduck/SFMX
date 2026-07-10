@@ -143,7 +143,8 @@ UIButton::onSerialize(DataStream& stream) const {
         break;
       }
     }
-  } else {
+  } 
+  else {
     stream << static_cast<uint8>(0xFF);
   }
 
@@ -225,7 +226,8 @@ UIButton::onDeserialize(DataStream& stream) {
         break;
       }
     }
-  } else {
+  } 
+  else {
     clearCollider();
   }
 

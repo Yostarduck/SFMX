@@ -29,7 +29,7 @@ UUID UISlider::getTypeId() const {
   return TypeTraits<UISlider>::getTypeId();
 }
 
-void UISlider::setValue(float value) {
+void UISlider::setValue(float value, bool notify) {
   value = std::max(m_minValue, std::min(m_maxValue, value));
   if (m_stepValue > 0.f) {
     value = m_minValue + std::round((value - m_minValue) / m_stepValue) * m_stepValue;
@@ -37,7 +37,9 @@ void UISlider::setValue(float value) {
   }
   if (m_value != value) {
     m_value = value;
-    m_onValueChangedEvent(value);
+    if (notify) {
+      m_onValueChangedEvent(value);
+    }
   }
 }
 
@@ -62,7 +64,8 @@ void UISlider::setThumbTextureAsset(SPtr<TextureAsset> asset) {
   m_thumbTextureAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
   if (nullptr != asset && asset->isLoaded()) {
     m_thumbSprite = MakeUnique<sf::Sprite>(asset->texture());
-  } else {
+  } 
+  else {
     m_thumbSprite.reset();
   }
 }
@@ -118,7 +121,8 @@ void UISlider::onPointerUp(sf::Vector2f position) {
   UIWidget::onPointerUp(position);
 }
 
-void UISlider::onUpdate(float /*deltaTime*/) {
+void UISlider::onUpdate(float deltaTime) {
+  SFMX_PARAMETER_UNUSED(deltaTime);
   if (!m_dragging || !UIEventSystem::isStarted()) {
     return;
   }
@@ -131,7 +135,8 @@ void UISlider::onUpdate(float /*deltaTime*/) {
       const float t = std::max(0.f, std::min(1.f, localPos.x / w));
       setValue(lerp::number(m_minValue, m_maxValue, t));
     }
-  } else {
+  } 
+  else {
     m_dragging = false;
   }
 }
@@ -170,7 +175,8 @@ void UISlider::onDraw(sf::RenderTarget& target,
       m_thumbSprite->setScale({m_thumbSize / tb.size.x, m_thumbSize / tb.size.y});
       target.draw(*m_thumbSprite, states);
     }
-  } else {
+  } 
+  else {
     m_thumb.setRadius(m_thumbSize * 0.5f);
     m_thumb.setOrigin({m_thumbSize * 0.5f, m_thumbSize * 0.5f});
     m_thumb.setPosition({thumbCX, pos.y + size.y * 0.5f});
