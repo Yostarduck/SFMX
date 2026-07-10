@@ -3,8 +3,6 @@
 namespace sfmx
 {
 
-Canvas::Canvas() {}
-
 Canvas::~Canvas() {
   // Widgets are NOT owned by the Canvas — they are pool-allocated via the
   // scene component system or stack-allocated.  No destruction needed.

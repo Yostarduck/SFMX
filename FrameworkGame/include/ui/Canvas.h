@@ -50,7 +50,7 @@ class UIEventSystem;
 class Canvas
 {
  public:
-  Canvas();
+  Canvas() = default;
   ~Canvas();
 
   Canvas(const Canvas&) = delete;
