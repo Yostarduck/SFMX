@@ -33,7 +33,10 @@ enum class WidgetType : uint8
   kImage,
   kCheckbox,
   kTextBox,
-  kSlider
+  kSlider,
+  kVerticalBox,
+  kHorizontalBox,
+  kScrollView
 };
 
 /**
@@ -265,6 +268,10 @@ class UIWidget
   virtual void 
   onPointerClick(sf::Vector2f position);
 
+  /** @brief Called when the scroll wheel is used over this widget or its children. */
+  virtual void
+  onScroll(float delta);
+
   /** @brief Called when this widget becomes the EventSystem selection. */
   virtual void 
   onSelect();
@@ -284,6 +291,58 @@ class UIWidget
   /** @brief Whether this widget is a text editor (skips navigation while focused). */
   NODISCARD virtual bool 
   isTextEditor() const { return false; }
+
+  // -- Hierarchy (parent / children) -----------------------------------------
+
+  /** @brief The containing widget, or nullptr if this is a root widget. */
+  NODISCARD FORCEINLINE UIWidget* getUIparent() const { return m_parent; }
+
+  /** @brief Direct children managed by this container widget. */
+  NODISCARD FORCEINLINE const Vector<UIWidget*>& getChildren() const { return m_children; }
+
+  /**
+   * @brief Add a child managed by this container widget.
+   *
+   * The child must NOT already be registered with a Canvas.
+   */
+  void addChild(UIWidget* child);
+
+  /** @brief Remove a child without destroying it. */
+  void removeChild(UIWidget* child);
+
+  /**
+   * @brief The local-space transform applied to children during drawing and
+   *        hit-testing.  Override in containers (e.g. ScrollView) to offset
+   *        children by the content-scroll amount.
+   */
+  NODISCARD virtual sf::Transform getChildTransform() const;
+
+  // -- Hierarchy traversal (overridden by containers) -------------------------
+
+  /**
+   * @brief Draw this widget and (recursively) its children.
+   *
+   * Default calls @ref onDraw.  Containers override to draw children with
+   * @ref getChildTransform baked into the render states.
+   */
+  virtual void drawHierarchy(sf::RenderTarget& target, sf::RenderStates states) const;
+
+  /**
+   * @brief Recursive hit-test through this widget and its children.
+   *
+   * Default: checks visibility, interactable, containsPoint; returns this.
+   * Containers override to recurse into children (reverse order) after
+   * transforming the point by @ref getChildTransform.
+   */
+  NODISCARD virtual UIWidget* hitTestInHierarchy(sf::Vector2f point) const;
+
+  /**
+   * @brief Convert a canvas-space point to this widget's local space.
+   *
+   * Default returns @p canvasPoint unchanged (root widgets are in canvas-space).
+   * Containers override to account for their own position + scroll offset.
+   */
+  NODISCARD virtual sf::Vector2f toLocalSpace(sf::Vector2f canvasPoint) const;
 
   // -- Navigation links (explicit neighbor) -----------------------------------
 
@@ -405,6 +464,10 @@ class UIWidget
   UniquePtr<ICollider> m_collider;
 
   Canvas* m_canvas = nullptr;
+
+  // Hierarchy (parent / children — raw pointers, no ownership).
+  UIWidget* m_parent = nullptr;
+  Vector<UIWidget*> m_children;
 
   // Navigation links (explicit neighbours, raw pointers — owned by Canvas).
   UIWidget* m_navUp = nullptr;

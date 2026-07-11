@@ -112,7 +112,7 @@ float UISlider::getThumbCenterX() const {
 
 void UISlider::onPointerDown(sf::Vector2f position) {
   UIWidget::onPointerDown(position);
-  updateValueFromLocalX(position.x - getPosition().x);
+  updateValueFromLocalX(position.x);
   m_dragging = true;
 }
 
@@ -129,7 +129,7 @@ void UISlider::onUpdate(float deltaTime) {
 
   const auto& ptr = UIEventSystem::instance().getPointerState();
   if (ptr.buttonDown) {
-    const sf::Vector2f localPos = ptr.canvasPos - getPosition();
+    const sf::Vector2f localPos = toLocalSpace(ptr.canvasPos);
     const float w = getSize().x;
     if (w > 0.f) {
       const float t = std::max(0.f, std::min(1.f, localPos.x / w));

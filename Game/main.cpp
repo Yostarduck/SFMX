@@ -28,6 +28,8 @@
 #include "ui/UITextBox.h"
 #include "ui/UICheckbox.h"
 #include "ui/UICheckboxGroup.h"
+#include "ui/UIVerticalBox.h"
+#include "ui/UIScrollView.h"
 
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
@@ -387,94 +389,135 @@ int main(int argc, char** argv)
     std::cout << "[UI] Checkbox: " << (checked ? "checked" : "unchecked") << "\n";
   });
 
-  // ── UICheckboxGroup demo (multi-select + radio) ────────────────────────
-  SPtr<UICheckboxGroup> fruitGroup;
+  // ── ScrollView + VerticalBox (layout container demo) ──────────────────
   SPtr<UICheckboxGroup> radioGroup;
   Vector<HEvent> groupLogs;
 
   if (fontLoaded) {
-    // --- Multi-select group (regular checkbox behaviour) ---
-    fruitGroup = MakeShared<UICheckboxGroup>();
-    fruitGroup->setExclusive(false);
+    auto* scrollNode = canvasNode->createChild("DemoScrollView");
+    UIScrollView* scrollView = scrollNode->addComponent<UIScrollView>(
+      sf::Vector2f{260.f, 280.f});
+    scrollView->setPosition({windowWidth * 0.5f + 50.f, 80.f});
+    scrollView->syncColliderToRect();
+    scrollView->setBackgroundColor(sf::Color(30, 30, 40, 220));
+    uiCanvas.addWidget(scrollView);
 
-    auto* fruitTitle = canvasNode->createChild("FruitGroupTitle");
-    auto* fruitTitleLbl = fruitTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
-    fruitTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 80.f});
-    fruitTitleLbl->setFont(font);
-    fruitTitleLbl->setText("Fruits (multi-select):");
-    fruitTitleLbl->setCharacterSize(14);
-    fruitTitleLbl->setTextColor(sf::Color::White);
-    uiCanvas.addWidget(fruitTitleLbl);
+    auto* listNode = canvasNode->createChild("DemoList");
+    UIVerticalBox* list = listNode->addComponent<UIVerticalBox>(
+      sf::Vector2f{240.f, 60.f});  // initial size, will stretch
+    list->setPadding({8.f, 8.f});
+    list->setSpacing(6.f);
+    list->setBoxColor(sf::Color::Transparent);
+    scrollView->addChild(list);
 
-    static constexpr struct { const char* node; const char* label; } kFruits[] = {
-      {"AppleCb", "Apple"}, {"BananaCb", "Banana"}, {"CherryCb", "Cherry"}
-    };
-    float fx = windowWidth * 0.5f + 60.f;
-    const float fy = windowHeight * 0.5f - 50.f;
-    for (auto& def : kFruits) {
-      auto* node = canvasNode->createChild(def.node);
-      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
-      cb->setPosition({fx, fy});
-      cb->syncColliderToRect();
-      cb->setGroup(fruitGroup.get());
-      uiCanvas.addWidget(cb);
+    // Populate the list with checkboxes + labels
+    auto addItem = [&](const char* name, bool checked) {
+      auto* rowNode = canvasNode->createChild(String(name) + "Row");
+      auto* cb = rowNode->addComponent<UICheckbox>(sf::Vector2f{22.f, 22.f});
+      cb->setPosition({0.f, 0.f});  // layout managed by the box
+      list->addChild(cb);
+      if (checked) cb->setChecked(true, false);
 
-      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
-      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{80.f, 24.f});
-      lbl->setPosition({fx + 28.f, fy + 2.f});
+      auto* lblNode = canvasNode->createChild(String(name) + "Lbl");
+      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{180.f, 22.f});
+      lbl->setPosition({28.f, 0.f});
       lbl->setFont(font);
-      lbl->setText(def.label);
+      lbl->setText(name);
       lbl->setCharacterSize(14);
       lbl->setTextColor(sf::Color::White);
-      uiCanvas.addWidget(lbl);
+      list->addChild(lbl);
 
-      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
-        std::cout << "[UI Group] " << name << ": " << (checked ? "checked" : "unchecked") << "\n";
+      groupLogs.push_back(cb->onValueChanged([n = String(name)](bool v) {
+        std::cout << "[ScrollItem] " << n << ": " << (v ? "checked" : "unchecked") << "\n";
       }));
+    };
 
-      fx += 90.f;
+    addItem("SFML Integration", true);
+    addItem("UI Widget System", true);
+    addItem("Scene Graph",      true);
+    addItem("Physics (Box2D)",  true);
+    addItem("Particle System",  true);
+    addItem("Animation System", true);
+    addItem("Audio System",     true);
+    addItem("Input System",     true);
+    addItem("Lua Scripting",    true);
+    addItem("Asset Pipeline",   false);
+    addItem("Serialization",    false);
+    addItem("Profiling Tools",  false);
+
+    // Add a submit button inside the list
+    auto* btnNode = canvasNode->createChild("SubmitBtn");
+    UIButton* submitBtn = btnNode->addComponent<UIButton>(sf::Vector2f{100.f, 28.f});
+    submitBtn->setPosition({0.f, 0.f});
+    submitBtn->setNormalColor(sf::Color(70, 140, 70));
+    submitBtn->setHoveredColor(sf::Color(90, 180, 90));
+    submitBtn->setPressedColor(sf::Color(50, 100, 50));
+    list->addChild(submitBtn);
+
+    HEvent sbSub = submitBtn->onPointerClick([](sf::Vector2f) {
+      std::cout << "[ScrollItem] Submit button clicked!\n";
+    });
+
+    // Add a volume slider inside the list
+    auto* volNode = canvasNode->createChild("VolSlider");
+    UISlider* volSlider = volNode->addComponent<UISlider>(sf::Vector2f{180.f, 20.f});
+    volSlider->setPosition({0.f, 0.f});
+    volSlider->setRange(0.f, 100.f);
+    volSlider->setValue(75.f);
+    list->addChild(volSlider);
+
+    HEvent vsSub = volSlider->onValueChanged([](float v) {
+      std::cout << "[ScrollItem] Volume: " << v << "\n";
+    });
+
+    list->updateLayout();
+
+    // Fit the box to content height, scroll view handles overflow
+    float contentH = 8.f; // top padding
+    for (auto* child : list->getChildren()) {
+      contentH += child->getSize().y + 6.f;
     }
+    list->setSize({list->getSize().x, contentH});
+    scrollView->setContentHeight(contentH);
 
-    // --- Exclusive group (radio behaviour) ---
+    // --- Exclusive radio group below the scroll view ---
     radioGroup = MakeShared<UICheckboxGroup>();
     radioGroup->setExclusive(true);
 
     auto* radioTitle = canvasNode->createChild("RadioGroupTitle");
     auto* radioTitleLbl = radioTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
-    radioTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 10.f});
+    radioTitleLbl->setPosition({windowWidth * 0.5f + 50.f, 380.f});
     radioTitleLbl->setFont(font);
-    radioTitleLbl->setText("Options (radio):");
+    radioTitleLbl->setText("Render backend:");
     radioTitleLbl->setCharacterSize(14);
     radioTitleLbl->setTextColor(sf::Color::White);
     uiCanvas.addWidget(radioTitleLbl);
 
-    static constexpr struct { const char* node; const char* label; } kRadios[] = {
-      {"OptARb", "Option A"}, {"OptBRb", "Option B"}, {"OptCRb", "Option C"}
-    };
-    float rx = windowWidth * 0.5f + 60.f;
-    const float ry = windowHeight * 0.5f + 20.f;
-    for (auto& def : kRadios) {
-      auto* node = canvasNode->createChild(def.node);
-      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
+    static constexpr const char* kOpts[] = {"OpenGL", "Vulkan", "DirectX"};
+    float rx = windowWidth * 0.5f + 50.f;
+    const float ry = 405.f;
+    for (auto* opt : kOpts) {
+      auto* node = canvasNode->createChild(String(opt) + "Rb");
+      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{22.f, 22.f});
       cb->setPosition({rx, ry});
       cb->syncColliderToRect();
       cb->setGroup(radioGroup.get());
       uiCanvas.addWidget(cb);
 
-      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
-      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{100.f, 24.f});
-      lbl->setPosition({rx + 28.f, ry + 2.f});
+      auto* lblNode = canvasNode->createChild(String(opt) + "RbLbl");
+      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{80.f, 22.f});
+      lbl->setPosition({rx + 28.f, ry + 1.f});
       lbl->setFont(font);
-      lbl->setText(def.label);
+      lbl->setText(opt);
       lbl->setCharacterSize(14);
       lbl->setTextColor(sf::Color::White);
       uiCanvas.addWidget(lbl);
 
-      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
-        std::cout << "[UI Radio] " << name << ": " << (checked ? "selected" : "deselected") << "\n";
+      groupLogs.push_back(cb->onValueChanged([n = String(opt)](bool v) {
+        std::cout << "[Radio] " << n << (v ? " selected" : " deselected") << "\n";
       }));
 
-      rx += 100.f;
+      rx += 85.f;
     }
   }
 

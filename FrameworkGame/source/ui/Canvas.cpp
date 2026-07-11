@@ -42,18 +42,10 @@ UIWidget* Canvas::hitTest(sf::Vector2f localPoint) const {
   // Iterate in reverse (back = drawn last = topmost).
   for (auto it = m_widgets.rbegin(); it != m_widgets.rend(); ++it) {
     UIWidget* w = *it;
-    if (!w->isEnabled() || !w->isVisible() || !w->isInteractable()) {
-      continue;
-    }
-    if (!w->containsPoint(localPoint)) {
-      continue;
-    }
-    if (w->isBlockingInput()) {
-      return w;
-    }
-    // Non-blocking widget: record and keep looking for a blocking one.
-    if (fallback == nullptr) {
-      fallback = w;
+    UIWidget* hit = w->hitTestInHierarchy(localPoint);
+    if (nullptr != hit) {
+      if (hit->isBlockingInput()) return hit;
+      if (nullptr == fallback) fallback = hit;
     }
   }
   return fallback;
@@ -63,9 +55,7 @@ void Canvas::draw(sf::RenderTarget& target, sf::RenderStates states) const {
   states.transform *= m_transform;
   UIWidget::s_canvasDrawing = true;
   for (auto* w : m_widgets) {
-    if (w->isVisible()) {
-      w->onDraw(target, states);
-    }
+    w->drawHierarchy(target, states);
   }
   UIWidget::s_canvasDrawing = false;
 }

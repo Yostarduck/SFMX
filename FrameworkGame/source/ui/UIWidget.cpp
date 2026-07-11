@@ -9,6 +9,9 @@ bool UIWidget::s_canvasDrawing = false;
 UIWidget::UIWidget() = default;
 
 UIWidget::~UIWidget() {
+  if (m_parent != nullptr) {
+    m_parent->removeChild(this);
+  }
   if (m_canvas != nullptr) {
     m_canvas->removeWidget(this);
   }
@@ -52,13 +55,6 @@ void UIWidget::syncColliderToRect() {
 // -- Hit testing -------------------------------------------------------------
 
 bool UIWidget::containsPoint(sf::Vector2f point) const {
-  if (m_collider != nullptr) {
-    // Use the physics dispatcher. Both transforms are identity because
-    // the point is already in widget-local space.
-    const auto result = intersect(*m_collider, sf::Transform::Identity,
-                                  PointCollider(point), sf::Transform::Identity);
-    return result.hit;
-  }
   return m_rect.contains(point);
 }
 
@@ -84,6 +80,10 @@ void UIWidget::onPointerClick(sf::Vector2f position) {
   m_onPointerClickEvent(position);
 }
 
+void UIWidget::onScroll(float delta) {
+  SFMX_PARAMETER_UNUSED(delta);
+}
+
 void UIWidget::onSelect() {
   m_onSelectEvent();
 }
@@ -98,6 +98,57 @@ void UIWidget::onSubmit() {
 
 void UIWidget::onCancel() {
   m_onCancelEvent();
+}
+
+// -- Hierarchy ----------------------------------------------------------------
+
+void UIWidget::addChild(UIWidget* child) {
+  if (nullptr == child || child == this) return;
+  if (nullptr != child->m_parent) {
+    child->m_parent->removeChild(child);
+  }
+  child->m_parent = this;
+  m_children.push_back(child);
+}
+
+void UIWidget::removeChild(UIWidget* child) {
+  if (nullptr == child || child->m_parent != this) return;
+  for (size_t i = 0; i < m_children.size(); ++i) {
+    if (m_children[i] == child) {
+      m_children.erase(m_children.begin() + static_cast<ptrdiff_t>(i));
+      child->m_parent = nullptr;
+      return;
+    }
+  }
+}
+
+sf::Transform UIWidget::getChildTransform() const {
+  return sf::Transform::Identity;
+}
+
+void UIWidget::drawHierarchy(sf::RenderTarget& target,
+                             sf::RenderStates states) const {
+  if (!isVisible()) return;
+  onDraw(target, states);
+  if (!m_children.empty()) {
+    states.transform *= getChildTransform();
+    for (auto* child : m_children) {
+      child->drawHierarchy(target, states);
+    }
+  }
+}
+
+UIWidget* UIWidget::hitTestInHierarchy(sf::Vector2f point) const {
+  if (!isEnabled() || !isVisible() || !isInteractable()) return nullptr;
+  if (!containsPoint(point)) return nullptr;
+  return isBlockingInput() ? const_cast<UIWidget*>(this) : nullptr;
+}
+
+sf::Vector2f UIWidget::toLocalSpace(sf::Vector2f canvasPoint) const {
+  if (m_parent) {
+    canvasPoint = m_parent->toLocalSpace(canvasPoint);
+  }
+  return canvasPoint - getPosition();
 }
 
 // -- Drawing -----------------------------------------------------------------
