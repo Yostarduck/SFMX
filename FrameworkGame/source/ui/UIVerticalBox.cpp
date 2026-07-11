@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file UIVerticalBox.cpp
+ * @author Swampertor
+ * @date 2026/07/08
+ * @brief  Vertical layout container implementation.
+ */
+/************************************************************************/
 #include "ui/UIVerticalBox.h"
 #include "core/DataStream.h"
 #include "core/DataStreamTypes.h"
@@ -5,6 +13,7 @@
 namespace sfmx
 {
 
+/** @brief  Standalone constructor (no SceneNode). */
 UIVerticalBox::UIVerticalBox(sf::Vector2f size)
   : UIWidgetT<UIVerticalBox, WidgetType::kVerticalBox>(),
     ComponentT<UIVerticalBox>(nullptr) {
@@ -12,6 +21,7 @@ UIVerticalBox::UIVerticalBox(sf::Vector2f size)
   syncColliderToRect();
 }
 
+/** @brief  Component constructor attached to a SceneNode. */
 UIVerticalBox::UIVerticalBox(SceneNode* node, sf::Vector2f size)
   : UIWidgetT<UIVerticalBox, WidgetType::kVerticalBox>(),
     ComponentT<UIVerticalBox>(node) {
@@ -19,10 +29,14 @@ UIVerticalBox::UIVerticalBox(SceneNode* node, sf::Vector2f size)
   syncColliderToRect();
 }
 
+/** @brief  Type UUID for serialization. */
 UUID UIVerticalBox::getTypeId() const {
   return TypeTraits<UIVerticalBox>::getTypeId();
 }
 
+// -- Layout -------------------------------------------------------------------
+
+/** @brief  Position all children top-to-bottom with spacing and padding. */
 void UIVerticalBox::updateLayout() {
   float y = m_padding.y;
   for (auto* child : m_children) {
@@ -33,14 +47,16 @@ void UIVerticalBox::updateLayout() {
   m_layoutDirty = false;
 }
 
+// -- Overrides for hierarchy support ------------------------------------------
+
+/** @brief  Translate children by this box's position so they are relative to the box origin. */
 sf::Transform UIVerticalBox::getChildTransform() const {
   sf::Transform t;
   t.translate({getPosition().x, getPosition().y});
   return t;
 }
 
-// UIVerticalBox.cpp (after getChildTransform)
-
+/** @brief  Recursive hit-test: transform point to local space, check children in reverse order. */
 UIWidget* UIVerticalBox::hitTestInHierarchy(sf::Vector2f point) const {
   if (!isEnabled() || !isVisible() || !isInteractable()) return nullptr;
   if (!containsPoint(point)) return nullptr;
@@ -56,6 +72,7 @@ UIWidget* UIVerticalBox::hitTestInHierarchy(sf::Vector2f point) const {
   return isBlockingInput() ? const_cast<UIVerticalBox*>(this) : nullptr;
 }
 
+/** @brief  Convert canvas-space point to box-local space, walking the parent chain. */
 sf::Vector2f UIVerticalBox::toLocalSpace(sf::Vector2f canvasPoint) const {
   if (m_parent) {
     canvasPoint = m_parent->toLocalSpace(canvasPoint);
@@ -63,6 +80,7 @@ sf::Vector2f UIVerticalBox::toLocalSpace(sf::Vector2f canvasPoint) const {
   return canvasPoint - getPosition();
 }
 
+/** @brief  Draw the background rectangle.  Auto-calls updateLayout if layout is dirty. */
 void UIVerticalBox::onDraw(sf::RenderTarget& target,
                             sf::RenderStates states) const {
   if (!UIWidget::s_canvasDrawing) return;
@@ -77,6 +95,7 @@ void UIVerticalBox::onDraw(sf::RenderTarget& target,
   target.draw(bg, states);
 }
 
+/** @brief  Serialize flags, rect, colour, spacing, padding. */
 void UIVerticalBox::onSerialize(DataStream& stream) const {
   constexpr uint32 kVersion = 1;
   stream << kVersion;
@@ -99,6 +118,7 @@ void UIVerticalBox::onSerialize(DataStream& stream) const {
   stream << m_boxColor.r << m_boxColor.g << m_boxColor.b << m_boxColor.a;
 }
 
+/** @brief  Restore state written by onSerialize. */
 void UIVerticalBox::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;

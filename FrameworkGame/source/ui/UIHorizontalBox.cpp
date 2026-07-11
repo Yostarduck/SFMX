@@ -5,6 +5,7 @@
 namespace sfmx
 {
 
+/** @brief  Standalone constructor (no SceneNode). */
 UIHorizontalBox::UIHorizontalBox(sf::Vector2f size)
   : UIWidgetT<UIHorizontalBox, WidgetType::kHorizontalBox>(),
     ComponentT<UIHorizontalBox>(nullptr) {
@@ -12,6 +13,7 @@ UIHorizontalBox::UIHorizontalBox(sf::Vector2f size)
   syncColliderToRect();
 }
 
+/** @brief  Component constructor attached to a SceneNode. */
 UIHorizontalBox::UIHorizontalBox(SceneNode* node, sf::Vector2f size)
   : UIWidgetT<UIHorizontalBox, WidgetType::kHorizontalBox>(),
     ComponentT<UIHorizontalBox>(node) {
@@ -19,10 +21,14 @@ UIHorizontalBox::UIHorizontalBox(SceneNode* node, sf::Vector2f size)
   syncColliderToRect();
 }
 
+/** @brief  Type UUID for serialization. */
 UUID UIHorizontalBox::getTypeId() const {
   return TypeTraits<UIHorizontalBox>::getTypeId();
 }
 
+// -- Layout -------------------------------------------------------------------
+
+/** @brief  Position all children left-to-right with spacing and padding. */
 void UIHorizontalBox::updateLayout() {
   float x = m_padding.x;
   for (auto* child : m_children) {
@@ -33,14 +39,16 @@ void UIHorizontalBox::updateLayout() {
   m_layoutDirty = false;
 }
 
+// -- Overrides for hierarchy support ------------------------------------------
+
+/** @brief  Translate children by this box's position so they are relative to the box origin. */
 sf::Transform UIHorizontalBox::getChildTransform() const {
   sf::Transform t;
   t.translate({getPosition().x, getPosition().y});
   return t;
 }
 
-// UIHorizontalBox.cpp (after getChildTransform)
-
+/** @brief  Recursive hit-test: transform point to local space, check children in reverse order. */
 UIWidget* UIHorizontalBox::hitTestInHierarchy(sf::Vector2f point) const {
   if (!isEnabled() || !isVisible() || !isInteractable()) return nullptr;
   if (!containsPoint(point)) return nullptr;
@@ -56,6 +64,7 @@ UIWidget* UIHorizontalBox::hitTestInHierarchy(sf::Vector2f point) const {
   return isBlockingInput() ? const_cast<UIHorizontalBox*>(this) : nullptr;
 }
 
+/** @brief  Convert canvas-space point to box-local space, walking the parent chain. */
 sf::Vector2f UIHorizontalBox::toLocalSpace(sf::Vector2f canvasPoint) const {
   if (m_parent) {
     canvasPoint = m_parent->toLocalSpace(canvasPoint);
@@ -63,6 +72,7 @@ sf::Vector2f UIHorizontalBox::toLocalSpace(sf::Vector2f canvasPoint) const {
   return canvasPoint - getPosition();
 }
 
+/** @brief  Draw the background rectangle.  Auto-calls updateLayout if layout is dirty. */
 void UIHorizontalBox::onDraw(sf::RenderTarget& target,
                               sf::RenderStates states) const {
   if (!UIWidget::s_canvasDrawing) return;
@@ -77,6 +87,9 @@ void UIHorizontalBox::onDraw(sf::RenderTarget& target,
   target.draw(bg, states);
 }
 
+// -- Serialization ------------------------------------------------------------
+
+/** @brief  Serialize flags, rect, colour, spacing, padding. */
 void UIHorizontalBox::onSerialize(DataStream& stream) const {
   constexpr uint32 kVersion = 1;
   stream << kVersion;
@@ -99,6 +112,7 @@ void UIHorizontalBox::onSerialize(DataStream& stream) const {
   stream << m_boxColor.r << m_boxColor.g << m_boxColor.b << m_boxColor.a;
 }
 
+/** @brief  Restore state written by onSerialize. */
 void UIHorizontalBox::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;

@@ -63,10 +63,12 @@ class UIVerticalBox final : public UIWidgetT<UIVerticalBox, WidgetType::kVertica
 
   /** @brief  Type UUID for serialization. */
   NODISCARD UUID getTypeId() const override;
-  /** @brief  Serialize size, colour, spacing, padding. */
+  /** @brief  Serialize flags, rect, colour, spacing, padding. */
   void onSerialize(DataStream& stream) const override;
   /** @brief  Restore state written by onSerialize. */
   void onDeserialize(DataStream& stream) override;
+
+  // -- Layout -----------------------------------------------------------------
 
   /** @brief  Gap between consecutive children. */
   FORCEINLINE void setSpacing(float spacing) { m_spacing = spacing; m_layoutDirty = true; }
@@ -88,16 +90,24 @@ class UIVerticalBox final : public UIWidgetT<UIVerticalBox, WidgetType::kVertica
 
   // -- Overrides for hierarchy support ----------------------------------------
 
+  /** @brief  Translate children by this box's position so they are relative to the box origin. */
   NODISCARD sf::Transform getChildTransform() const override;
+  /** @brief  Recursive hit-test: transform point to local space, check children in reverse order. */
   NODISCARD UIWidget* hitTestInHierarchy(sf::Vector2f point) const override;
+  /** @brief  Convert canvas-space point to box-local space, walking the parent chain. */
   NODISCARD sf::Vector2f toLocalSpace(sf::Vector2f canvasPoint) const override;
 
  private:
+  /** @brief  Draw the background rectangle.  Auto-calls updateLayout if layout is dirty. */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
+  /** @brief  Gap between children in pixels. */
   float m_spacing = 4.f;
+  /** @brief  Padding inside the box before the first child. */
   sf::Vector2f m_padding = {4.f, 4.f};
+  /** @brief  Background fill colour. */
   sf::Color m_boxColor = sf::Color(50, 50, 60, 200);
+  /** @brief  Flag set when layout needs recomputation. */
   bool m_layoutDirty = false;
 };
 
