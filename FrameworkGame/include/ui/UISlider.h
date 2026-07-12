@@ -80,13 +80,13 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
   NODISCARD FORCEINLINE float getStepValue() const { return m_stepValue; }
 
   /** @brief  Colour of the background track. */
-  FORCEINLINE void setTrackColor(sf::Color color) { m_trackColor = color; m_visualDirty = true; }
+  void setTrackColor(sf::Color color);
   /** @brief  Colour of the filled portion. */
-  FORCEINLINE void setFillColor(sf::Color color) { m_fillColor = color; m_visualDirty = true; }
+  void setFillColor(sf::Color color);
   /** @brief  Colour of the draggable thumb. */
-  FORCEINLINE void setThumbColor(sf::Color color) { m_thumbColor = color; m_visualDirty = true; }
+  void setThumbColor(sf::Color color);
   /** @brief  Diameter of the thumb in pixels. */
-  FORCEINLINE void setThumbSize(float size) { m_thumbSize = size; m_visualDirty = true; }
+  void setThumbSize(float size);
 
   /** @brief  Current track colour. */
   NODISCARD FORCEINLINE sf::Color getTrackColor() const { return m_trackColor; }

@@ -51,6 +51,26 @@ void UISlider::setRange(float min, float max) {
   setValue(m_value);
 }
 
+void UISlider::setTrackColor(sf::Color color) { 
+  m_trackColor = color; 
+  m_visualDirty = true; 
+}
+
+void UISlider::setFillColor(sf::Color color) { 
+  m_fillColor = color; 
+  m_visualDirty = true; 
+}
+
+void UISlider::setThumbColor(sf::Color color) { 
+  m_thumbColor = color; 
+  m_visualDirty = true; 
+}
+
+void UISlider::setThumbSize(float size) { 
+  m_thumbSize = size; 
+  m_visualDirty = true; 
+}
+
 // -- Texture asset for the thumb -----------------------------------------------
 
 void UISlider::setThumbTextureAsset(SPtr<TextureAsset> asset) {
