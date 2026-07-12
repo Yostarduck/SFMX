@@ -29,6 +29,7 @@
 #include "ui/UICheckbox.h"
 #include "ui/UICheckboxGroup.h"
 #include "ui/UIVerticalBox.h"
+#include "ui/UIHorizontalBox.h"
 #include "ui/UIScrollView.h"
 
 #include "assets/AssetManager.h"
@@ -458,6 +459,25 @@ int main(int argc, char** argv)
       std::cout << "[ScrollItem] Submit button clicked!\n";
     });
 
+    // Add a UIImage inside the list (uses the particle texture if available)
+    if (uiTex) {
+      auto* imgNode = canvasNode->createChild("ScrollImg");
+      UIImage* scrollImg = imgNode->addComponent<UIImage>(sf::Vector2f{32.f, 32.f});
+      scrollImg->setPosition({0.f, 0.f});
+      scrollImg->setTextureAsset(uiTex);
+      scrollImg->setColor(sf::Color(255, 200, 100));
+      list->addChild(scrollImg);
+    }
+
+    // Add a UITextBox inside the list
+    auto* tbxNode = canvasNode->createChild("ScrollTbx");
+    UITextBox* scrollTbx = tbxNode->addComponent<UITextBox>(sf::Vector2f{224.f, 28.f});
+    scrollTbx->setPosition({0.f, 0.f});
+    scrollTbx->setFont(font);
+    scrollTbx->setCharacterSize(14);
+    scrollTbx->setPlaceholder("Enter text...");
+    list->addChild(scrollTbx);
+
     // Add a volume slider inside the list
     auto* volNode = canvasNode->createChild("VolSlider");
     UISlider* volSlider = volNode->addComponent<UISlider>(sf::Vector2f{180.f, 20.f});
@@ -519,6 +539,89 @@ int main(int argc, char** argv)
 
       rx += 85.f;
     }
+  }
+
+  // ── HorizontalBox demo ──────────────────────────────────────────────────
+  if (fontLoaded) {
+    auto* hboxNode = canvasNode->createChild("DemoHBox");
+    UIHorizontalBox* hbox = hboxNode->addComponent<UIHorizontalBox>(
+      sf::Vector2f{420.f, 40.f});
+    hbox->setPosition({20.f, windowHeight * 0.5f + 60.f});
+    hbox->setPadding({6.f, 8.f});
+    hbox->setSpacing(8.f);
+    hbox->setBoxColor(sf::Color(40, 40, 55, 200));
+    uiCanvas.addWidget(hbox);
+
+    // Add a few label + value pairs as children
+    auto addHItem = [&](const char* text) {
+      auto* n = canvasNode->createChild(String("HBox_") + text);
+      auto* btn = n->addComponent<UIButton>(sf::Vector2f{60.f, 24.f});
+      btn->setPosition({0.f, 0.f});
+      hbox->addChild(btn);
+
+      auto* ln = canvasNode->createChild(String("HBoxLbl_") + text);
+      auto* lbl = ln->addComponent<UILabel>(sf::Vector2f{60.f, 24.f});
+      lbl->setPosition({64.f, 0.f});
+      lbl->setFont(font);
+      lbl->setText(text);
+      lbl->setCharacterSize(13);
+      lbl->setTextColor(sf::Color::White);
+      hbox->addChild(lbl);
+    };
+    addHItem("Cut");
+    addHItem("Copy");
+    addHItem("Paste");
+    addHItem("Undo");
+
+    hbox->updateLayout();
+  }
+
+  // ── Nested VerticalBox demo (inside the main canvas, left side) ─────────
+  if (fontLoaded) {
+    auto* vboxNode = canvasNode->createChild("DemoVBox");
+    UIVerticalBox* vbox = vboxNode->addComponent<UIVerticalBox>(
+      sf::Vector2f{160.f, 180.f});
+    vbox->setPosition({20.f, 80.f});
+    vbox->setPadding({8.f, 8.f});
+    vbox->setSpacing(4.f);
+    vbox->setBoxColor(sf::Color(40, 40, 55, 200));
+    uiCanvas.addWidget(vbox);
+
+    auto* titleN = canvasNode->createChild("VBoxTitle");
+    auto* titleLbl = titleN->addComponent<UILabel>(sf::Vector2f{144.f, 20.f});
+    titleLbl->setPosition({0.f, 0.f});
+    titleLbl->setFont(font);
+    titleLbl->setText("Quick Actions");
+    titleLbl->setCharacterSize(14);
+    titleLbl->setTextColor(sf::Color(200, 200, 255));
+    vbox->addChild(titleLbl);
+
+    auto addVItem = [&](const char* text, const sf::Color& color) {
+      auto* n = canvasNode->createChild(String("VBoxBtn_") + text);
+      auto* btn = n->addComponent<UIButton>(sf::Vector2f{144.f, 24.f});
+      btn->setPosition({0.f, 0.f});
+      btn->setNormalColor(color);
+      btn->setHoveredColor(sf::Color(
+        static_cast<uint8>(std::min(255, color.r + 30)),
+        static_cast<uint8>(std::min(255, color.g + 30)),
+        static_cast<uint8>(std::min(255, color.b + 30))));
+      btn->setPressedColor(sf::Color(
+        static_cast<uint8>(std::max(0, color.r - 30)),
+        static_cast<uint8>(std::max(0, color.g - 30)),
+        static_cast<uint8>(std::max(0, color.b - 30))));
+      vbox->addChild(btn);
+
+      groupLogs.push_back(btn->onPointerClick([n = String(text)](sf::Vector2f) {
+        std::cout << "[VBox] " << n << " clicked\n";
+      }));
+    };
+    addVItem("New File",    sf::Color(60, 120, 60));
+    addVItem("Open...",     sf::Color(60, 60, 140));
+    addVItem("Save",        sf::Color(60, 100, 160));
+    addVItem("Save As...",  sf::Color(100, 60, 60));
+    addVItem("Settings",    sf::Color(80, 80, 80));
+
+    vbox->updateLayout();
   }
 
   // ── UITextBox demo ─────────────────────────────────────────────────────

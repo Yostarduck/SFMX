@@ -4,6 +4,8 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/String.hpp>
 
+#include <algorithm>
+
 namespace sfmx
 {
 
@@ -113,14 +115,23 @@ void UITextBox::onDraw(sf::RenderTarget& target,
   constexpr float textPadding = 6.f;
   const float innerRight = pos.x + size.x - textPadding;
 
-  // Clip text to the textbox interior.
+  // Clip text to the textbox interior without overriding the parent view.
   const sf::View prevView = target.getView();
   const sf::Vector2u targetSize = target.getSize();
-  sf::View clipView(sf::FloatRect(pos, size));
-  clipView.setViewport(sf::FloatRect(
-    {pos.x / targetSize.x, pos.y / targetSize.y},
-    {size.x / targetSize.x, size.y / targetSize.y}
-  ));
+  sf::View clipView(prevView);
+  {
+    const sf::Vector2f screenPos = states.transform.transformPoint(pos);
+    const sf::Vector2f screenSize =
+      states.transform.transformPoint(pos + size) - screenPos;
+    sf::FloatRect scissor(
+      {screenPos.x / targetSize.x, screenPos.y / targetSize.y},
+      {screenSize.x / targetSize.x, screenSize.y / targetSize.y});
+    scissor.position.x = std::clamp(scissor.position.x, 0.f, 1.f);
+    scissor.position.y = std::clamp(scissor.position.y, 0.f, 1.f);
+    scissor.size.x = std::clamp(scissor.size.x, 0.f, 1.f - scissor.position.x);
+    scissor.size.y = std::clamp(scissor.size.y, 0.f, 1.f - scissor.position.y);
+    clipView.setScissor(scissor);
+  }
   target.setView(clipView);
 
   if (m_text) {

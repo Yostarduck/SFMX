@@ -155,9 +155,13 @@ class UIWidget
 
   // -- Canvas ----------------------------------------------------------------
 
-  /** @brief The Canvas that owns this widget, or nullptr. */
-  NODISCARD FORCEINLINE Canvas* 
-  getCanvas() const { return m_canvas; }
+  /** @brief The Canvas that owns this widget, or nullptr.
+   *         Walks the parent chain so hierarchy children find the canvas. */
+  NODISCARD FORCEINLINE Canvas*
+  getCanvas() const {
+    if (m_canvas != nullptr) return m_canvas;
+    return m_parent != nullptr ? m_parent->getCanvas() : nullptr;
+  }
 
   // -- Collider (optional) ---------------------------------------------------
 

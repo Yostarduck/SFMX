@@ -80,13 +80,13 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
   NODISCARD FORCEINLINE float getStepValue() const { return m_stepValue; }
 
   /** @brief  Colour of the background track. */
-  FORCEINLINE void setTrackColor(sf::Color color) { m_trackColor = color; }
+  FORCEINLINE void setTrackColor(sf::Color color) { m_trackColor = color; m_visualDirty = true; }
   /** @brief  Colour of the filled portion. */
-  FORCEINLINE void setFillColor(sf::Color color) { m_fillColor = color; }
+  FORCEINLINE void setFillColor(sf::Color color) { m_fillColor = color; m_visualDirty = true; }
   /** @brief  Colour of the draggable thumb. */
-  FORCEINLINE void setThumbColor(sf::Color color) { m_thumbColor = color; }
+  FORCEINLINE void setThumbColor(sf::Color color) { m_thumbColor = color; m_visualDirty = true; }
   /** @brief  Diameter of the thumb in pixels. */
-  FORCEINLINE void setThumbSize(float size) { m_thumbSize = size; }
+  FORCEINLINE void setThumbSize(float size) { m_thumbSize = size; m_visualDirty = true; }
 
   /** @brief  Current track colour. */
   NODISCARD FORCEINLINE sf::Color getTrackColor() const { return m_trackColor; }
@@ -140,6 +140,7 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
   mutable sf::RectangleShape m_fill;
   mutable sf::CircleShape m_thumb;
   mutable UniquePtr<sf::Sprite> m_thumbSprite;
+  mutable bool m_visualDirty = true;
   SPtr<TextureAsset> m_thumbTextureAsset;
   UUID m_thumbTextureAssetId = UUID::null();
 

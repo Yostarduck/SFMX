@@ -129,6 +129,8 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   void onPointerExit(sf::Vector2f position) override;
   void onPointerDown(sf::Vector2f position) override;
   void onPointerUp(sf::Vector2f position) override;
+  void onSelect() override;
+  void onDeselect() override;
 
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 

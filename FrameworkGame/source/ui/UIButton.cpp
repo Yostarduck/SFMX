@@ -72,6 +72,19 @@ void UIButton::onPointerUp(sf::Vector2f position) {
   UIWidget::onPointerUp(position);
 }
 
+// -- Focus -------------------------------------------------------------------
+
+void UIButton::onSelect() {
+  m_visualDirty = true;
+  UIWidget::onSelect();
+}
+
+void UIButton::onDeselect() {
+  m_visualState = VisualState::kNormal;
+  m_visualDirty = true;
+  UIWidget::onDeselect();
+}
+
 // -- Drawing -----------------------------------------------------------------
 
 void UIButton::syncVisual() const {
