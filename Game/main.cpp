@@ -45,12 +45,15 @@
 
 #include "utils/MemoryPoolHandler.h"
 #include "utils/EventSystem.h"
+#include "utils/Random.h"
 
 #include "scripts/ScriptEngine.h"
 
 #include "DemoScene.h"
 #include "DemoCook.h"
 
+#include <array>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -132,10 +135,9 @@ int main(int argc, char** argv)
   // Engine modules. Order matters: SceneManager clears its scenes at shutDown
   // (returning pooled nodes/components), so it is torn down before the pools,
   // and the AssetManager whose sf::Textures they reference is torn down last.
+  MemoryPoolHandler::startUp(4096);
   InputSystem::startUp();
   PhysicsSystem::startUp();
-  MemoryPoolHandler::startUp(4096);
-  ScriptEngine::startUp();
   ComponentRegistry::startUp();
   SceneManager::startUp();
 
@@ -163,7 +165,9 @@ int main(int argc, char** argv)
 #endif
   const size_t mountedAssets = AssetManager::instance().mount("assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
-
+  
+  ScriptEngine::startUp();
+  
   // Load the cooked demo scene into a SceneManager-owned scene; fall back to
   // building it in code (dev convenience if `--cook-scene` has not run yet).
   SceneManager& scenes = SceneManager::instance();
@@ -268,8 +272,6 @@ int main(int argc, char** argv)
       moveReportTimer = 0.f;
     }
   });
-
-  sf::Clock clock;
 
   UIEventSystem::startUp();
   
@@ -493,6 +495,26 @@ int main(int argc, char** argv)
   std::cout << "[UI] System ready - interact with the widgets\n"
             << "[UI] Navigate: Arrow keys / WASD  |  Submit: Space / Enter  |  Cancel: Escape\n";
 
+  sf::Clock clock;
+
+  std::cout << "Random demo:\n"
+            << "Get: "    << Random::get<float>()       << "\n"
+            << "Get: "    << Random::get<float>()       << "\n"
+            << "Get: "    << Random::get<float>()       << "\n"
+            << "Range: "  << Random::range<int>(0, 30)  << "\n"
+            << "Range: "  << Random::range<int>(0, 30)  << "\n"
+            << "Range: "  << Random::range<int>(0, 30)  << "\n"
+            << "Dice: "   << Random::diceThrow(3, 6)    << "\n"
+            << "Dice: "   << Random::diceThrow(2, 6)    << "\n"
+            << "Dice: "   << Random::diceThrow(1, 6)    << "\n";
+
+  std::array<float, 10> avgFPS = {};
+  for (float& fps : avgFPS) fps = 0.0069f;
+  uint32 avgFPSIndex = 0;
+
+  bool render = true;
+  bool showInfo = false;
+
   while (window.isOpen())
   {
     // InputSystem: snapshot device state before polling
@@ -529,13 +551,17 @@ int main(int argc, char** argv)
     if (Keyboard::instance().wasPressedThisFrame(Key::kEscape)) {
       window.close();
     }
-    if (Keyboard::instance().wasPressedThisFrame(Key::kSpace)) {
-      std::cout << "[Input] Space pressed\n";
-      if (nullptr != rt.moonSfx) {
-        rt.moonSfx->stop();
-        rt.moonSfx->play();
-      }
+
+    avgFPS[avgFPSIndex] = deltaTime;
+    avgFPSIndex = (avgFPSIndex + 1) % avgFPS.size();
+
+    if (Keyboard::instance().wasPressedThisFrame(Key::kNum1)) {
+      showInfo = !showInfo;
     }
+    if (Keyboard::instance().wasPressedThisFrame(Key::kNum2)) {
+      render = !render;
+    }
+
 #if USING(SFMX_DEBUG_MODE)
     // Dev hot-reload: F5 re-decodes each script's LuaAsset (its raw source in raw mode)
     // and re-binds it, so an edited .lua takes effect without restarting the game.
@@ -553,15 +579,17 @@ int main(int argc, char** argv)
       std::cout << "[Script] hot-reloaded (F5)\n";
     }
 #endif
-    if (Mouse::instance().wasPressedThisFrame(MouseButton::kLeft)) {
-      const Vector2i pos = Mouse::instance().getPosition();
-      std::cout << "[Input] Left click at (" << pos.x << ", " << pos.y << ")\n";
-    }
-    if (Gamepad::instance().isConnected(0)) {
-      const float lx = Gamepad::instance().get(0).getAxis(Axis::kLeftX);
-      if (lx != 0.f) {
-        std::cout << "[Input] Gamepad 0 LeftX = " << lx << "\n";
+    
+    if (Keyboard::instance().wasPressedThisFrame(Key::kI) || (showInfo && avgFPSIndex == 0u)) {
+      float avgDeltaTime = 0.f;
+      for (const float& dt : avgFPS) {
+        avgDeltaTime += dt;
       }
+      avgDeltaTime /= avgFPS.size();
+
+      std::cout << "[Info] FPS: " << std::ceil(1.0f / avgDeltaTime) << "\n";
+      std::cout << "[Info] Scene total nodes: " << SceneManager::instance().getActiveScene()->getNodeCount() << "\n";
+      demo::poolsInfo();
     }
 
     // Rotating the parent drags the child with it: proof of transform
@@ -575,22 +603,30 @@ int main(int argc, char** argv)
     SceneManager::instance().update(deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
-    scenes.draw(window);
+    if (render) {
+      scenes.draw(window);
+
+      // Screen-space canvas: reset the view so coordinates match window pixels.
+      window.setView(window.getDefaultView());
+      uiCanvas.draw(window, sf::RenderStates::Default);
+    }
     window.display();
   }
 
-  ScriptEngine::shutDown();
+  SceneManager::instance().destroyAllScenes();
 
+  UIEventSystem::shutDown();
+  
+  ScriptEngine::shutDown();
+  AssetManager::shutDown();
   // Shut the scene manager down before the pools: it clears every scene, which
   // returns pooled nodes/components while the pools (and SFML) are still alive.
   SceneManager::shutDown();
   ComponentRegistry::shutDown();
 
-  InputSystem::shutDown();
-  UIEventSystem::shutDown();
   PhysicsSystem::shutDown();
+  InputSystem::shutDown();
   MemoryPoolHandler::shutDown();
-  AssetManager::shutDown();
 
   // Shut the window down last: keep its GL context alive until every sf::Texture
   // owned by the (now torn-down) AssetManager has been released.

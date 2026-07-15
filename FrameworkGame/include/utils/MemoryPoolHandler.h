@@ -2,9 +2,11 @@
 
 #include "core/MemoryPool.h"
 #include "core/platform/Prerequisites.h"
+#include "scene/Component.h"
 #include "utils/Module.h"
 #include "utils/TypeTraits.h"
 #include "utils/UUID.h"
+#include <type_traits>
 
 namespace sfmx
 {
@@ -62,7 +64,12 @@ class TypedPool : public IMemoryPool
 
   void
   deallocate(void* object) override {
-    m_pool.deallocate(static_cast<T*>(object));
+    if constexpr (std::is_base_of<Component, T>::value) {
+      m_pool.deallocate(static_cast<T*>(static_cast<Component*>(object)));
+    }
+    else {
+      m_pool.deallocate(static_cast<T*>(object));
+    }
   }
 
   void
