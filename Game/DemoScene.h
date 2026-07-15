@@ -34,6 +34,9 @@ registerDemoPools(sfmx::MemoryPoolHandler& pools);
 void
 registerDemoComponents();
 
+void
+poolsInfo();
+
 // Build the demo scene in code: the authoring SOURCE the cooker serializes, and
 // the game's fallback when the cooked file is missing. Scene DATA only — runtime
 // behavior is wired separately by wireDemoRuntime().
