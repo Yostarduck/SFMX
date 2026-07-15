@@ -36,6 +36,17 @@ class SFMX_UTILITY_EXPORT IAssetCodec
   assetType() const = 0;
 
   /**
+   * @brief Construct an empty, undecoded asset of this codec's type.
+   *
+   * The async loader (@ref AssetManager::loadAsync) makes the asset on the main
+   * thread with this, hands it to a worker to fill via @ref IAsset::decodeCPU, then
+   * finalizes it on the main thread. The synchronous @ref decode typically just does
+   * @c create followed by @ref IAsset::decodeFrom.
+   */
+  NODISCARD virtual SPtr<IAsset>
+  create() const = 0;
+
+  /**
    * @brief Decode @p reader's payload into a new asset.
    * @return The decoded asset (state @ref AssetState::kLoaded on success,
    *         @ref AssetState::kFailed if the bytes were unusable), or @c nullptr

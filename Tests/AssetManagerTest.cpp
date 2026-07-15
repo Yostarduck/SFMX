@@ -27,11 +27,20 @@ struct MgrDummyAsset : AssetT<MgrDummyAsset> {
     setMetadata(meta);
     setState(AssetState::kLoaded);
   }
+
+  bool
+  decodeFrom(AssetFileReader& reader) override {
+    loadDummy(reader.metadata());
+    return true;
+  }
 };
 
 struct MgrDummyCodec : IAssetCodec {
   const sfmx::UUID&
   assetType() const override { return TypeTraits<MgrDummyAsset>::getTypeId(); }
+
+  SPtr<IAsset>
+  create() const override { return MakeShared<MgrDummyAsset>(); }
 
   SPtr<IAsset>
   decode(AssetFileReader& reader) const override {

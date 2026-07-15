@@ -30,6 +30,7 @@
 
 #include "scripts/RegisterScene.h"
 #include "scripts/RegisterSceneNode.h"
+#include "scripts/RegisterAssetManager.h"
 
 #include "scene/SceneNode.h"
 #include "scene/SourceComponent.h"
@@ -84,6 +85,9 @@ registerAll(sol::state_view lua) {
   // Scene graph.
   registerSceneNode(lua);
   registerScene(lua);
+
+  // Asset loading (Assets.loadAsync / loadSync + the Asset handle usertype).
+  registerAssetManager(lua);
 
   // Type-driven component access (node:addComponent(SpriteComponent), ...).
   // Register one entry per pool-allocated component type; the inline Transform

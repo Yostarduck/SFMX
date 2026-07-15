@@ -116,12 +116,15 @@ firstByName(Scene& scene, StringView name) {
 
 void
 registerDemoPools(MemoryPoolHandler& pools) {
-  pools.registerPool<SceneNode>(1024);
+  // SceneNode + SpriteComponent are sized generously for the Lua projectile stress
+  // demo (F fires bursts of bullets, each a node + sprite drawn from these pools;
+  // kMaxBullets in character.lua = 512). Fixed-capacity, reserved once at startup.
+  pools.registerPool<SceneNode>(4096);
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<CameraComponent>(1);
-  pools.registerPool<SpriteComponent>(8);
+  pools.registerPool<SpriteComponent>(1024);
   pools.registerPool<AnimatorComponent>(8);
   pools.registerPool<Particle>(2048);
   pools.registerPool<ParticleSystemComponent>(8);

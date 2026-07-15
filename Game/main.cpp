@@ -571,6 +571,11 @@ int main(int argc, char** argv)
     if (nullptr != rt.earth)   { rt.earth->transform().rotate(sf::degrees(215.f * deltaTime)); }
     if (nullptr != rt.neptune) { rt.neptune->transform().rotate(sf::degrees(-15.f * deltaTime)); }
 
+    // Finalize any assets whose background decode completed (GPU upload on this,
+    // the GL-owning thread) and fire their loadAsync callbacks BEFORE the scene
+    // updates, so components/scripts see freshly loaded assets this same frame.
+    AssetManager::instance().finalize();
+
     UIEventSystem::instance().update(window, deltaTime);
     SceneManager::instance().update(deltaTime);
 
@@ -578,6 +583,10 @@ int main(int argc, char** argv)
     scenes.draw(window);
     window.display();
   }
+
+  // Release any pending async-load callbacks (they may hold Lua closures) while the
+  // script engine / Lua state is still alive — AssetManager shuts down much later.
+  AssetManager::instance().cancelAsyncLoads();
 
   ScriptEngine::shutDown();
 

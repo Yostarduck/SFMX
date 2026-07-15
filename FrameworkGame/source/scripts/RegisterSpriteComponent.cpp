@@ -7,6 +7,9 @@
 
 #include "core/platform/Prerequisites.h"
 #include "scene/SpriteComponent.h"
+#include "assets/Asset.h"
+#include "assets/TextureAsset.h"
+#include "utils/TypeTraits.h"
 
 namespace sfmx
 {
@@ -21,6 +24,14 @@ registerSpriteComponent(sol::state_view lua) {
     sol::base_classes, sol::bases<Component>(),
 
     "typeId", sol::var(componentTypeId<SpriteComponent>()),
+
+    // Accepts the generic Asset handle a load callback delivers; binds it only if it
+    // is really a TextureAsset (else no-op), so Lua never sees the concrete type.
+    "setTextureAsset", [](SpriteComponent& sprite, SPtr<IAsset> asset) {
+      if (asset && asset->typeId() == TypeTraits<TextureAsset>::getTypeId()) {
+        sprite.setTextureAsset(std::static_pointer_cast<TextureAsset>(asset));
+      }
+    },
 
     "setRect", &SpriteComponent::setRect,
     "getRect", &SpriteComponent::getRect,
