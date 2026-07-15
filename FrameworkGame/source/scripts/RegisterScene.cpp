@@ -17,7 +17,12 @@ registerScene(sol::state_view lua) {
     "getRoot", &Scene::getRoot,
     "getName", &Scene::getName,
 
-    "createNode", &Scene::createNode,
+    "createNode", sol::overload(
+      [](Scene& s, StringView name) { return s.createNode(name); },
+      [](Scene& s, StringView name, SceneNode* parent) {
+        return s.createNode(name, parent);
+      }
+    ),
 
     "destroyNode", sol::overload(
       [](Scene& s, SceneNode* node) { s.destroyNode(node); },
@@ -33,9 +38,7 @@ registerScene(sol::state_view lua) {
     "addCamera", &Scene::addCamera,
     "removeCamera", &Scene::removeCamera,
     "clearCameras", &Scene::clearCameras,
-    "getCameraCount", &Scene::getCameraCount,
-
-    "transform", [](SceneNode& n) -> Transform& { return n.transform(); }
+    "getCameraCount", &Scene::getCameraCount
   );
 }
 
