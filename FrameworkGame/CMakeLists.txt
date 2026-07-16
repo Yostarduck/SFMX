@@ -121,6 +121,7 @@ add_library(FrameworkGame STATIC
     source/scripts/RegisterIntRect.cpp
     source/scripts/RegisterFloatRect.cpp
     source/scripts/RegisterTransform.cpp
+    source/scripts/RegisterUUID.cpp
     source/scripts/RegisterInputTypes.cpp
     source/scripts/RegisterKeyboard.cpp
     source/scripts/RegisterMouse.cpp
@@ -138,6 +139,10 @@ add_library(FrameworkGame STATIC
 
     source/scripts/RegisterScene.cpp
     source/scripts/RegisterSceneNode.cpp
+    source/scripts/RegisterSceneManager.cpp
+
+    source/scripts/RegisterIAsset.cpp
+    source/scripts/RegisterAssetManager.cpp
 
     source/scripts/RegisterAll.cpp)
 

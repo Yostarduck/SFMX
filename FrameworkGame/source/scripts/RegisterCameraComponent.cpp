@@ -57,6 +57,11 @@ registerCameraComponent(sol::state_view lua) {
     "getTransform", &CameraComponent::getTransform,
     "getInverseTransform", &CameraComponent::getInverseTransform,
 
+    "screenToWorld",
+    [](const CameraComponent& c, sf::Vector2i pixel, sf::Vector2i resolution) {
+      return c.screenToWorld(pixel, sf::Vector2u(resolution));
+    },
+
     "setFollowNode", &CameraComponent::setFollowNode,
     "isFollowingNode", &CameraComponent::isFollowingNode,
 

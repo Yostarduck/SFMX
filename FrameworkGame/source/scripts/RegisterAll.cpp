@@ -11,6 +11,9 @@
 #include "scripts/RegisterIntRect.h"
 #include "scripts/RegisterFloatRect.h"
 #include "scripts/RegisterTransform.h"
+#include "scripts/RegisterUUID.h"
+#include "scripts/RegisterIAsset.h"
+#include "scripts/RegisterAssetManager.h"
 
 #include "scripts/RegisterInputTypes.h"
 #include "scripts/RegisterKeyboard.h"
@@ -28,6 +31,7 @@
 //#include "scripts/RegisterParticleSystemComponent.h"
 #include "scripts/RegisterScriptComponent.h"
 
+#include "scripts/RegisterSceneManager.h"
 #include "scripts/RegisterScene.h"
 #include "scripts/RegisterSceneNode.h"
 
@@ -62,12 +66,17 @@ registerAll(sol::state_view lua) {
   registerIntRect(lua);
   registerFloatRect(lua);
   registerTransform(lua);
+  registerUUID(lua);
 
   // Input types.
   registerInputTypes(lua);
   registerKeyboard(lua);
   registerMouse(lua);
   registerGamepad(lua);
+
+  // Assets (IAsset before AssetManager: load/get hand back SPtr<IAsset>).
+  registerIAsset(lua);
+  registerAssetManager(lua);
 
   // Component hierarchy: the base must precede its derived usertypes so the
   // sol::bases<Component> links resolve.
@@ -84,6 +93,7 @@ registerAll(sol::state_view lua) {
   // Scene graph.
   registerSceneNode(lua);
   registerScene(lua);
+  registerSceneManager(lua);
 
   // Type-driven component access (node:addComponent(SpriteComponent), ...).
   // Register one entry per pool-allocated component type; the inline Transform
@@ -144,6 +154,11 @@ registerAll(sol::state_view lua) {
         return sol::make_object(lua,
           node.addComponent<ScriptComponent>(
             UUID::createFromName(args[0].as<std::string>())));
+      }
+      else if (args.size() >= 1 && args[0].is<UUID>()) {
+        return sol::make_object(lua,
+          node.addComponent<ScriptComponent>(
+            args[0].as<UUID>()));
       }
       return sol::make_object(lua, sol::lua_nil);
     });

@@ -72,6 +72,10 @@ class CameraComponent : public ComponentT<CameraComponent>
   NODISCARD const sf::Transform& getTransform() const;
   /** @brief Returns the inverse (target-to-view) transform */
   NODISCARD const sf::Transform& getInverseTransform() const;
+  
+  /** @brief Converts a screen position to world coordinates */
+  NODISCARD sf::Vector2f
+  screenToWorld(sf::Vector2i pixel, sf::Vector2u resolution) const;
 
   /** @brief When true, the view center is synced from the node's world position each frame */
   void setFollowNode(bool follow);

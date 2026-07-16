@@ -10,8 +10,6 @@
 namespace sfmx
 {
 
-SceneManager::~SceneManager() = default;
-
 Scene*
 SceneManager::createScene(StringView name) {
   const String key(name);
