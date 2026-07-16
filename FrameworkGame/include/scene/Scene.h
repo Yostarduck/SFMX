@@ -89,12 +89,19 @@ class Scene
   void registerNode(SceneNode* node);
   void unregisterNode(NodeId id);
   void destroyNodeRecursive(SceneNode* node);
+  
+  /** @brief Destroy every node queued by @ref destroyNode during the traversal. */
+  void flushDestroyQueue();
 
   Array<char, kMaxNameLength> m_name;
   SceneNode* m_root;
   Vector<CameraComponent*> m_cameras;
   NodeId m_nextId;
   UnorderedMap<NodeId, SceneNode*> m_registry;
+
+  Vector<NodeId> m_pendingDestroy;
+  
+  bool m_updating = false;
 };
 
 }  // namespace sfmx
