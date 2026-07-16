@@ -92,7 +92,7 @@ void UIScrollView::clampScrollOffset() {
 // -- Overrides for hierarchy support ---------------------------------------------
 
 /** @brief  Scroll the viewport by the wheel delta (positive = scroll up). */
-void UIScrollView::onScroll(float delta) {
+void UIScrollView::triggerScroll(float delta) {
   scrollBy(-delta * 30.f);
   clampScrollOffset();
 }

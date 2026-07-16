@@ -25,6 +25,7 @@ UIVerticalBox::UIVerticalBox(sf::Vector2f size)
 UIVerticalBox::UIVerticalBox(SceneNode* node, sf::Vector2f size)
   : UIWidgetT<UIVerticalBox, WidgetType::kVerticalBox>(),
     ComponentT<UIVerticalBox>(node) {
+  SFMX_ASSERT(node != nullptr);
   setSize(size);
   syncColliderToRect();
 }
@@ -80,13 +81,17 @@ sf::Vector2f UIVerticalBox::toLocalSpace(sf::Vector2f canvasPoint) const {
   return canvasPoint - getPosition();
 }
 
-/** @brief  Draw the background rectangle.  Auto-calls updateLayout if layout is dirty. */
+void UIVerticalBox::onUpdate(float deltaTime) {
+  SFMX_PARAMETER_UNUSED(deltaTime);
+  if (m_layoutDirty) {
+    updateLayout();
+  }
+}
+
+/** @brief  Draw the background rectangle. */
 void UIVerticalBox::onDraw(sf::RenderTarget& target,
                             sf::RenderStates states) const {
   if (!UIWidget::s_canvasDrawing) return;
-  if (m_layoutDirty) {
-    const_cast<UIVerticalBox*>(this)->updateLayout();
-  }
 
   sf::RectangleShape bg;
   bg.setSize(getSize());

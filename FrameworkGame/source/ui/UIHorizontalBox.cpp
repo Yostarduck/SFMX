@@ -17,6 +17,7 @@ UIHorizontalBox::UIHorizontalBox(sf::Vector2f size)
 UIHorizontalBox::UIHorizontalBox(SceneNode* node, sf::Vector2f size)
   : UIWidgetT<UIHorizontalBox, WidgetType::kHorizontalBox>(),
     ComponentT<UIHorizontalBox>(node) {
+  SFMX_ASSERT(node != nullptr);
   setSize(size);
   syncColliderToRect();
 }
@@ -44,7 +45,7 @@ void UIHorizontalBox::updateLayout() {
 /** @brief  Translate children by this box's position so they are relative to the box origin. */
 sf::Transform UIHorizontalBox::getChildTransform() const {
   sf::Transform t;
-  t.translate({getPosition().x, getPosition().y});
+  t.translate(getPosition());
   return t;
 }
 
@@ -72,13 +73,17 @@ sf::Vector2f UIHorizontalBox::toLocalSpace(sf::Vector2f canvasPoint) const {
   return canvasPoint - getPosition();
 }
 
-/** @brief  Draw the background rectangle.  Auto-calls updateLayout if layout is dirty. */
+void UIHorizontalBox::onUpdate(float deltaTime) {
+  SFMX_PARAMETER_UNUSED(deltaTime);
+  if (m_layoutDirty) {
+    updateLayout();
+  }
+}
+
+/** @brief  Draw the background rectangle. */
 void UIHorizontalBox::onDraw(sf::RenderTarget& target,
                               sf::RenderStates states) const {
   if (!UIWidget::s_canvasDrawing) return;
-  if (m_layoutDirty) {
-    const_cast<UIHorizontalBox*>(this)->updateLayout();
-  }
 
   sf::RectangleShape bg;
   bg.setSize(getSize());

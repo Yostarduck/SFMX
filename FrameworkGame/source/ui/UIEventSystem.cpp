@@ -68,14 +68,14 @@ void UIEventSystem::setSelected(UIWidget* widget) {
 
   if (m_selected != nullptr) {
     m_selected->setFocused(false);
-    m_selected->onDeselect();
+    m_selected->triggerDeselect();
   }
 
   m_selected = widget;
 
   if (m_selected != nullptr) {
     m_selected->setFocused(true);
-    m_selected->onSelect();
+    m_selected->triggerSelect();
   }
 }
 
@@ -89,7 +89,7 @@ void UIEventSystem::setSubmitAction(InputAction* action) {
     m_submitSub = action->onPerformed([this](const InputContext& ctx) {
       SFMX_PARAMETER_UNUSED(ctx);
       if (m_selected != nullptr) {
-        m_selected->onSubmit();
+        m_selected->triggerSubmit();
       }
     });
   }
@@ -103,7 +103,7 @@ void UIEventSystem::setCancelAction(InputAction* action) {
     m_cancelSub = action->onPerformed([this](const InputContext& ctx) {
       SFMX_PARAMETER_UNUSED(ctx);
       if (m_selected != nullptr) {
-        m_selected->onCancel();
+        m_selected->triggerCancel();
       }
     });
   }
@@ -151,13 +151,13 @@ void UIEventSystem::processPointer(const sf::WindowBase& window) {
   // -- Enter / Exit --------------------------------------------------------
   if (hit != m_pointer.hovered) {
     if (m_pointer.hovered != nullptr) {
-      m_pointer.hovered->onPointerExit(localPosHovered);
+      m_pointer.hovered->triggerPointerExit(localPosHovered);
     }
 
     m_pointer.hovered = hit;
 
     if (hit != nullptr) {
-      hit->onPointerEnter(localPos);
+      hit->triggerPointerEnter(localPos);
     }
   }
 
@@ -169,7 +169,7 @@ void UIEventSystem::processPointer(const sf::WindowBase& window) {
     m_pointer.pressed = hit;
 
     if (hit != nullptr) {
-      hit->onPointerDown(localPos);
+      hit->triggerPointerDown(localPos);
       setSelected(hit);
     } else {
       setSelected(nullptr);
@@ -181,10 +181,10 @@ void UIEventSystem::processPointer(const sf::WindowBase& window) {
     if (m_pointer.pressed != nullptr) {
       const sf::Vector2f localPosPressed =
         m_pointer.pressed->toLocalSpace(canvasPos);
-      m_pointer.pressed->onPointerUp(localPosPressed);
+      m_pointer.pressed->triggerPointerUp(localPosPressed);
 
       if (m_pointer.pressed == hit && hit != nullptr) {
-        hit->onPointerClick(localPos);
+        hit->triggerPointerClick(localPos);
       }
     }
 
@@ -200,7 +200,7 @@ void UIEventSystem::processScroll() {
   for (UIWidget* w = m_pointer.hovered; w != nullptr; w = w->getUIparent()) {
     if (w->isEnabled() && w->isVisible() &&
         w->getType() == WidgetType::kScrollView) {
-      w->onScroll(wheelDelta);
+      w->triggerScroll(wheelDelta);
       return;
     }
   }

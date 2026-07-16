@@ -73,8 +73,8 @@ void UITextBox::deleteForward() {
   syncText();
 }
 
-void UITextBox::onPointerDown(sf::Vector2f position) {
-  UIWidget::onPointerDown(position);
+void UITextBox::triggerPointerDown(sf::Vector2f position) {
+  UIWidget::triggerPointerDown(position);
   // TODO:
   // Position cursor by click position (approximate: place at end for now).
   // Full character-index-from-position would need per-glyph advance queries.
@@ -123,14 +123,18 @@ void UITextBox::onDraw(sf::RenderTarget& target,
     const sf::Vector2f screenPos = states.transform.transformPoint(pos);
     const sf::Vector2f screenSize =
       states.transform.transformPoint(pos + size) - screenPos;
-    sf::FloatRect scissor(
-      {screenPos.x / targetSize.x, screenPos.y / targetSize.y},
-      {screenSize.x / targetSize.x, screenSize.y / targetSize.y});
-    scissor.position.x = std::clamp(scissor.position.x, 0.f, 1.f);
-    scissor.position.y = std::clamp(scissor.position.y, 0.f, 1.f);
-    scissor.size.x = std::clamp(scissor.size.x, 0.f, 1.f - scissor.position.x);
-    scissor.size.y = std::clamp(scissor.size.y, 0.f, 1.f - scissor.position.y);
-    clipView.setScissor(scissor);
+    if (targetSize.x > 0 && targetSize.y > 0) {
+      sf::FloatRect scissor(
+        {screenPos.x / static_cast<float>(targetSize.x),
+         screenPos.y / static_cast<float>(targetSize.y)},
+        {screenSize.x / static_cast<float>(targetSize.x),
+         screenSize.y / static_cast<float>(targetSize.y)});
+      scissor.position.x = std::clamp(scissor.position.x, 0.f, 1.f);
+      scissor.position.y = std::clamp(scissor.position.y, 0.f, 1.f);
+      scissor.size.x = std::clamp(scissor.size.x, 0.f, 1.f - scissor.position.x);
+      scissor.size.y = std::clamp(scissor.size.y, 0.f, 1.f - scissor.position.y);
+      clipView.setScissor(scissor);
+    }
   }
   target.setView(clipView);
 

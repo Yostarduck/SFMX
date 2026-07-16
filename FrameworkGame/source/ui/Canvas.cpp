@@ -42,10 +42,15 @@ UIWidget* Canvas::hitTest(sf::Vector2f localPoint) const {
   // Iterate in reverse (back = drawn last = topmost).
   for (auto it = m_widgets.rbegin(); it != m_widgets.rend(); ++it) {
     UIWidget* w = *it;
+    if (nullptr == w) continue;
     UIWidget* hit = w->hitTestInHierarchy(localPoint);
     if (nullptr != hit) {
-      if (hit->isBlockingInput()) return hit;
-      if (nullptr == fallback) fallback = hit;
+      if (hit->isBlockingInput()) {
+        return hit;
+      }
+      if (nullptr == fallback) { 
+        fallback = hit;
+      }
     }
   }
   return fallback;

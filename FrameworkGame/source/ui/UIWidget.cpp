@@ -60,43 +60,43 @@ bool UIWidget::containsPoint(sf::Vector2f point) const {
 
 // -- Virtual event callbacks -------------------------------------------------
 
-void UIWidget::onPointerEnter(sf::Vector2f position) {
+void UIWidget::triggerPointerEnter(sf::Vector2f position) {
   m_onPointerEnterEvent(position);
 }
 
-void UIWidget::onPointerExit(sf::Vector2f position) {
+void UIWidget::triggerPointerExit(sf::Vector2f position) {
   m_onPointerExitEvent(position);
 }
 
-void UIWidget::onPointerDown(sf::Vector2f position) {
+void UIWidget::triggerPointerDown(sf::Vector2f position) {
   m_onPointerDownEvent(position);
 }
 
-void UIWidget::onPointerUp(sf::Vector2f position) {
+void UIWidget::triggerPointerUp(sf::Vector2f position) {
   m_onPointerUpEvent(position);
 }
 
-void UIWidget::onPointerClick(sf::Vector2f position) {
+void UIWidget::triggerPointerClick(sf::Vector2f position) {
   m_onPointerClickEvent(position);
 }
 
-void UIWidget::onScroll(float delta) {
+void UIWidget::triggerScroll(float delta) {
   SFMX_PARAMETER_UNUSED(delta);
 }
 
-void UIWidget::onSelect() {
+void UIWidget::triggerSelect() {
   m_onSelectEvent();
 }
 
-void UIWidget::onDeselect() {
+void UIWidget::triggerDeselect() {
   m_onDeselectEvent();
 }
 
-void UIWidget::onSubmit() {
+void UIWidget::triggerSubmit() {
   m_onSubmitEvent();
 }
 
-void UIWidget::onCancel() {
+void UIWidget::triggerCancel() {
   m_onCancelEvent();
 }
 

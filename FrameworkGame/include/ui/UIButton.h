@@ -125,12 +125,12 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
  private:
   // -- UIWidget virtual overrides --------------------------------------------
 
-  void onPointerEnter(sf::Vector2f position) override;
-  void onPointerExit(sf::Vector2f position) override;
-  void onPointerDown(sf::Vector2f position) override;
-  void onPointerUp(sf::Vector2f position) override;
-  void onSelect() override;
-  void onDeselect() override;
+  void triggerPointerEnter(sf::Vector2f position) override;
+  void triggerPointerExit(sf::Vector2f position) override;
+  void triggerPointerDown(sf::Vector2f position) override;
+  void triggerPointerUp(sf::Vector2f position) override;
+  void triggerSelect() override;
+  void triggerDeselect() override;
 
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 

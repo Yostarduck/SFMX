@@ -100,7 +100,9 @@ class UIHorizontalBox final : public UIWidgetT<UIHorizontalBox, WidgetType::kHor
   NODISCARD sf::Vector2f toLocalSpace(sf::Vector2f canvasPoint) const override;
 
  private:
-  /** @brief  Draw the background rectangle.  Auto-calls updateLayout if layout is dirty. */
+  /** @brief  Rebuild layout before drawing if dirty. */
+  void onUpdate(float deltaTime) override;
+  /** @brief  Draw the background rectangle. */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
   /** @brief  Spacing between child widgets. */

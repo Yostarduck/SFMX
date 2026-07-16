@@ -132,15 +132,15 @@ float UISlider::getThumbCenterX() const {
   return t * w;
 }
 
-void UISlider::onPointerDown(sf::Vector2f position) {
-  UIWidget::onPointerDown(position);
+void UISlider::triggerPointerDown(sf::Vector2f position) {
+  UIWidget::triggerPointerDown(position);
   updateValueFromLocalX(position.x);
   m_dragging = true;
 }
 
-void UISlider::onPointerUp(sf::Vector2f position) {
+void UISlider::triggerPointerUp(sf::Vector2f position) {
   m_dragging = false;
-  UIWidget::onPointerUp(position);
+  UIWidget::triggerPointerUp(position);
 }
 
 void UISlider::onUpdate(float deltaTime) {

@@ -238,7 +238,7 @@ class UIWidget
    * Override to add widget-specific behaviour (e.g. hover highlight).
    */
   virtual void 
-  onPointerEnter(sf::Vector2f position);
+  triggerPointerEnter(sf::Vector2f position);
 
   /**
    * @brief Called when the pointer leaves this widget's area.
@@ -246,7 +246,7 @@ class UIWidget
    * Base implementation fires the @ref onPointerExit Event<>.
    */
   virtual void 
-  onPointerExit(sf::Vector2f position);
+  triggerPointerExit(sf::Vector2f position);
 
   /**
    * @brief Called when a pointer button is pressed over this widget.
@@ -254,7 +254,7 @@ class UIWidget
    * Base implementation fires the @ref onPointerDown Event<>.
    */
   virtual void 
-  onPointerDown(sf::Vector2f position);
+  triggerPointerDown(sf::Vector2f position);
 
   /**
    * @brief Called when a pointer button is released over this widget.
@@ -262,7 +262,7 @@ class UIWidget
    * Base implementation fires the @ref onPointerUp Event<>.
    */
   virtual void 
-  onPointerUp(sf::Vector2f position);
+  triggerPointerUp(sf::Vector2f position);
 
   /**
    * @brief Called when a click (down + up on same widget) completes.
@@ -270,27 +270,27 @@ class UIWidget
    * Base implementation fires the @ref onPointerClick Event<>.
    */
   virtual void 
-  onPointerClick(sf::Vector2f position);
+  triggerPointerClick(sf::Vector2f position);
 
   /** @brief Called when the scroll wheel is used over this widget or its children. */
   virtual void
-  onScroll(float delta);
+  triggerScroll(float delta);
 
   /** @brief Called when this widget becomes the EventSystem selection. */
   virtual void 
-  onSelect();
+  triggerSelect();
 
   /** @brief Called when this widget loses the EventSystem selection. */
   virtual void 
-  onDeselect();
+  triggerDeselect();
 
   /** @brief Called when the user presses the submit/confirm action. */
   virtual void 
-  onSubmit();
+  triggerSubmit();
 
   /** @brief Called when the user presses the cancel/back action. */
   virtual void 
-  onCancel();
+  triggerCancel();
 
   /** @brief Whether this widget is a text editor (skips navigation while focused). */
   NODISCARD virtual bool 

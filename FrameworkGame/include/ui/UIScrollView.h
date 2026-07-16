@@ -123,7 +123,7 @@ class UIScrollView final : public UIWidgetT<UIScrollView, WidgetType::kScrollVie
   // -- Overrides for hierarchy support ----------------------------------------
 
   /** @brief  Scroll the viewport by the wheel delta (positive = scroll up). */
-  void onScroll(float delta) override;
+  void triggerScroll(float delta) override;
   /** @brief  Translate + scroll offset applied to content-space children. */
   NODISCARD sf::Transform getChildTransform() const override;
   /** @brief  Hit-test with scroll-aware content-space transform. */

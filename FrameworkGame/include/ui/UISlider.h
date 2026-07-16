@@ -116,9 +116,9 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
 
  private:
   /** @brief  Begin drag, snap thumb to click position. */
-  void onPointerDown(sf::Vector2f position) override;
+  void triggerPointerDown(sf::Vector2f position) override;
   /** @brief  End drag. */
-  void onPointerUp(sf::Vector2f position) override;
+  void triggerPointerUp(sf::Vector2f position) override;
   /** @brief  Per-frame drag update (reads pointer state). */
   void onUpdate(float deltaTime) override;
   /** @brief  Draw track, fill, and thumb (circle or sprite). */
