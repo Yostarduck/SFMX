@@ -122,7 +122,7 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
 
  private:
   /** @brief  Focus the textbox and move cursor to the click position. */
-  void onPointerDown(sf::Vector2f position) override;
+  void triggerPointerDown(sf::Vector2f position) override;
   /** @brief  Draw background, border, clipped text, and optional cursor. */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 

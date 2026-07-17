@@ -110,6 +110,7 @@ class UIEventSystem final : public Module<UIEventSystem>
  private:
   void validateSelection();
   void processPointer(const sf::WindowBase& window);
+  void processScroll();
   void processNavigation(float deltaTime);
   void moveSelection(const sf::Vector2f& direction);
   void selectFirst();

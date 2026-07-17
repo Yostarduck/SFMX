@@ -88,6 +88,9 @@ add_library(FrameworkGame STATIC
     source/ui/UICheckboxGroup.cpp
     source/ui/UITextBox.cpp
     source/ui/UISlider.cpp
+    source/ui/UIVerticalBox.cpp
+    source/ui/UIHorizontalBox.cpp
+    source/ui/UIScrollView.cpp
 
     source/scene/CanvasComponent.cpp
     source/scene/Scene.cpp

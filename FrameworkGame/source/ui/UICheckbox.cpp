@@ -132,24 +132,24 @@ SPtr<TextureAsset> UICheckbox::getTextureAsset() const {
 
 // --------------------------------------------------------------------------------
 
-void UICheckbox::onPointerEnter(sf::Vector2f position) {
+void UICheckbox::triggerPointerEnter(sf::Vector2f position) {
   m_hovered = true;
   m_visualDirty = true;
-  UIWidget::onPointerEnter(position);
+  UIWidget::triggerPointerEnter(position);
 }
 
-void UICheckbox::onPointerExit(sf::Vector2f position) {
+void UICheckbox::triggerPointerExit(sf::Vector2f position) {
   m_hovered = false;
   m_visualDirty = true;
-  UIWidget::onPointerExit(position);
+  UIWidget::triggerPointerExit(position);
 }
 
-void UICheckbox::onPointerClick(sf::Vector2f position) {
+void UICheckbox::triggerPointerClick(sf::Vector2f position) {
   if (m_group && m_group->isExclusive() && m_checked) {
     return;
   }
   setChecked(!m_checked);
-  UIWidget::onPointerClick(position);
+  UIWidget::triggerPointerClick(position);
 }
 
 sf::Color UICheckbox::resolveColor() const {

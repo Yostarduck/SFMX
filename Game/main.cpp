@@ -28,6 +28,9 @@
 #include "ui/UITextBox.h"
 #include "ui/UICheckbox.h"
 #include "ui/UICheckboxGroup.h"
+#include "ui/UIVerticalBox.h"
+#include "ui/UIHorizontalBox.h"
+#include "ui/UIScrollView.h"
 
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
@@ -389,95 +392,238 @@ int main(int argc, char** argv)
     std::cout << "[UI] Checkbox: " << (checked ? "checked" : "unchecked") << "\n";
   });
 
-  // ── UICheckboxGroup demo (multi-select + radio) ────────────────────────
-  SPtr<UICheckboxGroup> fruitGroup;
+  // ── ScrollView + VerticalBox (layout container demo) ──────────────────
   SPtr<UICheckboxGroup> radioGroup;
   Vector<HEvent> groupLogs;
 
   if (fontLoaded) {
-    // --- Multi-select group (regular checkbox behaviour) ---
-    fruitGroup = MakeShared<UICheckboxGroup>();
-    fruitGroup->setExclusive(false);
+    auto* scrollNode = canvasNode->createChild("DemoScrollView");
+    UIScrollView* scrollView = scrollNode->addComponent<UIScrollView>(
+      sf::Vector2f{260.f, 280.f});
+    scrollView->setPosition({windowWidth * 0.5f + 50.f, 80.f});
+    scrollView->syncColliderToRect();
+    scrollView->setBackgroundColor(sf::Color(30, 30, 40, 220));
+    uiCanvas.addWidget(scrollView);
 
-    auto* fruitTitle = canvasNode->createChild("FruitGroupTitle");
-    auto* fruitTitleLbl = fruitTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
-    fruitTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 80.f});
-    fruitTitleLbl->setFont(font);
-    fruitTitleLbl->setText("Fruits (multi-select):");
-    fruitTitleLbl->setCharacterSize(14);
-    fruitTitleLbl->setTextColor(sf::Color::White);
-    uiCanvas.addWidget(fruitTitleLbl);
+    auto* listNode = canvasNode->createChild("DemoList");
+    UIVerticalBox* list = listNode->addComponent<UIVerticalBox>(
+      sf::Vector2f{240.f, 60.f});  // initial size, will stretch
+    list->setPadding({8.f, 8.f});
+    list->setSpacing(6.f);
+    list->setBoxColor(sf::Color::Transparent);
+    scrollView->addChild(list);
 
-    static constexpr struct { const char* node; const char* label; } kFruits[] = {
-      {"AppleCb", "Apple"}, {"BananaCb", "Banana"}, {"CherryCb", "Cherry"}
-    };
-    float fx = windowWidth * 0.5f + 60.f;
-    const float fy = windowHeight * 0.5f - 50.f;
-    for (auto& def : kFruits) {
-      auto* node = canvasNode->createChild(def.node);
-      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
-      cb->setPosition({fx, fy});
-      cb->syncColliderToRect();
-      cb->setGroup(fruitGroup.get());
-      uiCanvas.addWidget(cb);
+    // Populate the list with checkboxes + labels
+    auto addItem = [&](const char* name, bool checked) {
+      auto* rowNode = canvasNode->createChild(String(name) + "Row");
+      auto* cb = rowNode->addComponent<UICheckbox>(sf::Vector2f{22.f, 22.f});
+      cb->setPosition({0.f, 0.f});  // layout managed by the box
+      list->addChild(cb);
+      if (checked) cb->setChecked(true, false);
 
-      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
-      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{80.f, 24.f});
-      lbl->setPosition({fx + 28.f, fy + 2.f});
+      auto* lblNode = canvasNode->createChild(String(name) + "Lbl");
+      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{180.f, 22.f});
+      lbl->setPosition({28.f, 0.f});
       lbl->setFont(font);
-      lbl->setText(def.label);
+      lbl->setText(name);
       lbl->setCharacterSize(14);
       lbl->setTextColor(sf::Color::White);
-      uiCanvas.addWidget(lbl);
+      list->addChild(lbl);
 
-      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
-        std::cout << "[UI Group] " << name << ": " << (checked ? "checked" : "unchecked") << "\n";
+      groupLogs.push_back(cb->onValueChanged([n = String(name)](bool v) {
+        std::cout << "[ScrollItem] " << n << ": " << (v ? "checked" : "unchecked") << "\n";
       }));
+    };
 
-      fx += 90.f;
+    addItem("SFML Integration", true);
+    addItem("UI Widget System", true);
+    addItem("Scene Graph",      true);
+    addItem("Physics (Box2D)",  true);
+    addItem("Particle System",  true);
+    addItem("Animation System", true);
+    addItem("Audio System",     true);
+    addItem("Input System",     true);
+    addItem("Lua Scripting",    true);
+    addItem("Asset Pipeline",   false);
+    addItem("Serialization",    false);
+    addItem("Profiling Tools",  false);
+
+    // Add a submit button inside the list
+    auto* btnNode = canvasNode->createChild("SubmitBtn");
+    UIButton* submitBtn = btnNode->addComponent<UIButton>(sf::Vector2f{100.f, 28.f});
+    submitBtn->setPosition({0.f, 0.f});
+    submitBtn->setNormalColor(sf::Color(70, 140, 70));
+    submitBtn->setHoveredColor(sf::Color(90, 180, 90));
+    submitBtn->setPressedColor(sf::Color(50, 100, 50));
+    list->addChild(submitBtn);
+
+    HEvent sbSub = submitBtn->onPointerClick([](sf::Vector2f) {
+      std::cout << "[ScrollItem] Submit button clicked!\n";
+    });
+
+    // Add a UIImage inside the list (uses the particle texture if available)
+    if (uiTex) {
+      auto* imgNode = canvasNode->createChild("ScrollImg");
+      UIImage* scrollImg = imgNode->addComponent<UIImage>(sf::Vector2f{32.f, 32.f});
+      scrollImg->setPosition({0.f, 0.f});
+      scrollImg->setTextureAsset(uiTex);
+      scrollImg->setColor(sf::Color(255, 200, 100));
+      list->addChild(scrollImg);
     }
 
-    // --- Exclusive group (radio behaviour) ---
+    // Add a UITextBox inside the list
+    auto* tbxNode = canvasNode->createChild("ScrollTbx");
+    UITextBox* scrollTbx = tbxNode->addComponent<UITextBox>(sf::Vector2f{224.f, 28.f});
+    scrollTbx->setPosition({0.f, 0.f});
+    scrollTbx->setFont(font);
+    scrollTbx->setCharacterSize(14);
+    scrollTbx->setPlaceholder("Enter text...");
+    list->addChild(scrollTbx);
+
+    // Add a volume slider inside the list
+    auto* volNode = canvasNode->createChild("VolSlider");
+    UISlider* volSlider = volNode->addComponent<UISlider>(sf::Vector2f{180.f, 20.f});
+    volSlider->setPosition({0.f, 0.f});
+    volSlider->setRange(0.f, 100.f);
+    volSlider->setValue(75.f);
+    list->addChild(volSlider);
+
+    HEvent vsSub = volSlider->onValueChanged([](float v) {
+      std::cout << "[ScrollItem] Volume: " << v << "\n";
+    });
+
+    list->updateLayout();
+
+    // Fit the box to content height, scroll view handles overflow
+    float contentH = 8.f; // top padding
+    for (auto* child : list->getChildren()) {
+      contentH += child->getSize().y + 6.f;
+    }
+    list->setSize({list->getSize().x, contentH});
+    scrollView->setContentHeight(contentH);
+
+    // --- Exclusive radio group below the scroll view ---
     radioGroup = MakeShared<UICheckboxGroup>();
     radioGroup->setExclusive(true);
 
     auto* radioTitle = canvasNode->createChild("RadioGroupTitle");
     auto* radioTitleLbl = radioTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
-    radioTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 10.f});
+    radioTitleLbl->setPosition({windowWidth * 0.5f + 50.f, 380.f});
     radioTitleLbl->setFont(font);
-    radioTitleLbl->setText("Options (radio):");
+    radioTitleLbl->setText("Render backend:");
     radioTitleLbl->setCharacterSize(14);
     radioTitleLbl->setTextColor(sf::Color::White);
     uiCanvas.addWidget(radioTitleLbl);
 
-    static constexpr struct { const char* node; const char* label; } kRadios[] = {
-      {"OptARb", "Option A"}, {"OptBRb", "Option B"}, {"OptCRb", "Option C"}
-    };
-    float rx = windowWidth * 0.5f + 60.f;
-    const float ry = windowHeight * 0.5f + 20.f;
-    for (auto& def : kRadios) {
-      auto* node = canvasNode->createChild(def.node);
-      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
+    static constexpr const char* kOpts[] = {"OpenGL", "Vulkan", "DirectX"};
+    float rx = windowWidth * 0.5f + 50.f;
+    const float ry = 405.f;
+    for (auto* opt : kOpts) {
+      auto* node = canvasNode->createChild(String(opt) + "Rb");
+      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{22.f, 22.f});
       cb->setPosition({rx, ry});
       cb->syncColliderToRect();
       cb->setGroup(radioGroup.get());
       uiCanvas.addWidget(cb);
 
-      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
-      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{100.f, 24.f});
-      lbl->setPosition({rx + 28.f, ry + 2.f});
+      auto* lblNode = canvasNode->createChild(String(opt) + "RbLbl");
+      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{80.f, 22.f});
+      lbl->setPosition({rx + 28.f, ry + 1.f});
       lbl->setFont(font);
-      lbl->setText(def.label);
+      lbl->setText(opt);
       lbl->setCharacterSize(14);
       lbl->setTextColor(sf::Color::White);
       uiCanvas.addWidget(lbl);
 
-      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
-        std::cout << "[UI Radio] " << name << ": " << (checked ? "selected" : "deselected") << "\n";
+      groupLogs.push_back(cb->onValueChanged([n = String(opt)](bool v) {
+        std::cout << "[Radio] " << n << (v ? " selected" : " deselected") << "\n";
       }));
 
-      rx += 100.f;
+      rx += 85.f;
     }
+  }
+
+  // ── HorizontalBox demo ──────────────────────────────────────────────────
+  if (fontLoaded) {
+    auto* hboxNode = canvasNode->createChild("DemoHBox");
+    UIHorizontalBox* hbox = hboxNode->addComponent<UIHorizontalBox>(
+      sf::Vector2f{420.f, 40.f});
+    hbox->setPosition({20.f, windowHeight * 0.5f + 60.f});
+    hbox->setPadding({6.f, 8.f});
+    hbox->setSpacing(8.f);
+    hbox->setBoxColor(sf::Color(40, 40, 55, 200));
+    uiCanvas.addWidget(hbox);
+
+    // Add a few label + value pairs as children
+    auto addHItem = [&](const char* text) {
+      auto* n = canvasNode->createChild(String("HBox_") + text);
+      auto* btn = n->addComponent<UIButton>(sf::Vector2f{60.f, 24.f});
+      btn->setPosition({0.f, 0.f});
+      hbox->addChild(btn);
+
+      auto* ln = canvasNode->createChild(String("HBoxLbl_") + text);
+      auto* lbl = ln->addComponent<UILabel>(sf::Vector2f{60.f, 24.f});
+      lbl->setPosition({64.f, 0.f});
+      lbl->setFont(font);
+      lbl->setText(text);
+      lbl->setCharacterSize(13);
+      lbl->setTextColor(sf::Color::White);
+      hbox->addChild(lbl);
+    };
+    addHItem("Cut");
+    addHItem("Copy");
+    addHItem("Paste");
+    addHItem("Undo");
+
+    hbox->updateLayout();
+  }
+
+  // ── Nested VerticalBox demo (inside the main canvas, left side) ─────────
+  if (fontLoaded) {
+    auto* vboxNode = canvasNode->createChild("DemoVBox");
+    UIVerticalBox* vbox = vboxNode->addComponent<UIVerticalBox>(
+      sf::Vector2f{160.f, 180.f});
+    vbox->setPosition({20.f, 80.f});
+    vbox->setPadding({8.f, 8.f});
+    vbox->setSpacing(4.f);
+    vbox->setBoxColor(sf::Color(40, 40, 55, 200));
+    uiCanvas.addWidget(vbox);
+
+    auto* titleN = canvasNode->createChild("VBoxTitle");
+    auto* titleLbl = titleN->addComponent<UILabel>(sf::Vector2f{144.f, 20.f});
+    titleLbl->setPosition({0.f, 0.f});
+    titleLbl->setFont(font);
+    titleLbl->setText("Quick Actions");
+    titleLbl->setCharacterSize(14);
+    titleLbl->setTextColor(sf::Color(200, 200, 255));
+    vbox->addChild(titleLbl);
+
+    auto addVItem = [&](const char* text, const sf::Color& color) {
+      auto* n = canvasNode->createChild(String("VBoxBtn_") + text);
+      auto* btn = n->addComponent<UIButton>(sf::Vector2f{144.f, 24.f});
+      btn->setPosition({0.f, 0.f});
+      btn->setNormalColor(color);
+      btn->setHoveredColor(sf::Color(
+        static_cast<uint8>(std::min(255, color.r + 30)),
+        static_cast<uint8>(std::min(255, color.g + 30)),
+        static_cast<uint8>(std::min(255, color.b + 30))));
+      btn->setPressedColor(sf::Color(
+        static_cast<uint8>(std::max(0, color.r - 30)),
+        static_cast<uint8>(std::max(0, color.g - 30)),
+        static_cast<uint8>(std::max(0, color.b - 30))));
+      vbox->addChild(btn);
+
+      groupLogs.push_back(btn->onPointerClick([n = String(text)](sf::Vector2f) {
+        std::cout << "[VBox] " << n << " clicked\n";
+      }));
+    };
+    addVItem("New File",    sf::Color(60, 120, 60));
+    addVItem("Open...",     sf::Color(60, 60, 140));
+    addVItem("Save",        sf::Color(60, 100, 160));
+    addVItem("Save As...",  sf::Color(100, 60, 60));
+    addVItem("Settings",    sf::Color(80, 80, 80));
+
+    vbox->updateLayout();
   }
 
   // ── UITextBox demo ─────────────────────────────────────────────────────

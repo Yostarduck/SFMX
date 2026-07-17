@@ -20,6 +20,9 @@
 #include "ui/UICheckbox.h"
 #include "ui/UITextBox.h"
 #include "ui/UISlider.h"
+#include "ui/UIVerticalBox.h"
+#include "ui/UIHorizontalBox.h"
+#include "ui/UIScrollView.h"
 
 #include "resource/SpriteAtlas.h"
 #include "resource/Frame.h"
@@ -134,6 +137,9 @@ registerDemoPools(MemoryPoolHandler& pools) {
   pools.registerPool<UICheckbox>(64);
   pools.registerPool<UITextBox>(64);
   pools.registerPool<UISlider>(64);
+  pools.registerPool<UIVerticalBox>(16);
+  pools.registerPool<UIHorizontalBox>(16);
+  pools.registerPool<UIScrollView>(16);
   pools.registerPool<CanvasComponent>(8);
   
   std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
@@ -175,6 +181,9 @@ registerDemoComponents() {
   reg.registerComponent<UICheckbox>();
   reg.registerComponent<UITextBox>();
   reg.registerComponent<UISlider>();
+  reg.registerComponent<UIVerticalBox>();
+  reg.registerComponent<UIHorizontalBox>();
+  reg.registerComponent<UIScrollView>();
 }
 
 void
