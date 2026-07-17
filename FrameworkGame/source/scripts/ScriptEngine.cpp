@@ -28,6 +28,10 @@ ScriptEngine::initializeScript(ScriptComponent* scriptComponent) {
 
 void
 ScriptEngine::loadScript(ScriptComponent* scriptComponent) {
+  if (nullptr == scriptComponent) {
+    return;
+  }
+  
   // The script lives in a LuaAsset (referenced by UUID); nothing to bind until it
   // resolves. Compile from its in-memory text, not from a file on disk.
   const SPtr<LuaAsset>& asset = scriptComponent->m_scriptAsset;
@@ -39,9 +43,9 @@ ScriptEngine::loadScript(ScriptComponent* scriptComponent) {
   // On any failure below we return WITHOUT setting m_initialized, so the caller
   // (setScriptAsset reset it to false first) leaves the component disabled — a broken
   // script stops running until a good reload, logged, never crashing.
-    const sol::protected_function* chunk = getCompiledChunk(scriptComponent->m_scriptAssetId,
+  const sol::protected_function* chunk = getCompiledChunk(scriptComponent->m_scriptAssetId,
                                                           asset->script());
-  if (chunk == nullptr) {
+  if (nullptr == chunk) {
     return;
   }
 

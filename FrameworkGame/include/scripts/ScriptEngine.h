@@ -45,7 +45,7 @@ class ScriptEngine : public Module<ScriptEngine>
   sol::state m_lua;
 
   // Compiled-chunk cache keyed by script path; see getCompiledChunk.
-  std::unordered_map<UUID, sol::protected_function> m_scriptCache;
+  UnorderedMap<UUID, sol::protected_function> m_scriptCache;
 };
 
 } // namespace sfmx
