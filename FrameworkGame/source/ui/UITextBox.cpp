@@ -4,6 +4,8 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/String.hpp>
 
+#include <algorithm>
+
 namespace sfmx
 {
 
@@ -71,8 +73,8 @@ void UITextBox::deleteForward() {
   syncText();
 }
 
-void UITextBox::onPointerDown(sf::Vector2f position) {
-  UIWidget::onPointerDown(position);
+void UITextBox::triggerPointerDown(sf::Vector2f position) {
+  UIWidget::triggerPointerDown(position);
   // TODO:
   // Position cursor by click position (approximate: place at end for now).
   // Full character-index-from-position would need per-glyph advance queries.
@@ -113,14 +115,27 @@ void UITextBox::onDraw(sf::RenderTarget& target,
   constexpr float textPadding = 6.f;
   const float innerRight = pos.x + size.x - textPadding;
 
-  // Clip text to the textbox interior.
+  // Clip text to the textbox interior without overriding the parent view.
   const sf::View prevView = target.getView();
   const sf::Vector2u targetSize = target.getSize();
-  sf::View clipView(sf::FloatRect(pos, size));
-  clipView.setViewport(sf::FloatRect(
-    {pos.x / targetSize.x, pos.y / targetSize.y},
-    {size.x / targetSize.x, size.y / targetSize.y}
-  ));
+  sf::View clipView(prevView);
+  {
+    const sf::Vector2f screenPos = states.transform.transformPoint(pos);
+    const sf::Vector2f screenSize =
+      states.transform.transformPoint(pos + size) - screenPos;
+    if (targetSize.x > 0 && targetSize.y > 0) {
+      sf::FloatRect scissor(
+        {screenPos.x / static_cast<float>(targetSize.x),
+         screenPos.y / static_cast<float>(targetSize.y)},
+        {screenSize.x / static_cast<float>(targetSize.x),
+         screenSize.y / static_cast<float>(targetSize.y)});
+      scissor.position.x = std::clamp(scissor.position.x, 0.f, 1.f);
+      scissor.position.y = std::clamp(scissor.position.y, 0.f, 1.f);
+      scissor.size.x = std::clamp(scissor.size.x, 0.f, 1.f - scissor.position.x);
+      scissor.size.y = std::clamp(scissor.size.y, 0.f, 1.f - scissor.position.y);
+      clipView.setScissor(scissor);
+    }
+  }
   target.setView(clipView);
 
   if (m_text) {

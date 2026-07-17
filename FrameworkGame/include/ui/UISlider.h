@@ -80,13 +80,13 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
   NODISCARD FORCEINLINE float getStepValue() const { return m_stepValue; }
 
   /** @brief  Colour of the background track. */
-  FORCEINLINE void setTrackColor(sf::Color color) { m_trackColor = color; }
+  void setTrackColor(sf::Color color);
   /** @brief  Colour of the filled portion. */
-  FORCEINLINE void setFillColor(sf::Color color) { m_fillColor = color; }
+  void setFillColor(sf::Color color);
   /** @brief  Colour of the draggable thumb. */
-  FORCEINLINE void setThumbColor(sf::Color color) { m_thumbColor = color; }
+  void setThumbColor(sf::Color color);
   /** @brief  Diameter of the thumb in pixels. */
-  FORCEINLINE void setThumbSize(float size) { m_thumbSize = size; }
+  void setThumbSize(float size);
 
   /** @brief  Current track colour. */
   NODISCARD FORCEINLINE sf::Color getTrackColor() const { return m_trackColor; }
@@ -116,9 +116,9 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
 
  private:
   /** @brief  Begin drag, snap thumb to click position. */
-  void onPointerDown(sf::Vector2f position) override;
+  void triggerPointerDown(sf::Vector2f position) override;
   /** @brief  End drag. */
-  void onPointerUp(sf::Vector2f position) override;
+  void triggerPointerUp(sf::Vector2f position) override;
   /** @brief  Per-frame drag update (reads pointer state). */
   void onUpdate(float deltaTime) override;
   /** @brief  Draw track, fill, and thumb (circle or sprite). */
@@ -140,6 +140,7 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
   mutable sf::RectangleShape m_fill;
   mutable sf::CircleShape m_thumb;
   mutable UniquePtr<sf::Sprite> m_thumbSprite;
+  mutable bool m_visualDirty = true;
   SPtr<TextureAsset> m_thumbTextureAsset;
   UUID m_thumbTextureAssetId = UUID::null();
 

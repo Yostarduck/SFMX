@@ -37,6 +37,7 @@ void UISlider::setValue(float value, bool notify) {
   }
   if (m_value != value) {
     m_value = value;
+    m_visualDirty = true;
     if (notify) {
       m_onValueChangedEvent(value);
     }
@@ -46,7 +47,28 @@ void UISlider::setValue(float value, bool notify) {
 void UISlider::setRange(float min, float max) {
   m_minValue = min;
   m_maxValue = max;
+  m_visualDirty = true;
   setValue(m_value);
+}
+
+void UISlider::setTrackColor(sf::Color color) { 
+  m_trackColor = color; 
+  m_visualDirty = true; 
+}
+
+void UISlider::setFillColor(sf::Color color) { 
+  m_fillColor = color; 
+  m_visualDirty = true; 
+}
+
+void UISlider::setThumbColor(sf::Color color) { 
+  m_thumbColor = color; 
+  m_visualDirty = true; 
+}
+
+void UISlider::setThumbSize(float size) { 
+  m_thumbSize = size; 
+  m_visualDirty = true; 
 }
 
 // -- Texture asset for the thumb -----------------------------------------------
@@ -110,15 +132,15 @@ float UISlider::getThumbCenterX() const {
   return t * w;
 }
 
-void UISlider::onPointerDown(sf::Vector2f position) {
-  UIWidget::onPointerDown(position);
-  updateValueFromLocalX(position.x - getPosition().x);
+void UISlider::triggerPointerDown(sf::Vector2f position) {
+  UIWidget::triggerPointerDown(position);
+  updateValueFromLocalX(position.x);
   m_dragging = true;
 }
 
-void UISlider::onPointerUp(sf::Vector2f position) {
+void UISlider::triggerPointerUp(sf::Vector2f position) {
   m_dragging = false;
-  UIWidget::onPointerUp(position);
+  UIWidget::triggerPointerUp(position);
 }
 
 void UISlider::onUpdate(float deltaTime) {
@@ -129,7 +151,7 @@ void UISlider::onUpdate(float deltaTime) {
 
   const auto& ptr = UIEventSystem::instance().getPointerState();
   if (ptr.buttonDown) {
-    const sf::Vector2f localPos = ptr.canvasPos - getPosition();
+    const sf::Vector2f localPos = toLocalSpace(ptr.canvasPos);
     const float w = getSize().x;
     if (w > 0.f) {
       const float t = std::max(0.f, std::min(1.f, localPos.x / w));
@@ -144,9 +166,7 @@ void UISlider::onUpdate(float deltaTime) {
 void UISlider::onDraw(sf::RenderTarget& target,
                        sf::RenderStates states) const {
   if (!UIWidget::s_canvasDrawing) return;
-  if (!isVisible()) {
-    return;
-  }
+  if (!isVisible()) return;
 
   const sf::Vector2f pos = getPosition();
   const sf::Vector2f size = getSize();
@@ -154,33 +174,42 @@ void UISlider::onDraw(sf::RenderTarget& target,
   const float trackY = pos.y + (size.y - trackHeight) * 0.5f;
   const float thumbCX = pos.x + getThumbCenterX();
 
-  m_track.setSize({size.x, trackHeight});
-  m_track.setPosition({pos.x, trackY});
-  m_track.setFillColor(m_trackColor);
-  target.draw(m_track, states);
+  if (m_visualDirty) {
+    m_track.setSize({size.x, trackHeight});
+    m_track.setPosition({pos.x, trackY});
+    m_track.setFillColor(m_trackColor);
 
-  const float fillWidth = thumbCX - pos.x;
-  if (fillWidth > 0.f) {
-    m_fill.setSize({fillWidth, trackHeight});
-    m_fill.setPosition({pos.x, trackY});
-    m_fill.setFillColor(m_fillColor);
-    target.draw(m_fill, states);
+    const float fillWidth = thumbCX - pos.x;
+    if (fillWidth > 0.f) {
+      m_fill.setSize({fillWidth, trackHeight});
+      m_fill.setPosition({pos.x, trackY});
+      m_fill.setFillColor(m_fillColor);
+    }
+
+    if (m_thumbSprite) {
+      const sf::FloatRect tb = m_thumbSprite->getLocalBounds();
+      if (tb.size.x > 0.f && tb.size.y > 0.f) {
+        const float half = m_thumbSize * 0.5f;
+        m_thumbSprite->setPosition({thumbCX - half, pos.y + (size.y - m_thumbSize) * 0.5f});
+        m_thumbSprite->setScale({m_thumbSize / tb.size.x, m_thumbSize / tb.size.y});
+      }
+    } else {
+      m_thumb.setRadius(m_thumbSize * 0.5f);
+      m_thumb.setOrigin({m_thumbSize * 0.5f, m_thumbSize * 0.5f});
+      m_thumb.setPosition({thumbCX, pos.y + size.y * 0.5f});
+      m_thumb.setFillColor(m_thumbColor);
+    }
+
+    m_visualDirty = false;
   }
 
+  target.draw(m_track, states);
+  const float fillWidth = thumbCX - pos.x;
+  if (fillWidth > 0.f) target.draw(m_fill, states);
+
   if (m_thumbSprite) {
-    const sf::FloatRect tb = m_thumbSprite->getLocalBounds();
-    if (tb.size.x > 0.f && tb.size.y > 0.f) {
-      const float half = m_thumbSize * 0.5f;
-      m_thumbSprite->setPosition({thumbCX - half, pos.y + (size.y - m_thumbSize) * 0.5f});
-      m_thumbSprite->setScale({m_thumbSize / tb.size.x, m_thumbSize / tb.size.y});
-      target.draw(*m_thumbSprite, states);
-    }
-  } 
-  else {
-    m_thumb.setRadius(m_thumbSize * 0.5f);
-    m_thumb.setOrigin({m_thumbSize * 0.5f, m_thumbSize * 0.5f});
-    m_thumb.setPosition({thumbCX, pos.y + size.y * 0.5f});
-    m_thumb.setFillColor(m_thumbColor);
+    target.draw(*m_thumbSprite, states);
+  } else {
     target.draw(m_thumb, states);
   }
 }

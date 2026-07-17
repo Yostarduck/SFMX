@@ -110,11 +110,11 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
  private:
   friend class UICheckboxGroup;
   /** @brief  Hover highlight on enter. */
-  void onPointerEnter(sf::Vector2f position) override;
+  void triggerPointerEnter(sf::Vector2f position) override;
   /** @brief  Remove hover highlight on exit. */
-  void onPointerExit(sf::Vector2f position) override;
+  void triggerPointerExit(sf::Vector2f position) override;
   /** @brief  Toggle checked state on click. */
-  void onPointerClick(sf::Vector2f position) override;
+  void triggerPointerClick(sf::Vector2f position) override;
   /** @brief  Draw the box + checkmark, or the texture sprite. */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
