@@ -98,6 +98,10 @@ SceneNode::appendChild(SceneNode* child) {
 
 void
 SceneNode::linkComponent(Component* component) {
+  if (nullptr == component) {
+    return;
+  }
+
   component->m_prevComponent = m_lastComponent;
   component->m_nextComponent = nullptr;
   if (nullptr != m_lastComponent) {
@@ -106,6 +110,8 @@ SceneNode::linkComponent(Component* component) {
     m_firstComponent = component;
   }
   m_lastComponent = component;
+  
+  component->onAttached();
 }
 
 void

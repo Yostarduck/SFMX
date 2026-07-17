@@ -25,13 +25,57 @@ ScriptComponent::ScriptComponent(SceneNode* owner)
   // Deferred: no script yet — onDeserialize sets the asset id and re-binds.
 }
 
+ScriptComponent::~ScriptComponent() {
+  if (m_initialized && ScriptEngine::isStarted()) {
+    callHook(m_onDestroyed);
+  }
+}
+
+void
+ScriptComponent::onAttached() {
+  m_linked = true;
+
+  triggerOnCreated();
+}
+
 void
 ScriptComponent::onUpdate(float deltaTime) {
   if (!m_initialized) {
     return;
   }
 
-  sol::protected_function_result result = m_script(getOwner(), deltaTime);
+  if (!m_started) {
+    m_started = true;
+    callHook(m_onStart);
+  }
+
+  if (!m_onUpdate.valid()) {
+    return;
+  }
+
+  sol::protected_function_result result = m_onUpdate(getOwner(), deltaTime);
+  if (!result.valid()) {
+    const sol::error err = result;
+    // TODO: log error
+    fprintf(stderr, "[Script] %s: %s\n", m_scriptAssetId.toString().c_str(), err.what());
+  }
+}
+
+void
+ScriptComponent::triggerOnCreated() {
+  if (m_initialized && m_linked && !m_created) {
+    m_created = true;
+    callHook(m_onCreated);
+  }
+}
+
+void
+ScriptComponent::callHook(const sol::protected_function& fn) {
+  if (!fn.valid()) {
+    return;
+  }
+
+  sol::protected_function_result result = fn(getOwner());
   if (!result.valid()) {
     const sol::error err = result;
     // TODO: log error
@@ -62,6 +106,7 @@ ScriptComponent::setScriptAsset(SPtr<LuaAsset> asset) {
   // Compile + bind the Lua function from the asset's text, when both are running.
   if (nullptr != asset && asset->isLoaded() && ScriptEngine::isStarted()) {
     ScriptEngine::instance().initializeScript(this);
+    triggerOnCreated();
   }
 }
 
