@@ -3,56 +3,43 @@ setlocal enabledelayedexpansion
 
 set BUILD_TYPE=Debug
 set BUILD_ARCH=x64
+set "FORWARD_ARGS="
 
-if not "%~1"=="" (
-  set ARG1=%~1
-
-  if /I "!ARG1!"=="Release" (
-    set BUILD_TYPE=Release
-  ) else if /I "!ARG1!"=="Debug" (
-    set BUILD_TYPE=Debug
-  ) else if /I "!ARG1!"=="x64" (
-    set BUILD_ARCH=x64
-  ) else if /I "!ARG1!"=="x86" (
-    set BUILD_ARCH=x86
+:parse_args
+if "%~1"=="" goto args_done
+set "ARG=%~1"
+if /I "%ARG%"=="Release" (
+  set "BUILD_TYPE=Release"
+) else if /I "%ARG%"=="Debug" (
+  set "BUILD_TYPE=Debug"
+) else if /I "%ARG%"=="x64" (
+  set "BUILD_ARCH=x64"
+) else if /I "%ARG%"=="x86" (
+  set "BUILD_ARCH=x86"
+) else (
+  if defined FORWARD_ARGS (
+    set "FORWARD_ARGS=!FORWARD_ARGS! \"%ARG%\""
   ) else (
-    echo Invalid Parameter: !ARG1!
-    echo Valid Parameters: Debug, Release, x64, x86
-    echo Defaulting to Debug and x64
+    set "FORWARD_ARGS=\"%ARG%\""
   )
 )
-
-if not "%~2"=="" (
-  set ARG2=%~2
-
-  if /I "!ARG2!"=="Release" (
-    set BUILD_TYPE=Release
-  ) else if /I "!ARG2!"=="Debug" (
-    set BUILD_TYPE=Debug
-  ) else if /I "!ARG2!"=="x64" (
-    set BUILD_ARCH=x64
-  ) else if /I "!ARG2!"=="x86" (
-    set BUILD_ARCH=x86
-  ) else (
-    echo Invalid Parameter: !ARG2!
-    echo Valid Parameters: Debug, Release, x64, x86
-    echo Defaulting to Debug and x64
-  )
-)
+shift
+goto parse_args
+:args_done
 
 echo Selected Build Type: %BUILD_TYPE%
 echo Selected Arhitecture: %BUILD_ARCH%
 
 if %BUILD_TYPE%==Release (
   if %BUILD_ARCH%==x64 (
-    start ./Build/x64/Release/Game.exe
+    start "" cmd /c ""./Build/x64/Release/Game.exe" %FORWARD_ARGS%"
   ) else (
-    start ./Build/x86/Release/Game.exe
+    start "" cmd /c ""./Build/x86/Release/Game.exe" %FORWARD_ARGS%"
   )
 ) else (
   if %BUILD_ARCH%==x64 (
-    start ./Build/x64/Debug/Game.exe
+    start "" cmd /c ""./Build/x64/Debug/Game.exe" %FORWARD_ARGS%"
   ) else (
-    start ./Build/x86/Debug/Game.exe
+    start "" cmd /c ""./Build/x86/Debug/Game.exe" %FORWARD_ARGS%"
   )
 )

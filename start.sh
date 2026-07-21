@@ -4,6 +4,7 @@ set -euo pipefail
 # Default values
 BUILD_TYPE=Debug
 BUILD_ARCH=x64
+FORWARD_ARGS=()
 
 usage() {
   cat <<EOF
@@ -33,8 +34,8 @@ if [ "$#" -gt 0 ]; then
         exit 0
         ;;
       *)
-        echo "Invalid Parameter: $arg"
-        usage
+        # Unrecognized parameter: forward to the executable
+        FORWARD_ARGS+=("$arg")
         ;;
     esac
   done
@@ -65,4 +66,6 @@ fi
 # Attach to the process and show logs in foreground (exec replaces shell)
 echo "Starting ${EXE} in foreground (logs will appear here)"
 echo ""
-exec "${EXE}"
+
+# Forward any unrecognized args to the executable
+exec "${EXE}" "${FORWARD_ARGS[@]}"
