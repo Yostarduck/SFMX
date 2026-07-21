@@ -2,6 +2,7 @@
 
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
+#include "utils/EventSystem.h"
 #include "utils/UUID.h"
 
 #include <sol/sol.hpp>
@@ -40,6 +41,25 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   void
   onUpdate(float deltaTime) override;
 
+  /** @brief Execute a function exported by the script, passing
+   *         the owning node in as `self`.
+   */
+  void
+  executeFunction(const String& fnName) const;
+
+  /** @brief Execute a function exported by the script, passing
+   *         the owning node in as `self`.
+   */
+  void
+  executeFunction(const String& fnName, const sol::variadic_args& args) const;
+
+  /** @brief Register an event handle to keep it alive until the component is destroyed. */
+  void
+  registerEvent(HEvent&& event);
+
+  /** @brief Unregister all events, causing them to be destroyed. */
+  FORCEINLINE void unregisterAllEvents() { m_events.clear(); }
+
   /** @brief Bind to a @ref LuaAsset, keeping it alive and recording its UUID; the
    *         script re-binds through the ScriptEngine when both are running. */
   void
@@ -67,6 +87,8 @@ class ScriptComponent : public ComponentT<ScriptComponent>
 
   NODISCARD FORCEINLINE bool
   isInitialized() const { return m_initialized; }
+  
+  Vector<HEvent> m_events;  // keep alive until the component is destroyed
 
  private:
   friend ScriptEngine;
