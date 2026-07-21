@@ -4,6 +4,7 @@
 #include "scene/ScriptComponent.h"
 
 #include "core/platform/Prerequisites.h"
+#include <SFML/System/Vector2.hpp>
 
 namespace sfmx
 {
@@ -24,14 +25,14 @@ registerUIButton(sol::state_view lua) {
     "setEnabled", &UIButton::setEnabled,
 
     "onSubmit", [](const UIButton& caller,
-                   ScriptComponent& target,
+                   SceneNode& node,
                    const String& fnName) {
-                    
-      Function<void()> cb = [&target, fnName]() {
-        target.executeFunction(fnName);
+      ScriptComponent* target = node.getComponent<ScriptComponent>();
+      Function<void(sf::Vector2f)> cb = [target, fnName](sf::Vector2f position) {
+        target->executeFunction(fnName);
       };
       
-      target.registerEvent(caller.onSubmit(std::move(cb)));
+      target->registerEvent(caller.onPointerClick(std::move(cb)));
     }
   );
 }
