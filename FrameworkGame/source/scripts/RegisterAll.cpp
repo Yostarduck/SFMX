@@ -35,6 +35,7 @@
 #include "scripts/RegisterScene.h"
 #include "scripts/RegisterSceneNode.h"
 
+#include "scripts/RegisterUIWidget.h"
 #include "scripts/RegisterUIButton.h"
 
 #include "scene/SceneNode.h"
@@ -46,6 +47,7 @@
 #include "scene/ParticleSystemComponent.h"
 #include "scene/ScriptComponent.h"
 
+#include "ui/UIWidget.h"
 #include "ui/UIButton.h"
 
 namespace sfmx
@@ -100,6 +102,7 @@ registerAll(sol::state_view lua) {
   registerSceneManager(lua);
 
   // UI.
+  registerUIWidget(lua);
   registerUIButton(lua);
 
   // Type-driven component access (node:addComponent(SpriteComponent), ...).

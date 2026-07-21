@@ -57,7 +57,9 @@ function Character.onStart(self)
     return
   end
   
-  uiButtonComponent:onSubmit(self, "customAction")
+  ownScript = self:getComponent(ScriptComponent)
+
+  uiButtonComponent:onPointerClick(ownScript, "customAction")
 
   print("Character script started.")
 end

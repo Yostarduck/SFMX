@@ -77,30 +77,7 @@ ScriptComponent::executeFunction(const String& fnName) const {
     return;
   }
 
-  sol::protected_function_result result = fn(getOwner());
-  if (!result.valid()) {
-    const sol::error err = result;
-  }
-}
-
-void
-ScriptComponent::executeFunction(const String& fnName,
-                                 const sol::variadic_args& args) const {
-  if (!m_initialized) {
-    return;
-  }
-
-  const auto it = m_exportedFunctions.find(UUID::createFromName(fnName));
-  if (it == m_exportedFunctions.end()) {
-    return;
-  }
-
-  const sol::protected_function& fn = it->second;
-  if (!fn.valid()) {
-    return;
-  }
-
-  sol::protected_function_result result = fn(getOwner(), args);
+  const sol::protected_function_result result = fn(getOwner());
   if (!result.valid()) {
     const sol::error err = result;
   }

@@ -20,20 +20,7 @@ registerUIButton(sol::state_view lua) {
     
     // Stamps the concrete type id onto the usertype so Lua can drive
     // node:addComponent(CameraComponent, ...) etc. (see registerComponentAccess).
-    "typeId", sol::var(componentTypeId<UIButton>()),
-
-    "setEnabled", &UIButton::setEnabled,
-
-    "onSubmit", [](const UIButton& caller,
-                   SceneNode& node,
-                   const String& fnName) {
-      ScriptComponent* target = node.getComponent<ScriptComponent>();
-      Function<void(sf::Vector2f)> cb = [target, fnName](sf::Vector2f position) {
-        target->executeFunction(fnName);
-      };
-      
-      target->registerEvent(caller.onPointerClick(std::move(cb)));
-    }
+    "typeId", sol::var(componentTypeId<UIButton>())
   );
 }
 
