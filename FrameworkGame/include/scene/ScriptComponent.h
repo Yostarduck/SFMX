@@ -96,6 +96,8 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   bool                    m_linked      = false;  // onAttached has run
   bool                    m_created     = false;  // onCreated already fired (one-shot)
   bool                    m_started     = false;  // onStart already fired (one-shot)
+
+  UnorderedMap<UUID, sol::protected_function> m_exportedFunctions;
 };
 
 }
