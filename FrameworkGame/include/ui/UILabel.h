@@ -17,6 +17,8 @@
 namespace sfmx
 {
 
+class FontAsset;
+
 /**
  * @brief A non-interactive text label for the UI canvas.
  *
@@ -62,8 +64,15 @@ class UILabel final : public UIWidgetT<UILabel, WidgetType::kLabel>, public Comp
     return m_text ? m_text->getString().toAnsiString() : String();
   }
 
-  void setFont(SPtr<sf::Font> font);
-  NODISCARD FORCEINLINE SPtr<sf::Font> getFont() const { return m_font; }
+  // void setFont(SPtr<sf::Font> font);
+
+  void setFontAsset(SPtr<FontAsset> asset);
+  void setFontAssetId(const UUID& id);
+
+  NODISCARD SPtr<FontAsset> getFontAsset() const;
+  NODISCARD const UUID& getFontAssetId() const;
+
+  // NODISCARD FORCEINLINE SPtr<sf::Font> getFont() const { return m_font; }
 
   FORCEINLINE void setCharacterSize(uint32 size) {
     if (m_text) { m_text->setCharacterSize(size); }
@@ -89,7 +98,9 @@ class UILabel final : public UIWidgetT<UILabel, WidgetType::kLabel>, public Comp
 
   mutable UniquePtr<sf::Text> m_text;
   // TODO: Create later a FontAsset class for fonts
-  SPtr<sf::Font> m_font;
+  // SPtr<sf::Font> m_font;
+  UUID m_fontAssetId = UUID::null();
+  SPtr<FontAsset> m_fontAsset;
 };
 
 } // namespace sfmx

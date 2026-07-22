@@ -40,6 +40,8 @@
 #include "assets/LuaCodec.h"
 #include "assets/SoundCodec.h"
 #include "assets/MusicCodec.h"
+#include "assets/FontCodec.h"
+#include "assets/FontAsset.h"
 
 #include "ImageWebP.h"   // format module: self-registers WebP decoder + import rule
 
@@ -155,6 +157,7 @@ int main(int argc, char** argv)
   AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
   AssetManager::instance().registerCodec(MakeShared<MusicCodec>());
+  AssetManager::instance().registerCodec(MakeShared<FontCodec>());
   // WebP support: the module registers an IDecoder<sf::Image> for kWebP (import-rule
   // half is a no-op here — the AssetImporterRegistry isn't started in the runtime path).
   imagewebp::registerModule();
@@ -327,18 +330,45 @@ int main(int argc, char** argv)
   });
 
   // ── UILabel demo ──────────────────────────────────────────────────────
-  auto font = MakeShared<sf::Font>();
+  // auto font = MakeShared<sf::Font>();
   // Try common font paths across Linux distros.
-  const char* fontPaths[] = {
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/TTF/Hack-Regular.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    "/usr/share/fonts/TTF/MesloLGS-NF-Regular.ttf",
+  SPtr<FontAsset> fontAsset;
+#ifdef _WIN32
+  constexpr const char* fontPaths[] =
+  {
+    "ARIAL.TTF",
+    "C:\\Windows\\Fonts\\segoeui.ttf",
+    "C:\\Windows\\Fonts\\arial.ttf",
+    "C:\\Windows\\Fonts\\tahoma.ttf",
+    "C:\\Windows\\Fonts\\calibri.ttf"
   };
+#elif defined(__APPLE__)
+  constexpr const char* fontPaths[] =
+  {
+    "ARIAL.TTF",
+    "/System/Library/Fonts/SFNS.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/Library/Fonts/Arial.ttf"
+  };
+#else // Linux
+  constexpr const char* fontPaths[] =
+  {
+    "ARIAL.TTF",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"
+  };
+#endif
   bool fontLoaded = false;
+  
   for (const char* fp : fontPaths) {
-    if (font->openFromFile(fp)) {
+    fontAsset = AssetManager::instance().load<FontAsset>(
+      sfmx::UUID::createFromName(String(fp)));
+    if (fontAsset && fontAsset->isLoaded()) {
       fontLoaded = true;
       break;
     }
@@ -348,7 +378,7 @@ int main(int argc, char** argv)
     auto* lblNode = canvasNode->createChild("TitleLabel");
     auto* label = lblNode->addComponent<UILabel>(sf::Vector2f{400.f, 40.f});
     label->setPosition({windowWidth * 0.5f - 200.f, 20.f});
-    label->setFont(font);
+    label->setFontAsset(fontAsset);
     label->setText("SFMX Engine - UI Widget Demo");
     label->setCharacterSize(22);
     label->setTextColor(sf::Color::White);
@@ -424,7 +454,7 @@ int main(int argc, char** argv)
       auto* lblNode = canvasNode->createChild(String(name) + "Lbl");
       auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{180.f, 22.f});
       lbl->setPosition({28.f, 0.f});
-      lbl->setFont(font);
+      lbl->setFontAsset(fontAsset);
       lbl->setText(name);
       lbl->setCharacterSize(14);
       lbl->setTextColor(sf::Color::White);
@@ -475,7 +505,7 @@ int main(int argc, char** argv)
     auto* tbxNode = canvasNode->createChild("ScrollTbx");
     UITextBox* scrollTbx = tbxNode->addComponent<UITextBox>(sf::Vector2f{224.f, 28.f});
     scrollTbx->setPosition({0.f, 0.f});
-    scrollTbx->setFont(font);
+    scrollTbx->setFontAsset(fontAsset);
     scrollTbx->setCharacterSize(14);
     scrollTbx->setPlaceholder("Enter text...");
     list->addChild(scrollTbx);
@@ -509,7 +539,7 @@ int main(int argc, char** argv)
     auto* radioTitle = canvasNode->createChild("RadioGroupTitle");
     auto* radioTitleLbl = radioTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
     radioTitleLbl->setPosition({windowWidth * 0.5f + 50.f, 380.f});
-    radioTitleLbl->setFont(font);
+    radioTitleLbl->setFontAsset(fontAsset);
     radioTitleLbl->setText("Render backend:");
     radioTitleLbl->setCharacterSize(14);
     radioTitleLbl->setTextColor(sf::Color::White);
@@ -529,7 +559,7 @@ int main(int argc, char** argv)
       auto* lblNode = canvasNode->createChild(String(opt) + "RbLbl");
       auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{80.f, 22.f});
       lbl->setPosition({rx + 28.f, ry + 1.f});
-      lbl->setFont(font);
+      lbl->setFontAsset(fontAsset);
       lbl->setText(opt);
       lbl->setCharacterSize(14);
       lbl->setTextColor(sf::Color::White);
@@ -564,7 +594,7 @@ int main(int argc, char** argv)
       auto* ln = canvasNode->createChild(String("HBoxLbl_") + text);
       auto* lbl = ln->addComponent<UILabel>(sf::Vector2f{60.f, 24.f});
       lbl->setPosition({64.f, 0.f});
-      lbl->setFont(font);
+      lbl->setFontAsset(fontAsset);
       lbl->setText(text);
       lbl->setCharacterSize(13);
       lbl->setTextColor(sf::Color::White);
@@ -592,7 +622,7 @@ int main(int argc, char** argv)
     auto* titleN = canvasNode->createChild("VBoxTitle");
     auto* titleLbl = titleN->addComponent<UILabel>(sf::Vector2f{144.f, 20.f});
     titleLbl->setPosition({0.f, 0.f});
-    titleLbl->setFont(font);
+    titleLbl->setFontAsset(fontAsset);
     titleLbl->setText("Quick Actions");
     titleLbl->setCharacterSize(14);
     titleLbl->setTextColor(sf::Color(200, 200, 255));
@@ -632,7 +662,7 @@ int main(int argc, char** argv)
     UITextBox* textBox = textBoxNode->addComponent<UITextBox>(sf::Vector2f{300.f, 40.f});
     textBox->setPosition({windowWidth * 0.5f - 150.f, windowHeight * 0.75f});
     textBox->syncColliderToRect();
-    textBox->setFont(font);
+    textBox->setFontAsset(fontAsset);
     textBox->setCharacterSize(20);
     textBox->setPlaceholder("Type here...");
     uiCanvas.addWidget(textBox);

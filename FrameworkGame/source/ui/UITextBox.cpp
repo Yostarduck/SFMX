@@ -6,6 +6,10 @@
 
 #include <algorithm>
 
+#include "assets/AssetManager.h"
+#include "assets/FontAsset.h"
+
+
 namespace sfmx
 {
 
@@ -27,15 +31,55 @@ UUID UITextBox::getTypeId() const {
   return TypeTraits<UITextBox>::getTypeId();
 }
 
-void UITextBox::setFont(SPtr<sf::Font> font) {
-  m_font = font;
-  if (m_font) {
-    m_text = MakeUnique<sf::Text>(*m_font);
+// void UITextBox::setFont(SPtr<sf::Font> font) {
+//   m_font = font;
+//   if (m_font) {
+//     m_text = MakeUnique<sf::Text>(*m_font);
+//     m_text->setCharacterSize(m_charSize);
+//     syncText();
+//   } else {
+//     m_text.reset();
+//   }
+// }
+
+void UITextBox::setFontAsset(SPtr<FontAsset> asset) {
+  if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
+    SPtr<FontAsset> loaded =
+        AssetManager::instance().load<FontAsset>(asset->metadata().uuid);
+    if (nullptr != loaded) {
+      asset = loaded;
+    }
+  }
+
+  m_fontAsset = asset;
+  m_fontAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  if (nullptr != asset && asset->isLoaded()) {
+    m_text = MakeUnique<sf::Text>(asset->font());
     m_text->setCharacterSize(m_charSize);
     syncText();
-  } else {
+  } 
+  else {
     m_text.reset();
   }
+}
+
+void UITextBox::setFontAssetId(const UUID& id) {
+  if (id != UUID::null() && AssetManager::isStarted()) {
+    SPtr<FontAsset> asset = AssetManager::instance().load<FontAsset>(id);
+    if (nullptr != asset) {
+      setFontAsset(asset);
+      return;
+    }
+  }
+  m_fontAssetId = id;
+}
+
+const UUID& UITextBox::getFontAssetId() const {
+  return m_fontAssetId;
+}
+
+SPtr<FontAsset> UITextBox::getFontAsset() const {
+  return m_fontAsset;
 }
 
 void UITextBox::syncText() {
@@ -240,8 +284,9 @@ void UITextBox::onDeserialize(DataStream& stream) {
   stream >> m_focusedBorderColor.r >> m_focusedBorderColor.g
          >> m_focusedBorderColor.b >> m_focusedBorderColor.a;
 
-  if (m_font && !m_text) {
-    m_text = MakeUnique<sf::Text>(*m_font);
+  if (m_fontAsset && !m_text) {
+    // m_text = MakeUnique<sf::Text>(*m_font);
+    m_text = MakeUnique<sf::Text>(m_fontAsset->font());
     m_text->setCharacterSize(m_charSize);
   }
   if (m_text) {

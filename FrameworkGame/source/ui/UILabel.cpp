@@ -1,6 +1,9 @@
 #include "ui/UILabel.h"
 #include "core/DataStream.h"
 
+#include "assets/AssetManager.h"
+#include "assets/FontAsset.h"
+
 namespace sfmx
 {
 
@@ -27,13 +30,51 @@ UUID UILabel::getTypeId() const {
   return TypeTraits<UILabel>::getTypeId();
 }
 
-void UILabel::setFont(SPtr<sf::Font> font) {
-  m_font = font;
-  if (m_font) {
-    m_text = MakeUnique<sf::Text>(*m_font);
-  } else {
+// void UILabel::setFont(SPtr<sf::Font> font) {
+//   m_font = font;
+//   if (m_font) {
+//     m_text = MakeUnique<sf::Text>(*m_font);
+//   } else {
+//     m_text.reset();
+//   }
+// }
+
+void UILabel::setFontAsset(SPtr<FontAsset> asset) {
+  if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
+    SPtr<FontAsset> loaded =
+        AssetManager::instance().load<FontAsset>(asset->metadata().uuid);
+    if (nullptr != loaded) {
+      asset = loaded;
+    }
+  }
+
+  m_fontAsset = asset;
+  m_fontAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  if (nullptr != asset && asset->isLoaded()) {
+    m_text = MakeUnique<sf::Text>(asset->font());
+  } 
+  else {
     m_text.reset();
   }
+}
+
+void UILabel::setFontAssetId(const UUID& id) {
+  if (id != UUID::null() && AssetManager::isStarted()) {
+    SPtr<FontAsset> asset = AssetManager::instance().load<FontAsset>(id);
+    if (nullptr != asset) {
+      setFontAsset(asset);
+      return;
+    }
+  }
+  m_fontAssetId = id;
+}
+
+const UUID& UILabel::getFontAssetId() const {
+  return m_fontAssetId;
+}
+
+SPtr<FontAsset> UILabel::getFontAsset() const {
+  return m_fontAsset;
 }
 
 void UILabel::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
@@ -62,7 +103,7 @@ void UILabel::onDeserialize(DataStream& stream) {
     return;
   }
 
-  if (!m_font) {
+  if (!m_fontAsset) {
     // Can't set text without a font; skip but still consume bytes.
     String text = stream.readString();
     uint32 charSize = 20;
@@ -73,7 +114,7 @@ void UILabel::onDeserialize(DataStream& stream) {
   }
 
   if (!m_text) {
-    m_text = MakeUnique<sf::Text>(*m_font);
+    m_text = MakeUnique<sf::Text>(m_fontAsset->font());
   }
 
   m_text->setString(stream.readString());
