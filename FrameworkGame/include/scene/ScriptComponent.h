@@ -44,12 +44,6 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   /** @brief Execute a function exported by the script, passing
    *         the owning node in as `self`.
    */
-  void
-  executeFunction(const String& fnName) const;
-
-  /** @brief Execute a function exported by the script, passing
-   *         the owning node in as `self`.
-   */
   template<typename... Args>
   void
   executeFunction(const String& fnName, Args&&... args) const {
@@ -108,8 +102,6 @@ class ScriptComponent : public ComponentT<ScriptComponent>
 
   NODISCARD FORCEINLINE bool
   isInitialized() const { return m_initialized; }
-  
-  Vector<HEvent> m_events;  // keep alive until the component is destroyed
 
  private:
   friend ScriptEngine;
@@ -141,6 +133,8 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   bool                    m_started     = false;  // onStart already fired (one-shot)
 
   UnorderedMap<UUID, sol::protected_function> m_exportedFunctions;
+
+  Vector<HEvent> m_events;
 };
 
 }
