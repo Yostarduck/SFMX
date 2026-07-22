@@ -16,6 +16,7 @@
 
 namespace sfmx
 {
+class FontAsset;
 
 class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
                         public ComponentT<UITextBox>
@@ -65,10 +66,16 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
     return m_textContent;
   }
 
-  /** @brief  Assign a shared font (creates the sf::Text internally). */
-  void setFont(SPtr<sf::Font> font);
+  
+  /** @brief  Assign a shared font asset (creates the sf::Text internally). */
+  void setFontAsset(SPtr<FontAsset> asset);
+  /** @brief  Assigns the id for this font*/
+  void setFontAssetId(const UUID& id);
+  
   /** @brief  Currently assigned font. */
-  NODISCARD FORCEINLINE SPtr<sf::Font> getFont() const { return m_font; }
+  NODISCARD SPtr<FontAsset> getFontAsset() const;
+  /** @brief currently assigned font id */
+  NODISCARD const UUID& getFontAssetId() const;
 
   /** @brief  Set the font size in pixels. */
   FORCEINLINE void setCharacterSize(uint32 size) {
@@ -141,7 +148,10 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
   mutable sf::RectangleShape m_border;
   mutable sf::RectangleShape m_cursorShape;
   // TODO: Change this to FontAsset when it is implemented
-  SPtr<sf::Font> m_font;
+  // SPtr<sf::Font> m_font;
+  
+  UUID m_fontAssetId = UUID::null();
+  SPtr<FontAsset> m_fontAsset;
   uint32 m_cursorPos = 0;
   uint32 m_charSize = 20;
 
