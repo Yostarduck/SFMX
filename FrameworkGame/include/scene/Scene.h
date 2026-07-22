@@ -54,6 +54,9 @@ class Scene
 
   /** @brief Resolve a handle to a live node, or nullptr if dead/unknown. */
   NODISCARD SceneNode* findNode(NodeId id) const;
+  
+  /** @brief Resolve a name to a live node, or nullptr if dead/unknown. */
+  NODISCARD SceneNode* findNode(StringView name) const;
 
   /** @brief Every node whose name equals @p name (names are not unique). */
   NODISCARD Vector<SceneNode*> findNodesByName(StringView name) const;

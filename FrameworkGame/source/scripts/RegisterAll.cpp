@@ -35,6 +35,8 @@
 #include "scripts/RegisterScene.h"
 #include "scripts/RegisterSceneNode.h"
 
+#include "scripts/RegisterUIWidget.h"
+
 #include "scene/SceneNode.h"
 #include "scene/SourceComponent.h"
 #include "scene/ListenerComponent.h"
@@ -95,6 +97,9 @@ registerAll(sol::state_view lua) {
   registerScene(lua);
   registerSceneManager(lua);
 
+  // UI.
+  registerUIWidget(lua);
+
   // Type-driven component access (node:addComponent(SpriteComponent), ...).
   // Register one entry per pool-allocated component type; the inline Transform
   // is reached through node:transform() and is intentionally not listed here.
@@ -120,7 +125,7 @@ registerAll(sol::state_view lua) {
           node.addComponent<CameraComponent>(args[0].as<sf::FloatRect>()));
       }
       return sol::make_object(lua, node.addComponent<CameraComponent>());
-    });
+  });
 
   registerComponentType<SpriteComponent>();
   registerComponentType<AnimatorComponent>();
@@ -161,7 +166,7 @@ registerAll(sol::state_view lua) {
             args[0].as<UUID>()));
       }
       return sol::make_object(lua, sol::lua_nil);
-    });
+  });
 }
 
 }  // namespace script

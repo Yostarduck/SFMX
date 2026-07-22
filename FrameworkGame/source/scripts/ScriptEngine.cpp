@@ -3,6 +3,7 @@
 #include "scripts/RegisterAll.h"
 #include "scene/ScriptComponent.h"
 #include "assets/LuaAsset.h"   // the script text comes from a LuaAsset now
+#include <string_view>
 
 namespace sfmx
 {
@@ -68,6 +69,28 @@ ScriptEngine::loadScript(ScriptComponent* scriptComponent) {
   scriptComponent->m_onDestroyed = hooks["onDestroyed"];
 
   scriptComponent->m_initialized = true;
+  
+  for (auto& kv : hooks) {
+    sol::object key = kv.first;
+    if (sol::type::string != key.get_type()) {
+      continue;
+    }
+
+    String keyStr = key.as<String>();
+
+    if ("onCreated"   == keyStr ||
+        "onStart"     == keyStr ||
+        "onUpdate"    == keyStr ||
+        "onDestroyed" == keyStr) {
+      continue;
+    }
+
+    sol::object value = kv.second;
+    if (value.get_type() == sol::type::function) {
+      scriptComponent->m_exportedFunctions.emplace(UUID::createFromName(keyStr),
+                                                   value.as<sol::protected_function>());
+    }
+  }
 }
 
 const sol::protected_function*

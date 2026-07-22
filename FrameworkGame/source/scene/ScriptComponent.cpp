@@ -62,6 +62,11 @@ ScriptComponent::onUpdate(float deltaTime) {
 }
 
 void
+ScriptComponent::registerEvent(HEvent&& event) {
+  m_events.push_back(std::move(event));
+}
+
+void
 ScriptComponent::triggerOnCreated() {
   if (m_initialized && m_linked && !m_created) {
     m_created = true;

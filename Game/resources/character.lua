@@ -54,7 +54,7 @@ function Character.onUpdate(self, deltaTime)
   local dKey = Keyboard:isPressed(keyFromString("D"))
   local lShiftKey = Keyboard:isPressed(keyFromString("LShift"))
 
-  local shoot = Mouse:isPressed(MouseButton.Left)
+  local shoot = Mouse:wasPressedThisFrame(MouseButton.Left)
 
   local movement = Vector2f((dKey and 1 or 0) - (aKey and 1 or 0),
                             (sKey and 1 or 0) - (wKey and 1 or 0))
@@ -76,10 +76,7 @@ function Character.onUpdate(self, deltaTime)
     local direction = Vector2f(target.x, target.y) - currentPosition
     local angle = direction:normalized():angle()
 
-    for i = 0, 50 do
-      local newAngle = angle + Angle.degrees(((135.0 / 51.0) * i) - 67.5)
-      fireBullet(newAngle)
-    end
+    fireBullet(angle)
   end
 
 end

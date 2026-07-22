@@ -29,7 +29,10 @@ registerScene(sol::state_view lua) {
       [](Scene& s, NodeId id) { s.destroyNode(id); }
     ),
 
-    "findNode", &Scene::findNode,
+    "findNode", sol::overload(
+      [](Scene& s, StringView name) { return s.findNode(name); },
+      [](Scene& s, NodeId id) { return s.findNode(id); }
+    ),
 
     "getNodeCount", &Scene::getNodeCount,
 

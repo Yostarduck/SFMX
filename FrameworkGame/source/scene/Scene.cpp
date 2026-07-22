@@ -112,6 +112,16 @@ Scene::findNode(NodeId id) const {
   return (it != m_registry.end()) ? it->second : nullptr;
 }
 
+SceneNode*
+Scene::findNode(StringView name) const {
+  for (const auto& entry : m_registry) {
+    if (name == entry.second->getName()) {
+      return entry.second;
+    }
+  }
+  return nullptr;
+}
+
 Vector<SceneNode*>
 Scene::findNodesByName(StringView name) const {
   Vector<SceneNode*> result;

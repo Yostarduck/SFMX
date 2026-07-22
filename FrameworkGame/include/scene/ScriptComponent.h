@@ -2,6 +2,7 @@
 
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
+#include "utils/EventSystem.h"
 #include "utils/UUID.h"
 
 #include <sol/sol.hpp>
@@ -39,6 +40,20 @@ class ScriptComponent : public ComponentT<ScriptComponent>
    */
   void
   onUpdate(float deltaTime) override;
+
+  /** @brief Execute a function exported by the script, passing
+   *         the owning node in as `self`.
+   */
+  template<typename... Args>
+  void
+  executeFunction(const String& fnName, Args&&... args) const;
+
+  /** @brief Register an event handle to keep it alive until the component is destroyed. */
+  void
+  registerEvent(HEvent&& event);
+
+  /** @brief Unregister all events, causing them to be destroyed. */
+  FORCEINLINE void unregisterAllEvents() { m_events.clear(); }
 
   /** @brief Bind to a @ref LuaAsset, keeping it alive and recording its UUID; the
    *         script re-binds through the ScriptEngine when both are running. */
@@ -96,7 +111,34 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   bool                    m_linked      = false;  // onAttached has run
   bool                    m_created     = false;  // onCreated already fired (one-shot)
   bool                    m_started     = false;  // onStart already fired (one-shot)
+
+  UnorderedMap<UUID, sol::protected_function> m_exportedFunctions;
+
+  Vector<HEvent> m_events;
 };
+
+template<typename... Args>
+void
+ScriptComponent::executeFunction(const String& fnName, Args&&... args) const {
+  if (!m_initialized) {
+    return;
+  }
+
+  const auto it = m_exportedFunctions.find(UUID::createFromName(fnName));
+  if (it == m_exportedFunctions.end()) {
+    return;
+  }
+
+  const sol::protected_function& fn = it->second;
+  if (!fn.valid()) {
+    return;
+  }
+
+  const sol::protected_function_result result = fn(getOwner(), std::forward<Args>(args)...);
+  if (!result.valid()) {
+    const sol::error err = result;
+  }
+}
 
 }
 
