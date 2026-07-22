@@ -329,13 +329,33 @@ int main(int argc, char** argv)
   // ── UILabel demo ──────────────────────────────────────────────────────
   auto font = MakeShared<sf::Font>();
   // Try common font paths across Linux distros.
-  const char* fontPaths[] = {
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/TTF/Hack-Regular.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    "/usr/share/fonts/TTF/MesloLGS-NF-Regular.ttf",
+#ifdef _WIN32
+  constexpr const char* fontPaths[] =
+  {
+    "C:\\Windows\\Fonts\\segoeui.ttf",
+    "C:\\Windows\\Fonts\\arial.ttf",
+    "C:\\Windows\\Fonts\\tahoma.ttf",
+    "C:\\Windows\\Fonts\\calibri.ttf"
   };
+#elif defined(__APPLE__)
+  constexpr const char* fontPaths[] =
+  {
+    "/System/Library/Fonts/SFNS.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/Library/Fonts/Arial.ttf"
+  };
+#else // Linux
+  constexpr const char* fontPaths[] =
+  {
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"
+  };
+#endif
   bool fontLoaded = false;
   for (const char* fp : fontPaths) {
     if (font->openFromFile(fp)) {
