@@ -61,29 +61,6 @@ ScriptComponent::onUpdate(float deltaTime) {
   }
 }
 
-template<typename... Args>
-void
-ScriptComponent::executeFunction(const String& fnName, Args&&... args) const {
-  if (!m_initialized) {
-    return;
-  }
-
-  const auto it = m_exportedFunctions.find(UUID::createFromName(fnName));
-  if (it == m_exportedFunctions.end()) {
-    return;
-  }
-
-  const sol::protected_function& fn = it->second;
-  if (!fn.valid()) {
-    return;
-  }
-
-  const sol::protected_function_result result = fn(getOwner(), std::forward<Args>(args)...);
-  if (!result.valid()) {
-    const sol::error err = result;
-  }
-}
-
 void
 ScriptComponent::registerEvent(HEvent&& event) {
   m_events.push_back(std::move(event));
