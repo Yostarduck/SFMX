@@ -333,7 +333,7 @@ int main(int argc, char** argv)
   // auto font = MakeShared<sf::Font>();
   // Try common font paths across Linux distros.
   SPtr<FontAsset> fontAsset;
-#ifdef _WIN32
+#if SFMX_PLATFORM_WINDOWS
   constexpr const char* fontPaths[] =
   {
     "ARIAL.TTF",
@@ -342,7 +342,7 @@ int main(int argc, char** argv)
     "C:\\Windows\\Fonts\\tahoma.ttf",
     "C:\\Windows\\Fonts\\calibri.ttf"
   };
-#elif defined(__APPLE__)
+#elif SFMX_PLATFORM_MACOS
   constexpr const char* fontPaths[] =
   {
     "ARIAL.TTF",

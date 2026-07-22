@@ -66,15 +66,15 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
     return m_textContent;
   }
 
-  /** @brief  Assign a shared font (creates the sf::Text internally). */
-  // void setFont(SPtr<sf::Font> font);
-  /** @brief  Currently assigned font. */
-  // NODISCARD FORCEINLINE SPtr<sf::Font> getFont() const { return m_font; }
-
+  
+  /** @brief  Assign a shared font asset (creates the sf::Text internally). */
   void setFontAsset(SPtr<FontAsset> asset);
+  /** @brief  Assigns the id for this font*/
   void setFontAssetId(const UUID& id);
-
+  
+  /** @brief  Currently assigned font. */
   NODISCARD SPtr<FontAsset> getFontAsset() const;
+  /** @brief currently assigned font id */
   NODISCARD const UUID& getFontAssetId() const;
 
   /** @brief  Set the font size in pixels. */

@@ -1,3 +1,11 @@
+/************************************************************************/
+/**
+ * @file UILabel.cpp
+ * @author Swampertor
+ * @date 2026/06/10
+ * @brief  Non-interactive text label implementation.
+ */
+/************************************************************************/
 #include "ui/UILabel.h"
 #include "core/DataStream.h"
 
@@ -8,9 +16,10 @@ namespace sfmx
 {
 
 namespace {
-/** @brief UILabel blob layout version; bump on format changes. */
-constexpr uint32 kUILabelVersion = 1;
-} // namespace
+constexpr uint32 kUILabelVersion = 1; ///< Blob version; bump on format changes.
+} // anonymous namespace
+
+// -- Constructors ------------------------------------------------------------
 
 UILabel::UILabel(sf::Vector2f size)
   : UIWidgetT<UILabel, WidgetType::kLabel>(),
@@ -26,18 +35,13 @@ UILabel::UILabel(SceneNode* node, sf::Vector2f size)
 
 UILabel::~UILabel() = default;
 
+// -- Type --------------------------------------------------------------------
+
 UUID UILabel::getTypeId() const {
   return TypeTraits<UILabel>::getTypeId();
 }
 
-// void UILabel::setFont(SPtr<sf::Font> font) {
-//   m_font = font;
-//   if (m_font) {
-//     m_text = MakeUnique<sf::Text>(*m_font);
-//   } else {
-//     m_text.reset();
-//   }
-// }
+// -- Font asset --------------------------------------------------------------
 
 void UILabel::setFontAsset(SPtr<FontAsset> asset) {
   if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
@@ -77,6 +81,8 @@ SPtr<FontAsset> UILabel::getFontAsset() const {
   return m_fontAsset;
 }
 
+// -- Drawing -----------------------------------------------------------------
+
 void UILabel::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
   if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible() || !m_text) {
@@ -86,6 +92,8 @@ void UILabel::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
   m_text->setPosition(getPosition());
   target.draw(*m_text, states);
 }
+
+// -- Serialization -----------------------------------------------------------
 
 void UILabel::onSerialize(DataStream& stream) const {
   stream << kUILabelVersion;
