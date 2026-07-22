@@ -61,8 +61,9 @@ ScriptComponent::onUpdate(float deltaTime) {
   }
 }
 
+template<typename... Args>
 void
-ScriptComponent::executeFunction(const String& fnName) const {
+ScriptComponent::executeFunction(const String& fnName, Args&&... args) const {
   if (!m_initialized) {
     return;
   }
@@ -77,7 +78,7 @@ ScriptComponent::executeFunction(const String& fnName) const {
     return;
   }
 
-  const sol::protected_function_result result = fn(getOwner());
+  const sol::protected_function_result result = fn(getOwner(), std::forward<Args>(args)...);
   if (!result.valid()) {
     const sol::error err = result;
   }

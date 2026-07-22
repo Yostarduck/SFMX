@@ -46,27 +46,7 @@ class ScriptComponent : public ComponentT<ScriptComponent>
    */
   template<typename... Args>
   void
-  executeFunction(const String& fnName, Args&&... args) const {
-    if (!m_initialized) {
-      return;
-    }
-
-    const auto it = m_exportedFunctions.find(UUID::createFromName(fnName));
-    if (it == m_exportedFunctions.end()) {
-      return;
-    }
-
-    const sol::protected_function& fn = it->second;
-    if (!fn.valid()) {
-      return;
-    }
-
-    const sol::protected_function_result result =
-      fn(getOwner(), std::forward<Args>(args)...);
-    if (!result.valid()) {
-      const sol::error err = result;
-    }
-  }
+  executeFunction(const String& fnName, Args&&... args) const;
 
   /** @brief Register an event handle to keep it alive until the component is destroyed. */
   void
