@@ -40,7 +40,36 @@ function Character.onCreated(self)
   cameraComponent = scene:getCamera()
 end
 
-function Character.onUpdate(self, deltaTime)  
+function Character.onStart(self)
+  print("Character script started")
+
+  if scene == nil then
+    scene = SceneManager:getActiveScene()
+  end
+
+  buttonNode = scene:findNode("StartBtn")
+  if buttonNode == nil then
+    print("StartBtn node not found in scene")
+    return
+  end
+  
+  uiButtonComponent = buttonNode:getComponent(UIButton)
+  if uiButtonComponent == nil then
+    print("UIButton component not found on StartBtn node")
+    return
+  end
+
+  ownScriptComponent = self:getComponent(ScriptComponent)
+  if ownScriptComponent == nil then
+    print("ScriptComponent not found on character node")
+    return
+  end
+
+  uiButtonComponent:onPointerClick(ownScriptComponent, "customAction")
+  print("Registered customAction callback for StartBtn")
+end
+
+function Character.onUpdate(self, deltaTime)
   if scene == nil then
     scene = SceneManager:getActiveScene()
   end
@@ -79,6 +108,10 @@ function Character.onUpdate(self, deltaTime)
     fireBullet(angle)
   end
 
+end
+
+function Character.customAction(self)
+  print("Custom action triggered!")
 end
 
 return Character
