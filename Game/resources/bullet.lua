@@ -1,8 +1,6 @@
 -- Simple Lua script to control a bullet
 -- File: bullet.lua
 
-local speed = 100
-
 local lifetime = 0.0
 local maxLifetime = 10.0
 
@@ -26,6 +24,11 @@ local vy = 0.0
 -- Two nodes can share this same file but each receives its own owner.
 local Bullet = {}
 
+-- Published as a table field (not a local) so other scripts can override it via
+-- scriptComponent:instance().speed before the bullet starts. onStart reads it
+-- once to fill in the constant velocity below.
+Bullet.speed = 100
+
 function Bullet.onCreated(self)
   -- The node is fully linked here, so owner queries like getName() are valid.
 end
@@ -36,8 +39,8 @@ function Bullet.onStart(self)
   -- Resolve the constant velocity from the (fixed) spawn rotation just once.
   local rotation = self:transform():getRotation()
   local direction = Vector2f(1, 0):rotatedBy(rotation)
-  vx = direction.x * speed
-  vy = direction.y * speed
+  vx = direction.x * Bullet.speed
+  vy = direction.y * Bullet.speed
 end
 
 function Bullet.onUpdate(self, deltaTime)

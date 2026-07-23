@@ -33,6 +33,14 @@ function fireBullet(angle)
 
   local scriptID = UUID.createFromName("bullet.lua")
   local bulletScript = bullet:addComponent(ScriptComponent, scriptID)
+
+  -- Cross-script write: reach into the bullet's own script table and override
+  -- its published speed field. The bullet reads Bullet.speed in onStart (which
+  -- runs on its first update, after this), so the new value takes effect.
+  local bulletState = bulletScript:instance()
+  if bulletState ~= nil then
+    bulletState.speed = 800.0
+  end
 end
 
 function Character.onCreated(self)

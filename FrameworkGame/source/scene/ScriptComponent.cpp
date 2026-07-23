@@ -107,6 +107,9 @@ ScriptComponent::setScriptAsset(SPtr<LuaAsset> asset) {
   // (logged, never crashes) instead of silently running stale behaviour. A later
   // successful reload flips it back on.
   m_initialized   = false;
+  // Drop the old instance table too: an invalid table reads back as nil from
+  // scriptComponent:instance(), so a disabled script exposes no stale fields.
+  m_instance      = sol::table();
 
   // Compile + bind the Lua function from the asset's text, when both are running.
   if (nullptr != asset && asset->isLoaded() && ScriptEngine::isStarted()) {
