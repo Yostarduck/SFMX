@@ -6,6 +6,7 @@ local speed = 500.0
 local scene
 local cameraComponent
 local myTransform
+local labelInfoComponent
 local currentPosition = Vector2f(0, 0)
 
 -- Script driven by a ScriptComponent.
@@ -67,6 +68,18 @@ function Character.onStart(self)
 
   uiButtonComponent:onPointerClick(ownScriptComponent, "customAction")
   print("Registered customAction callback for StartBtn")
+
+  labelNode = scene:findNode("InfoLabel")
+  if labelNode == nil then
+    print("InfoLabel node not found in scene")
+    return
+  end
+
+  labelInfoComponent = labelNode:getComponent(UILabel)
+  if labelInfoComponent == nil then
+    print("UILabel component not found on InfoLabel node")
+    return
+  end
 end
 
 function Character.onUpdate(self, deltaTime)
@@ -106,6 +119,11 @@ function Character.onUpdate(self, deltaTime)
     local angle = direction:normalized():angle()
 
     fireBullet(angle)
+  end
+
+  if labelInfoComponent ~= nil then
+    local infoText = string.format("Position: (%.2f, %.2f)", currentPosition.x, currentPosition.y)
+    labelInfoComponent:setText(infoText)
   end
 
 end

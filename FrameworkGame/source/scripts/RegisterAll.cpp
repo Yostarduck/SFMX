@@ -37,6 +37,14 @@
 
 #include "scripts/RegisterUIWidget.h"
 #include "scripts/RegisterUIButton.h"
+#include "scripts/RegisterUICheckbox.h"
+#include "scripts/RegisterUIHorizontalBox.h"
+#include "scripts/RegisterUIImage.h"
+#include "scripts/RegisterUILabel.h"
+#include "scripts/RegisterUIScrollView.h"
+#include "scripts/RegisterUISlider.h"
+#include "scripts/RegisterUITextBox.h"
+#include "scripts/RegisterUIVerticalBox.h"
 
 #include "scene/SceneNode.h"
 #include "scene/SourceComponent.h"
@@ -48,6 +56,14 @@
 #include "scene/ScriptComponent.h"
 
 #include "ui/UIButton.h"
+#include "ui/UICheckbox.h"
+#include "ui/UIHorizontalBox.h"
+#include "ui/UIImage.h"
+#include "ui/UILabel.h"
+#include "ui/UIScrollView.h"
+#include "ui/UISlider.h"
+#include "ui/UITextBox.h"
+#include "ui/UIVerticalBox.h"
 
 namespace sfmx
 {
@@ -102,7 +118,16 @@ registerAll(sol::state_view lua) {
 
   // UI.
   registerUIWidget(lua);
+
   registerUIButton(lua);
+  registerUICheckbox(lua);
+  registerUIHorizontalBox(lua);
+  registerUIImage(lua);
+  registerUILabel(lua);
+  registerUIScrollView(lua);
+  registerUISlider(lua);
+  registerUITextBox(lua);
+  registerUIVerticalBox(lua);
 
   // Type-driven component access (node:addComponent(SpriteComponent), ...).
   // Register one entry per pool-allocated component type; the inline Transform
@@ -173,6 +198,14 @@ registerAll(sol::state_view lua) {
   });
   
   registerComponentType<UIButton>();
+  registerComponentType<UICheckbox>();
+  registerComponentType<UIHorizontalBox>();
+  registerComponentType<UIImage>();
+  registerComponentType<UILabel>();
+  registerComponentType<UIScrollView>();
+  registerComponentType<UISlider>();
+  registerComponentType<UITextBox>();
+  registerComponentType<UIVerticalBox>();
 }
 
 }  // namespace script

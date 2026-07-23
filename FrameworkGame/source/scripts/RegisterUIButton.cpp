@@ -3,9 +3,8 @@
 #include "ui/UIButton.h"
 
 #include "core/platform/Prerequisites.h"
+#include "scene/Component.h"
 #include "ui/UIWidget.h"
-
-#include <utility>
 
 namespace sfmx
 {
@@ -19,7 +18,24 @@ registerUIButton(sol::state_view lua) {
     sol::no_constructor,
     sol::base_classes, sol::bases<UIWidget, Component>(),
 
-    "typeId", sol::var(componentTypeId<UIButton>())
+    "typeId", sol::var(componentTypeId<UIButton>()),
+
+    "setNormalColor", &UIButton::setNormalColor,
+    "setHoveredColor", &UIButton::setHoveredColor,
+    "setPressedColor", &UIButton::setPressedColor,
+    "setDisabledColor", &UIButton::setDisabledColor,
+    "setFocusedColor", &UIButton::setFocusedColor,
+
+    "getNormalColor", &UIButton::getNormalColor,
+    "getHoveredColor", &UIButton::getHoveredColor,
+    "getPressedColor", &UIButton::getPressedColor,
+    "getFocusedColor", &UIButton::getFocusedColor,
+    "getDisabledColor", &UIButton::getDisabledColor,
+
+    "setSize", &UIButton::setSize,
+    "setPosition", &UIButton::setPosition,
+    "setRect", &UIButton::setRect,
+    "setEnabled", &UIButton::setEnabled
   );
 }
 
