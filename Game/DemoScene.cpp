@@ -211,6 +211,11 @@ poolsInfo() {
 void
 buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   const sf::Vector2f center = {windowWidth * 0.5f, windowHeight * 0.5f};
+  
+  SceneNode* cameraNode = scene.createNode("Camera");
+  auto* camera = cameraNode->addComponent<CameraComponent>();
+  camera->setSize({windowWidth, windowHeight});
+  camera->setFollowNode(true);
 
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(center);
@@ -254,11 +259,6 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
 
   SceneNode* sun2 = scene.createNode("Sun2");
   sun2->transform().setPosition(center);
-
-  SceneNode* cameraNode = scene.createNode("Camera", sun);
-  auto* camera = cameraNode->addComponent<CameraComponent>();
-  camera->setSize({windowWidth * 2.f, windowHeight * 2.f});
-  camera->setFollowNode(true);
 
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
@@ -511,14 +511,6 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   else {
     std::cerr << "[SpriteAtlas] Failed to load playerwalking.png\n";
   }
-
-  // -- Spaceship: Lua script --
-  SceneNode* spaceship = scene.createNode("Spaceship");
-  spaceship->transform().setPosition({center.x, 0.f});
-  spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
-  // The script is a cooked LuaAsset, referenced by UUID (the cooker's id for the
-  // source path relative to resources/).
-  spaceship->addComponent<ScriptComponent>(sfmx::UUID::createFromName("character.lua"));
 }
 
 DemoRuntime

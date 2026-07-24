@@ -4,6 +4,7 @@
 
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Angle.hpp>
+#include <SFML/System/Vector2.hpp>
 
 #include "core/DataStream.h"
 
@@ -38,7 +39,7 @@ CameraComponent::onUpdate(float deltaTime) {
     return;
   const sf::Vector2f worldPos =
       m_owner->transform().getWorldTransform().transformPoint({0,0});
-  m_view.setCenter({worldPos.x, worldPos.y});
+  setCenter({worldPos.x, worldPos.y});
 }
 
 void

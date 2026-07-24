@@ -145,7 +145,7 @@ ScriptComponent::executeFunction(const String& fnName, Args&&... args) const {
     return;
   }
 
-  const sol::protected_function_result result = fn(getOwner(), std::forward<Args>(args)...);
+  const sol::protected_function_result result = fn(m_instance, std::forward<Args>(args)...);
   if (!result.valid()) {
     const sol::error err = result;
   }
