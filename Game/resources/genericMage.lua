@@ -27,7 +27,7 @@ function GenericMage.onStart(self)
   mySprite:setOrigin(spriteOrigin)
   mySprite:setScale(0.5)
 
-  self.cooldown = GenericMage.bulletCooldown
+  self.cooldown = self.bulletCooldown
 end
 
 function GenericMage.onUpdate(self, deltaTime)
@@ -36,7 +36,7 @@ function GenericMage.onUpdate(self, deltaTime)
   if self.cooldown < 0 then
     fireBullet(self)
 
-    self.cooldown = GenericMage.bulletCooldown
+    self.cooldown = self.bulletCooldown
   end
 end
 
