@@ -57,6 +57,14 @@ Scene::destroyNode(SceneNode* node) {
   if (node == m_root) {
     return;
   }
+  
+  if (m_updating) {
+    if (!node->m_pendingDestroy) {
+      node->m_pendingDestroy = true;
+      m_pendingDestroy.push_back(node->getId());
+    }
+    return;
+  }
 
   node->detachFromParent();
   destroyNodeRecursive(node);
@@ -104,6 +112,16 @@ Scene::findNode(NodeId id) const {
   return (it != m_registry.end()) ? it->second : nullptr;
 }
 
+SceneNode*
+Scene::findNode(StringView name) const {
+  for (const auto& entry : m_registry) {
+    if (name == entry.second->getName()) {
+      return entry.second;
+    }
+  }
+  return nullptr;
+}
+
 Vector<SceneNode*>
 Scene::findNodesByName(StringView name) const {
   Vector<SceneNode*> result;
@@ -145,11 +163,35 @@ Scene::unregisterNode(NodeId id) {
 
 void
 Scene::update(float deltaTime) {
+  m_updating = true;
   if (nullptr != m_root) {
     m_root->update(deltaTime);
   }
   if (PhysicsSystem::isStarted()) {
     PhysicsSystem::instance().step(deltaTime);
+  }
+  flushDestroyQueue();
+  m_updating = false;
+}
+
+void
+Scene::flushDestroyQueue() {
+  if (m_pendingDestroy.empty()) {
+    return;
+  }
+
+  // Swap the queue out so re-entrant destroyNode calls (from onDestroyed hooks
+  // fired during teardown) accumulate into a fresh queue for the next frame.
+  Vector<NodeId> pending;
+  pending.swap(m_pendingDestroy);
+
+  for (NodeId id : pending) {
+    SceneNode* node = findNode(id);
+    if (nullptr == node) {
+      continue;  // already freed as a descendant of another queued node
+    }
+    node->detachFromParent();
+    destroyNodeRecursive(node);
   }
 }
 
@@ -247,6 +289,7 @@ Scene::clear() {
   m_root->m_firstChild = nullptr;
   m_root->m_lastChild = nullptr;
   m_cameras.clear();
+  m_pendingDestroy.clear();
 }
 
 }  // namespace sfmx

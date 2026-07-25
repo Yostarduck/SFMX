@@ -163,6 +163,7 @@ class SceneNode
   Array<char, kMaxNameLength> m_name;
   bool m_enabled;
   bool m_visible;
+  bool m_pendingDestroy;
   SceneNode* m_parent;
   SceneNode* m_firstChild;
   SceneNode* m_lastChild;

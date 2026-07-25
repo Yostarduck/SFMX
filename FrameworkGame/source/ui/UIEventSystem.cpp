@@ -1,5 +1,6 @@
 #include "ui/UIEventSystem.h"
 #include "input/InputAction.h"
+#include "input/Mouse.h"
 
 #include <algorithm>
 #include <cmath>
@@ -33,6 +34,7 @@ void UIEventSystem::onShutDown() {
 void UIEventSystem::update(const sf::WindowBase& window, float deltaTime) {
   validateSelection();
   processPointer(window);
+  processScroll();
   processNavigation(deltaTime);
 }
 
@@ -66,14 +68,14 @@ void UIEventSystem::setSelected(UIWidget* widget) {
 
   if (m_selected != nullptr) {
     m_selected->setFocused(false);
-    m_selected->onDeselect();
+    m_selected->triggerDeselect();
   }
 
   m_selected = widget;
 
   if (m_selected != nullptr) {
     m_selected->setFocused(true);
-    m_selected->onSelect();
+    m_selected->triggerSelect();
   }
 }
 
@@ -87,7 +89,7 @@ void UIEventSystem::setSubmitAction(InputAction* action) {
     m_submitSub = action->onPerformed([this](const InputContext& ctx) {
       SFMX_PARAMETER_UNUSED(ctx);
       if (m_selected != nullptr) {
-        m_selected->onSubmit();
+        m_selected->triggerSubmit();
       }
     });
   }
@@ -101,7 +103,7 @@ void UIEventSystem::setCancelAction(InputAction* action) {
     m_cancelSub = action->onPerformed([this](const InputContext& ctx) {
       SFMX_PARAMETER_UNUSED(ctx);
       if (m_selected != nullptr) {
-        m_selected->onCancel();
+        m_selected->triggerCancel();
       }
     });
   }
@@ -141,16 +143,21 @@ void UIEventSystem::processPointer(const sf::WindowBase& window) {
 
   UIWidget* hit = topCanvas->hitTest(canvasPos);
 
+  // Convert canvas-space point to each widget's local space before dispatching.
+  const sf::Vector2f localPos   = (nullptr != hit)   ? hit->toLocalSpace(canvasPos)   : canvasPos;
+  const sf::Vector2f localPosHovered =
+    (nullptr != m_pointer.hovered) ? m_pointer.hovered->toLocalSpace(canvasPos) : canvasPos;
+
   // -- Enter / Exit --------------------------------------------------------
   if (hit != m_pointer.hovered) {
     if (m_pointer.hovered != nullptr) {
-      m_pointer.hovered->onPointerExit(canvasPos);
+      m_pointer.hovered->triggerPointerExit(localPosHovered);
     }
 
     m_pointer.hovered = hit;
 
     if (hit != nullptr) {
-      hit->onPointerEnter(canvasPos);
+      hit->triggerPointerEnter(localPos);
     }
   }
 
@@ -162,7 +169,7 @@ void UIEventSystem::processPointer(const sf::WindowBase& window) {
     m_pointer.pressed = hit;
 
     if (hit != nullptr) {
-      hit->onPointerDown(canvasPos);
+      hit->triggerPointerDown(localPos);
       setSelected(hit);
     } else {
       setSelected(nullptr);
@@ -172,14 +179,30 @@ void UIEventSystem::processPointer(const sf::WindowBase& window) {
     m_pointer.buttonDown = false;
 
     if (m_pointer.pressed != nullptr) {
-      m_pointer.pressed->onPointerUp(canvasPos);
+      const sf::Vector2f localPosPressed =
+        m_pointer.pressed->toLocalSpace(canvasPos);
+      m_pointer.pressed->triggerPointerUp(localPosPressed);
 
       if (m_pointer.pressed == hit && hit != nullptr) {
-        hit->onPointerClick(canvasPos);
+        hit->triggerPointerClick(localPos);
       }
     }
 
     m_pointer.pressed = nullptr;
+  }
+}
+
+void UIEventSystem::processScroll() {
+  const float wheelDelta = Mouse::instance().getWheelDelta();
+  if (std::fabs(wheelDelta) < 0.001f) return;
+
+  // Walk up from the hovered widget looking for a scroll container
+  for (UIWidget* w = m_pointer.hovered; w != nullptr; w = w->getUIparent()) {
+    if (w->isEnabled() && w->isVisible() &&
+        w->getType() == WidgetType::kScrollView) {
+      w->triggerScroll(wheelDelta);
+      return;
+    }
   }
 }
 

@@ -32,6 +32,8 @@ registerSpriteComponent(sol::state_view lua) {
         sprite.setTextureAsset(std::static_pointer_cast<TextureAsset>(asset));
       }
     },
+    "setTextureAssetId", &SpriteComponent::setTextureAssetId,
+    "getTextureAssetId", &SpriteComponent::getTextureAssetId,
 
     "setRect", &SpriteComponent::setRect,
     "getRect", &SpriteComponent::getRect,

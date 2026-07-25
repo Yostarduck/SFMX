@@ -4,6 +4,12 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/String.hpp>
 
+#include <algorithm>
+
+#include "assets/AssetManager.h"
+#include "assets/FontAsset.h"
+
+
 namespace sfmx
 {
 
@@ -25,15 +31,55 @@ UUID UITextBox::getTypeId() const {
   return TypeTraits<UITextBox>::getTypeId();
 }
 
-void UITextBox::setFont(SPtr<sf::Font> font) {
-  m_font = font;
-  if (m_font) {
-    m_text = MakeUnique<sf::Text>(*m_font);
+// void UITextBox::setFont(SPtr<sf::Font> font) {
+//   m_font = font;
+//   if (m_font) {
+//     m_text = MakeUnique<sf::Text>(*m_font);
+//     m_text->setCharacterSize(m_charSize);
+//     syncText();
+//   } else {
+//     m_text.reset();
+//   }
+// }
+
+void UITextBox::setFontAsset(SPtr<FontAsset> asset) {
+  if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
+    SPtr<FontAsset> loaded =
+        AssetManager::instance().load<FontAsset>(asset->metadata().uuid);
+    if (nullptr != loaded) {
+      asset = loaded;
+    }
+  }
+
+  m_fontAsset = asset;
+  m_fontAssetId = (nullptr != asset) ? asset->metadata().uuid : UUID::null();
+  if (nullptr != asset && asset->isLoaded()) {
+    m_text = MakeUnique<sf::Text>(asset->font());
     m_text->setCharacterSize(m_charSize);
     syncText();
-  } else {
+  } 
+  else {
     m_text.reset();
   }
+}
+
+void UITextBox::setFontAssetId(const UUID& id) {
+  if (id != UUID::null() && AssetManager::isStarted()) {
+    SPtr<FontAsset> asset = AssetManager::instance().load<FontAsset>(id);
+    if (nullptr != asset) {
+      setFontAsset(asset);
+      return;
+    }
+  }
+  m_fontAssetId = id;
+}
+
+const UUID& UITextBox::getFontAssetId() const {
+  return m_fontAssetId;
+}
+
+SPtr<FontAsset> UITextBox::getFontAsset() const {
+  return m_fontAsset;
 }
 
 void UITextBox::syncText() {
@@ -71,8 +117,8 @@ void UITextBox::deleteForward() {
   syncText();
 }
 
-void UITextBox::onPointerDown(sf::Vector2f position) {
-  UIWidget::onPointerDown(position);
+void UITextBox::triggerPointerDown(sf::Vector2f position) {
+  UIWidget::triggerPointerDown(position);
   // TODO:
   // Position cursor by click position (approximate: place at end for now).
   // Full character-index-from-position would need per-glyph advance queries.
@@ -113,14 +159,27 @@ void UITextBox::onDraw(sf::RenderTarget& target,
   constexpr float textPadding = 6.f;
   const float innerRight = pos.x + size.x - textPadding;
 
-  // Clip text to the textbox interior.
+  // Clip text to the textbox interior without overriding the parent view.
   const sf::View prevView = target.getView();
   const sf::Vector2u targetSize = target.getSize();
-  sf::View clipView(sf::FloatRect(pos, size));
-  clipView.setViewport(sf::FloatRect(
-    {pos.x / targetSize.x, pos.y / targetSize.y},
-    {size.x / targetSize.x, size.y / targetSize.y}
-  ));
+  sf::View clipView(prevView);
+  {
+    const sf::Vector2f screenPos = states.transform.transformPoint(pos);
+    const sf::Vector2f screenSize =
+      states.transform.transformPoint(pos + size) - screenPos;
+    if (targetSize.x > 0 && targetSize.y > 0) {
+      sf::FloatRect scissor(
+        {screenPos.x / static_cast<float>(targetSize.x),
+         screenPos.y / static_cast<float>(targetSize.y)},
+        {screenSize.x / static_cast<float>(targetSize.x),
+         screenSize.y / static_cast<float>(targetSize.y)});
+      scissor.position.x = std::clamp(scissor.position.x, 0.f, 1.f);
+      scissor.position.y = std::clamp(scissor.position.y, 0.f, 1.f);
+      scissor.size.x = std::clamp(scissor.size.x, 0.f, 1.f - scissor.position.x);
+      scissor.size.y = std::clamp(scissor.size.y, 0.f, 1.f - scissor.position.y);
+      clipView.setScissor(scissor);
+    }
+  }
   target.setView(clipView);
 
   if (m_text) {
@@ -225,8 +284,9 @@ void UITextBox::onDeserialize(DataStream& stream) {
   stream >> m_focusedBorderColor.r >> m_focusedBorderColor.g
          >> m_focusedBorderColor.b >> m_focusedBorderColor.a;
 
-  if (m_font && !m_text) {
-    m_text = MakeUnique<sf::Text>(*m_font);
+  if (m_fontAsset && !m_text) {
+    // m_text = MakeUnique<sf::Text>(*m_font);
+    m_text = MakeUnique<sf::Text>(m_fontAsset->font());
     m_text->setCharacterSize(m_charSize);
   }
   if (m_text) {

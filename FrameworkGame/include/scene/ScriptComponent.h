@@ -2,6 +2,7 @@
 
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
+#include "utils/EventSystem.h"
 #include "utils/UUID.h"
 
 #include <sol/sol.hpp>
@@ -23,9 +24,36 @@ class ScriptComponent : public ComponentT<ScriptComponent>
    *         and re-binds through the ScriptEngine. */
   explicit ScriptComponent(SceneNode* owner);
 
-  // Run the script each frame, passing the owning node in as `self`.
+  /** @brief Fires the script's optional `onDestroyed(self)` hook
+   *         before the component is torn down.
+   */
+  ~ScriptComponent() override;
+
+  /** @brief Records that the component is linked and fires `onCreated` once the
+   *         script is also bound.
+   */
+  void
+  onAttached() override;
+
+  /** @brief Run the script each frame, passing the owning node in as `self`. Fires the
+   *         one-shot `onStart(self)` hook just before the first `onUpdate`.
+   */
   void
   onUpdate(float deltaTime) override;
+
+  /** @brief Execute a function exported by the script, passing
+   *         the owning node in as `self`.
+   */
+  template<typename... Args>
+  void
+  executeFunction(const String& fnName, Args&&... args) const;
+
+  /** @brief Register an event handle to keep it alive until the component is destroyed. */
+  void
+  registerEvent(HEvent&& event);
+
+  /** @brief Unregister all events, causing them to be destroyed. */
+  FORCEINLINE void unregisterAllEvents() { m_events.clear(); }
 
   /** @brief Bind to a @ref LuaAsset, keeping it alive and recording its UUID; the
    *         script re-binds through the ScriptEngine when both are running. */
@@ -55,14 +83,73 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   NODISCARD FORCEINLINE bool
   isInitialized() const { return m_initialized; }
 
+  /** @brief The script's returned table: its lifecycle hooks plus any state the
+   *         script chooses to publish as fields. Bound to Lua as
+   *         `scriptComponent:instance()`, so another script can read or write
+   *         shared fields on it, e.g. `other:instance().speed = 200`. Invalid
+   *         (nil in Lua) until the script is bound. Lua locals stay private —
+   *         only table fields are reachable this way. */
+  NODISCARD FORCEINLINE const sol::table&
+  getInstanceTable() const { return m_instance; }
+
  private:
   friend ScriptEngine;
 
+  /** @brief Fires `onCreated(self)` exactly once, but only after the script is
+   *         both bound and linked (the bind and link can complete in either
+   *         order). Called from both @ref onAttached and the bind sites.
+   */
+  void
+  triggerOnCreated();
+
+  /** @brief Invokes @p fn as `fn(self)`, logging any error. No-op if @p fn
+   *         is not a valid function (the hook was omitted by the script).
+   */
+  void
+  callHook(const sol::protected_function& fn);
+
   SPtr<LuaAsset>          m_scriptAsset;                 // keep-alive for the resolved script
   UUID                    m_scriptAssetId = UUID::null();
-  sol::protected_function m_script;
-  bool                    m_initialized = false;
+
+  sol::table              m_instance;                    // the script's returned table (hooks + published state)
+
+  sol::protected_function m_onCreated;
+  sol::protected_function m_onStart;
+  sol::protected_function m_onUpdate;
+  sol::protected_function m_onDestroyed;
+
+  bool                    m_initialized = false;  // script compiled and hooks bound
+  bool                    m_linked      = false;  // onAttached has run
+  bool                    m_created     = false;  // onCreated already fired (one-shot)
+  bool                    m_started     = false;  // onStart already fired (one-shot)
+
+  UnorderedMap<UUID, sol::protected_function> m_exportedFunctions;
+
+  Vector<HEvent> m_events;
 };
+
+template<typename... Args>
+void
+ScriptComponent::executeFunction(const String& fnName, Args&&... args) const {
+  if (!m_initialized) {
+    return;
+  }
+
+  const auto it = m_exportedFunctions.find(UUID::createFromName(fnName));
+  if (it == m_exportedFunctions.end()) {
+    return;
+  }
+
+  const sol::protected_function& fn = it->second;
+  if (!fn.valid()) {
+    return;
+  }
+
+  const sol::protected_function_result result = fn(m_instance, std::forward<Args>(args)...);
+  if (!result.valid()) {
+    const sol::error err = result;
+  }
+}
 
 }
 

@@ -54,6 +54,13 @@ class Component
   NODISCARD Component* getPrevComponent() const { return m_prevComponent; }
 
   /**
+   * @brief Called once, right after this component is linked into its owning
+   *        node's component list.
+   */
+  virtual void
+  onAttached() {}
+
+  /**
    * @brief Per-frame update hook, called by the owning node's traversal.
    * @param deltaTime Seconds elapsed since the previous frame.
    */

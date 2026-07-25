@@ -11,6 +11,9 @@
 #include "scripts/RegisterIntRect.h"
 #include "scripts/RegisterFloatRect.h"
 #include "scripts/RegisterTransform.h"
+#include "scripts/RegisterUUID.h"
+#include "scripts/RegisterIAsset.h"
+#include "scripts/RegisterAssetManager.h"
 
 #include "scripts/RegisterInputTypes.h"
 #include "scripts/RegisterKeyboard.h"
@@ -28,9 +31,21 @@
 //#include "scripts/RegisterParticleSystemComponent.h"
 #include "scripts/RegisterScriptComponent.h"
 
+#include "scripts/RegisterSceneManager.h"
 #include "scripts/RegisterScene.h"
 #include "scripts/RegisterSceneNode.h"
 #include "scripts/RegisterAssetManager.h"
+
+#include "scripts/RegisterUIWidget.h"
+#include "scripts/RegisterUIButton.h"
+#include "scripts/RegisterUICheckbox.h"
+#include "scripts/RegisterUIHorizontalBox.h"
+#include "scripts/RegisterUIImage.h"
+#include "scripts/RegisterUILabel.h"
+#include "scripts/RegisterUIScrollView.h"
+#include "scripts/RegisterUISlider.h"
+#include "scripts/RegisterUITextBox.h"
+#include "scripts/RegisterUIVerticalBox.h"
 
 #include "scene/SceneNode.h"
 #include "scene/SourceComponent.h"
@@ -40,6 +55,16 @@
 #include "scene/AnimatorComponent.h"
 #include "scene/ParticleSystemComponent.h"
 #include "scene/ScriptComponent.h"
+
+#include "ui/UIButton.h"
+#include "ui/UICheckbox.h"
+#include "ui/UIHorizontalBox.h"
+#include "ui/UIImage.h"
+#include "ui/UILabel.h"
+#include "ui/UIScrollView.h"
+#include "ui/UISlider.h"
+#include "ui/UITextBox.h"
+#include "ui/UIVerticalBox.h"
 
 namespace sfmx
 {
@@ -63,12 +88,17 @@ registerAll(sol::state_view lua) {
   registerIntRect(lua);
   registerFloatRect(lua);
   registerTransform(lua);
+  registerUUID(lua);
 
   // Input types.
   registerInputTypes(lua);
   registerKeyboard(lua);
   registerMouse(lua);
   registerGamepad(lua);
+
+  // Assets (IAsset before AssetManager: load/get hand back SPtr<IAsset>).
+  registerIAsset(lua);
+  registerAssetManager(lua);
 
   // Component hierarchy: the base must precede its derived usertypes so the
   // sol::bases<Component> links resolve.
@@ -85,9 +115,20 @@ registerAll(sol::state_view lua) {
   // Scene graph.
   registerSceneNode(lua);
   registerScene(lua);
+  registerSceneManager(lua);
 
-  // Asset loading (Assets.loadAsync / loadSync + the Asset handle usertype).
-  registerAssetManager(lua);
+  // UI.
+  registerUIWidget(lua);
+
+  registerUIButton(lua);
+  registerUICheckbox(lua);
+  registerUIHorizontalBox(lua);
+  registerUIImage(lua);
+  registerUILabel(lua);
+  registerUIScrollView(lua);
+  registerUISlider(lua);
+  registerUITextBox(lua);
+  registerUIVerticalBox(lua);
 
   // Type-driven component access (node:addComponent(SpriteComponent), ...).
   // Register one entry per pool-allocated component type; the inline Transform
@@ -114,7 +155,7 @@ registerAll(sol::state_view lua) {
           node.addComponent<CameraComponent>(args[0].as<sf::FloatRect>()));
       }
       return sol::make_object(lua, node.addComponent<CameraComponent>());
-    });
+  });
 
   registerComponentType<SpriteComponent>();
   registerComponentType<AnimatorComponent>();
@@ -149,8 +190,23 @@ registerAll(sol::state_view lua) {
           node.addComponent<ScriptComponent>(
             UUID::createFromName(args[0].as<std::string>())));
       }
+      else if (args.size() >= 1 && args[0].is<UUID>()) {
+        return sol::make_object(lua,
+          node.addComponent<ScriptComponent>(
+            args[0].as<UUID>()));
+      }
       return sol::make_object(lua, sol::lua_nil);
-    });
+  });
+  
+  registerComponentType<UIButton>();
+  registerComponentType<UICheckbox>();
+  registerComponentType<UIHorizontalBox>();
+  registerComponentType<UIImage>();
+  registerComponentType<UILabel>();
+  registerComponentType<UIScrollView>();
+  registerComponentType<UISlider>();
+  registerComponentType<UITextBox>();
+  registerComponentType<UIVerticalBox>();
 }
 
 }  // namespace script

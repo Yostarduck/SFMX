@@ -12,6 +12,7 @@ SceneNode::SceneNode(NodeId id, StringView name, Scene* scene)
   : m_id(id),
     m_enabled(true),
     m_visible(true),
+    m_pendingDestroy(false),
     m_parent(nullptr),
     m_firstChild(nullptr),
     m_lastChild(nullptr),
@@ -97,6 +98,10 @@ SceneNode::appendChild(SceneNode* child) {
 
 void
 SceneNode::linkComponent(Component* component) {
+  if (nullptr == component) {
+    return;
+  }
+
   component->m_prevComponent = m_lastComponent;
   component->m_nextComponent = nullptr;
   if (nullptr != m_lastComponent) {
@@ -105,6 +110,8 @@ SceneNode::linkComponent(Component* component) {
     m_firstComponent = component;
   }
   m_lastComponent = component;
+  
+  component->onAttached();
 }
 
 void
@@ -180,7 +187,7 @@ SceneNode::detachFromParent() {
 
 void
 SceneNode::update(float deltaTime) {
-  if (!m_enabled) {
+  if (!m_enabled || m_pendingDestroy) {
     return;
   }
   for (Component* component = m_firstComponent;

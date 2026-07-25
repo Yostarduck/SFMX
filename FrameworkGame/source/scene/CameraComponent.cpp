@@ -4,6 +4,7 @@
 
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/System/Angle.hpp>
+#include <SFML/System/Vector2.hpp>
 
 #include "core/DataStream.h"
 
@@ -38,7 +39,7 @@ CameraComponent::onUpdate(float deltaTime) {
     return;
   const sf::Vector2f worldPos =
       m_owner->transform().getWorldTransform().transformPoint({0,0});
-  m_view.setCenter({worldPos.x, worldPos.y});
+  setCenter({worldPos.x, worldPos.y});
 }
 
 void
@@ -129,6 +130,25 @@ CameraComponent::getTransform() const {
 const sf::Transform&
 CameraComponent::getInverseTransform() const {
   return m_view.getInverseTransform();
+}
+
+sf::Vector2f
+CameraComponent::screenToWorld(sf::Vector2i pixel,
+                               sf::Vector2u resolution) const {
+  const sf::FloatRect& viewport = m_view.getViewport();
+  const float resX = static_cast<float>(resolution.x);
+  const float resY = static_cast<float>(resolution.y);
+
+  const int left   = static_cast<int>(0.5f + resX * viewport.position.x);
+  const int top    = static_cast<int>(0.5f + resY * viewport.position.y);
+  const int width  = static_cast<int>(0.5f + resX * viewport.size.x);
+  const int height = static_cast<int>(0.5f + resY * viewport.size.y);
+
+  sf::Vector2f normalized;
+  normalized.x = -1.f + 2.f * (pixel.x - left) / static_cast<float>(width);
+  normalized.y =  1.f - 2.f * (pixel.y - top)  / static_cast<float>(height);
+
+  return m_view.getInverseTransform().transformPoint(normalized);
 }
 
 void

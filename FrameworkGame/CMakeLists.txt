@@ -88,6 +88,9 @@ add_library(FrameworkGame STATIC
     source/ui/UICheckboxGroup.cpp
     source/ui/UITextBox.cpp
     source/ui/UISlider.cpp
+    source/ui/UIVerticalBox.cpp
+    source/ui/UIHorizontalBox.cpp
+    source/ui/UIScrollView.cpp
 
     source/scene/CanvasComponent.cpp
     source/scene/Scene.cpp
@@ -121,6 +124,7 @@ add_library(FrameworkGame STATIC
     source/scripts/RegisterIntRect.cpp
     source/scripts/RegisterFloatRect.cpp
     source/scripts/RegisterTransform.cpp
+    source/scripts/RegisterUUID.cpp
     source/scripts/RegisterInputTypes.cpp
     source/scripts/RegisterKeyboard.cpp
     source/scripts/RegisterMouse.cpp
@@ -136,8 +140,23 @@ add_library(FrameworkGame STATIC
     #source/scripts/RegisterParticleSystemComponent.cpp
     source/scripts/RegisterScriptComponent.cpp
 
+    source/scripts/RegisterUIWidget.cpp
+
+    source/scripts/RegisterUIButton.cpp
+    source/scripts/RegisterUICheckbox.cpp
+    source/scripts/RegisterUIHorizontalBox.cpp
+    source/scripts/RegisterUIImage.cpp
+    source/scripts/RegisterUILabel.cpp
+    source/scripts/RegisterUIScrollView.cpp
+    source/scripts/RegisterUISlider.cpp
+    source/scripts/RegisterUITextBox.cpp
+    source/scripts/RegisterUIVerticalBox.cpp
+
     source/scripts/RegisterScene.cpp
     source/scripts/RegisterSceneNode.cpp
+    source/scripts/RegisterSceneManager.cpp
+
+    source/scripts/RegisterIAsset.cpp
     source/scripts/RegisterAssetManager.cpp
 
     source/scripts/RegisterAll.cpp)

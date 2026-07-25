@@ -1,6 +1,7 @@
 #include "scripts/RegisterAssetManager.h"
 
 #include <iostream>
+#include <functional>
 
 #include "core/platform/Prerequisites.h"
 #include "assets/Asset.h"
@@ -15,15 +16,11 @@ namespace script
 
 void
 registerAssetManager(sol::state_view lua) {
-  // Minimal asset handle: enough for a callback to receive a loaded asset and hand it
-  // to a component (e.g. sprite:setTextureAsset(asset)). No constructor from Lua.
-  lua.new_usertype<IAsset>("Asset",
-    sol::no_constructor,
-    "isLoaded", &IAsset::isLoaded);
+  // The IAsset handle usertype itself is registered by registerIAsset (called just
+  // before this). Here we only add the loading entry points.
 
-  // A free-function table rather than a bound singleton: the AssetManager module is
-  // NOT started yet when bindings are registered (ScriptEngine starts before it), so
-  // the instance is fetched lazily at call time, guarded by isStarted().
+  // A free-function table rather than a bound singleton: the instance is fetched
+  // lazily at call time and guarded by isStarted(), so registration order stays safe.
   sol::table assets = lua.create_named_table("Assets");
 
   assets.set_function("loadAsync",
@@ -55,6 +52,29 @@ registerAssetManager(sol::state_view lua) {
       }
       return AssetManager::instance().loadSync(UUID::createFromName(name));
     });
+
+  // Full AssetManager surface (from origin/main): the started singleton exposed as a
+  // global for scripts that resolve/inspect assets by UUID directly.
+  lua.new_usertype<AssetManager>("AssetManager",
+    sol::no_constructor,
+
+    "load", [](AssetManager& a, const UUID& id) { return a.load(id); },
+    "get", [](AssetManager& a, const UUID& id) { return a.get(id); },
+    "isLoaded", [](AssetManager& a, const UUID& id) { return a.isLoaded(id); },
+    "isCataloged",
+    [](AssetManager& a, const UUID& id) { return a.isCataloged(id); },
+    "metadataOf",
+    [](AssetManager& a, const UUID& id) { return a.metadataOf(id); },
+    "unload", [](AssetManager& a, const UUID& id) { a.unload(id); },
+    "unloadAll", [](AssetManager& a) { a.unloadAll(); }
+  );
+
+  // Only bind the singleton global if the module is up: bindings are registered from
+  // ScriptEngine::onStartUp, which may run before AssetManager::startUp (e.g. in tests).
+  // Accessing instance() before startUp throws, so guard it.
+  if (AssetManager::isStarted()) {
+    lua["AssetManager"] = std::ref(AssetManager::instance());
+  }
 }
 
 }  // namespace script

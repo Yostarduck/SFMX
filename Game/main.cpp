@@ -2,6 +2,7 @@
 
 #include "config/IniFile.h"
 
+#include "core/platform/PlatformTypes.h"
 #include "input/Mapping.h"
 #include "input/ActionMap.h"
 #include "input/Gamepad.h"
@@ -28,6 +29,9 @@
 #include "ui/UITextBox.h"
 #include "ui/UICheckbox.h"
 #include "ui/UICheckboxGroup.h"
+#include "ui/UIVerticalBox.h"
+#include "ui/UIHorizontalBox.h"
+#include "ui/UIScrollView.h"
 
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
@@ -37,6 +41,8 @@
 #include "assets/LuaCodec.h"
 #include "assets/SoundCodec.h"
 #include "assets/MusicCodec.h"
+#include "assets/FontCodec.h"
+#include "assets/FontAsset.h"
 
 #include "ImageWebP.h"   // format module: self-registers WebP decoder + import rule
 
@@ -45,12 +51,16 @@
 
 #include "utils/MemoryPoolHandler.h"
 #include "utils/EventSystem.h"
+#include "utils/Random.h"
 
 #include "scripts/ScriptEngine.h"
 
 #include "DemoScene.h"
 #include "DemoCook.h"
 
+#include <array>
+#include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -132,10 +142,9 @@ int main(int argc, char** argv)
   // Engine modules. Order matters: SceneManager clears its scenes at shutDown
   // (returning pooled nodes/components), so it is torn down before the pools,
   // and the AssetManager whose sf::Textures they reference is torn down last.
+  MemoryPoolHandler::startUp(4096);
   InputSystem::startUp();
   PhysicsSystem::startUp();
-  MemoryPoolHandler::startUp(4096);
-  ScriptEngine::startUp();
   ComponentRegistry::startUp();
   SceneManager::startUp();
 
@@ -150,6 +159,7 @@ int main(int argc, char** argv)
   AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
   AssetManager::instance().registerCodec(MakeShared<MusicCodec>());
+  AssetManager::instance().registerCodec(MakeShared<FontCodec>());
   // WebP support: the module registers an IDecoder<sf::Image> for kWebP (import-rule
   // half is a no-op here — the AssetImporterRegistry isn't started in the runtime path).
   imagewebp::registerModule();
@@ -163,7 +173,9 @@ int main(int argc, char** argv)
 #endif
   const size_t mountedAssets = AssetManager::instance().mount("assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
-
+  
+  ScriptEngine::startUp();
+  
   // Load the cooked demo scene into a SceneManager-owned scene; fall back to
   // building it in code (dev convenience if `--cook-scene` has not run yet).
   SceneManager& scenes = SceneManager::instance();
@@ -185,34 +197,7 @@ int main(int argc, char** argv)
   // Actions, each with bindings + an Interaction (tap/hold) and Processors.
   // Jump (tap), Crouch (hold), Move (normalized Vector2).
   Mapping* controls = InputSystem::instance().createMapping("DefaultControls");
-  ActionMap* gameplay = controls->addMap("Gameplay");
-
-  InputAction* jump = gameplay->addAction("Jump", ActionValueType::kButton);
-  jump->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kSpace), -1, false});
-  Interaction tap;
-  tap.m_type = InteractionType::kTap;
-  tap.m_duration = 0.2f;
-  jump->setInteraction(tap);
-
-  InputAction* crouch = gameplay->addAction("Crouch", ActionValueType::kButton);
-  crouch->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kLControl), -1, false});
-  Interaction hold;
-  hold.m_type = InteractionType::kHold;
-  hold.m_duration = 0.4f;
-  crouch->setInteraction(hold);
-
-  InputAction* move = gameplay->addAction("Move", ActionValueType::kAxis2D);
-  CompositeBinding& moveComposite = move->addComposite(CompositeType::kVector2D);
-  moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kA), -1, false}, CompositeRole::kNegativeX, {}});
-  moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kD), -1, false}, CompositeRole::kPositiveX, {}});
-  moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kS), -1, false}, CompositeRole::kNegativeY, {}});
-  moveComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kW), -1, false}, CompositeRole::kPositiveY, {}});
-  move->addProcessor(Processor{ProcessorType::kNormalize, {}, {}});
-
+  
   // ── UI ActionMap: keyboard/gamepad navigation ──────────────────────────
   ActionMap* uiActions = controls->addMap("UI");
 
@@ -244,254 +229,187 @@ int main(int argc, char** argv)
   uiCancel->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kEscape), -1, false});
   uiCancel->setInteraction(Interaction{InteractionType::kPress, 0.f});
 
-  InputSystem::instance().setActiveMapping(controls);
-
-  HEvent jumpSub = jump->onPerformed([](const InputContext&) {
-    std::cout << "[Action] Jump performed\n";
-  });
-  HEvent crouchSub = crouch->onPerformed([](const InputContext&) {
-    std::cout << "[Action] Crouch performed (held past threshold)\n";
-  });
-  HEvent crouchStart = crouch->onStarted([](const InputContext&) {
-    std::cout << "[Action] Crouch started\n";
-  });
-  HEvent crouchEnd = crouch->onCanceled([](const InputContext&) {
-    std::cout << "[Action] Crouch canceled\n";
-  });
-  float moveReportTimer = 0.1f;
-  HEvent moveSub = move->onPerformed([&moveReportTimer](const InputContext& ctx) {
-    // Performed fires every non-zero frame; throttle the print.
-    moveReportTimer += ctx.m_deltaTime;
-    if (moveReportTimer >= 0.1f) {
-      const Vector2f value = ctx.m_value.asVector2();
-      std::cout << "[Action] Move (" << value.x << ", " << value.y << ")\n";
-      moveReportTimer = 0.f;
-    }
-  });
-
-  sf::Clock clock;
+  //InputSystem::instance().setActiveMapping(controls);
 
   UIEventSystem::startUp();
-  
+
+  /****************************************************************************/
+  /*                                 UI Setup                                 */
+  /*                                                                          */
+
+  // Create canvas
   SceneNode* canvasNode = scene.createNode("HUDCanvas");
   auto* canvaComp = canvasNode->addComponent<CanvasComponent>();
   Canvas& uiCanvas = canvaComp->getCanvas();
-
-  auto* btnNode = canvasNode->createChild("StartBtn");
-  
-  UIButton* btn = btnNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
-  btn->setPosition({windowWidth * 0.5f - 100.f, windowHeight * 0.5f - 25.f});
-  btn->syncColliderToRect();
-  uiCanvas.addWidget(btn);
-
-  auto* btnExitNode = canvasNode->createChild("ExitBtn");
-  UIButton* btnExit = btnExitNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
-  btnExit->setPosition({windowWidth * 0.5f - 100.f,
-                        windowHeight * 0.5f + 40.f});
-  btnExit->syncColliderToRect();
-  btnExit->setNormalColor(sf::Color(180, 80, 80));
-  uiCanvas.addWidget(btnExit);
 
   // Wire up UI navigation actions
   UIEventSystem::instance().setNavigateAction(uiNavigate);
   UIEventSystem::instance().setSubmitAction(uiSubmit);
   UIEventSystem::instance().setCancelAction(uiCancel);
 
-  // Explicit navigation links
-  btn->setNavDown(btnExit);
-  btnExit->setNavUp(btn);
-
-  int clickCount = 0;
-  HEvent btnSub = btn->onPointerClick([&clickCount](sf::Vector2f pos) {
-    ++clickCount;
-    std::cout << "[UI] Start clicked (" << clickCount << "x) at ("
-              << pos.x << ", " << pos.y << ")\n";
-  });
-  HEvent btnSubNav = btn->onSubmit([&clickCount]() {
-    ++clickCount;
-    std::cout << "[UI] Start submitted via keyboard (" << clickCount << "x)\n";
-  });
-  HEvent exitSub = btnExit->onPointerClick([&window](sf::Vector2f pos) {
-    SFMX_PARAMETER_UNUSED(pos);
-    std::cout << "[UI] Exit clicked - closing window\n";
-    window.close();
-  });
-  HEvent exitSubNav = btnExit->onSubmit([&window]() {
-    std::cout << "[UI] Exit submitted via keyboard - closing window\n";
-    window.close();
-  });
-
-  // ── UILabel demo ──────────────────────────────────────────────────────
-  auto font = MakeShared<sf::Font>();
-  // Try common font paths across Linux distros.
-  const char* fontPaths[] = {
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/TTF/Hack-Regular.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    "/usr/share/fonts/TTF/MesloLGS-NF-Regular.ttf",
-  };
-  bool fontLoaded = false;
-  for (const char* fp : fontPaths) {
-    if (font->openFromFile(fp)) {
-      fontLoaded = true;
-      break;
-    }
-  }
-
-  if (fontLoaded) {
-    auto* lblNode = canvasNode->createChild("TitleLabel");
-    auto* label = lblNode->addComponent<UILabel>(sf::Vector2f{400.f, 40.f});
-    label->setPosition({windowWidth * 0.5f - 200.f, 20.f});
-    label->setFont(font);
-    label->setText("SFMX Engine - UI Widget Demo");
-    label->setCharacterSize(22);
-    label->setTextColor(sf::Color::White);
-    uiCanvas.addWidget(label);
-  } else {
-    std::cout << "[UI] Could not load DejaVuSans font; skipping label\n";
-  }
-
-  // ── UIImage demo ───────────────────────────────────────────────────────
-  SPtr<TextureAsset> uiTex = AssetManager::instance().load<TextureAsset>(
-      sfmx::UUID::createFromName("particle.png"));
-  if (uiTex) {
-    auto* imgNode = canvasNode->createChild("DemoImage");
-    auto* image = imgNode->addComponent<UIImage>(sf::Vector2f{32.f, 32.f});
-    image->setPosition({20.f, 20.f});
-    image->setTextureAsset(uiTex);
-    uiCanvas.addWidget(image);
-  }
-
-  // ── UISlider demo ──────────────────────────────────────────────────────
-  auto* sliderNode = canvasNode->createChild("DemoSlider");
-  UISlider* slider = sliderNode->addComponent<UISlider>(sf::Vector2f{250.f, 20.f});
-  slider->setPosition({windowWidth * 0.5f - 125.f, windowHeight * 0.85f});
-  slider->syncColliderToRect();
-  slider->setRange(0.f, 100.f);
-  slider->setValue(50.f);
-  uiCanvas.addWidget(slider);
-
-  HEvent slSub = slider->onValueChanged([](float val) {
-    std::cout << "[UI] Slider value: " << val << "\n";
-  });
-
-  // ── UICheckbox demo ────────────────────────────────────────────────────
-  auto* cbNode = canvasNode->createChild("DemoCheckbox");
-  UICheckbox* checkbox = cbNode->addComponent<UICheckbox>(sf::Vector2f{28.f, 28.f});
-  checkbox->setPosition({60.f, windowHeight * 0.5f});
-  checkbox->syncColliderToRect();
-  uiCanvas.addWidget(checkbox);
-
-  HEvent cbSub = checkbox->onValueChanged([](bool checked) {
-    std::cout << "[UI] Checkbox: " << (checked ? "checked" : "unchecked") << "\n";
-  });
-
-  // ── UICheckboxGroup demo (multi-select + radio) ────────────────────────
-  SPtr<UICheckboxGroup> fruitGroup;
-  SPtr<UICheckboxGroup> radioGroup;
-  Vector<HEvent> groupLogs;
-
-  if (fontLoaded) {
-    // --- Multi-select group (regular checkbox behaviour) ---
-    fruitGroup = MakeShared<UICheckboxGroup>();
-    fruitGroup->setExclusive(false);
-
-    auto* fruitTitle = canvasNode->createChild("FruitGroupTitle");
-    auto* fruitTitleLbl = fruitTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
-    fruitTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 80.f});
-    fruitTitleLbl->setFont(font);
-    fruitTitleLbl->setText("Fruits (multi-select):");
-    fruitTitleLbl->setCharacterSize(14);
-    fruitTitleLbl->setTextColor(sf::Color::White);
-    uiCanvas.addWidget(fruitTitleLbl);
-
-    static constexpr struct { const char* node; const char* label; } kFruits[] = {
-      {"AppleCb", "Apple"}, {"BananaCb", "Banana"}, {"CherryCb", "Cherry"}
+  UILabel* debugLabel;
+  {
+    // Load fonts
+    SPtr<FontAsset> fontAsset;
+    constexpr const char* fontPaths[] =
+    {
+      "PlayArea.otf",
     };
-    float fx = windowWidth * 0.5f + 60.f;
-    const float fy = windowHeight * 0.5f - 50.f;
-    for (auto& def : kFruits) {
-      auto* node = canvasNode->createChild(def.node);
-      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
-      cb->setPosition({fx, fy});
-      cb->syncColliderToRect();
-      cb->setGroup(fruitGroup.get());
-      uiCanvas.addWidget(cb);
-
-      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
-      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{80.f, 24.f});
-      lbl->setPosition({fx + 28.f, fy + 2.f});
-      lbl->setFont(font);
-      lbl->setText(def.label);
-      lbl->setCharacterSize(14);
-      lbl->setTextColor(sf::Color::White);
-      uiCanvas.addWidget(lbl);
-
-      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
-        std::cout << "[UI Group] " << name << ": " << (checked ? "checked" : "unchecked") << "\n";
-      }));
-
-      fx += 90.f;
+    
+    bool fontLoaded = false;
+    
+    for (const char* fp : fontPaths) {
+      fontAsset = AssetManager::instance().load<FontAsset>(
+        sfmx::UUID::createFromName(String(fp)));
+      if (fontAsset && fontAsset->isLoaded()) {
+        fontLoaded = true;
+        break;
+      }
     }
 
-    // --- Exclusive group (radio behaviour) ---
-    radioGroup = MakeShared<UICheckboxGroup>();
-    radioGroup->setExclusive(true);
-
-    auto* radioTitle = canvasNode->createChild("RadioGroupTitle");
-    auto* radioTitleLbl = radioTitle->addComponent<UILabel>(sf::Vector2f{200.f, 24.f});
-    radioTitleLbl->setPosition({windowWidth * 0.5f + 60.f, windowHeight * 0.5f - 10.f});
-    radioTitleLbl->setFont(font);
-    radioTitleLbl->setText("Options (radio):");
-    radioTitleLbl->setCharacterSize(14);
-    radioTitleLbl->setTextColor(sf::Color::White);
-    uiCanvas.addWidget(radioTitleLbl);
-
-    static constexpr struct { const char* node; const char* label; } kRadios[] = {
-      {"OptARb", "Option A"}, {"OptBRb", "Option B"}, {"OptCRb", "Option C"}
-    };
-    float rx = windowWidth * 0.5f + 60.f;
-    const float ry = windowHeight * 0.5f + 20.f;
-    for (auto& def : kRadios) {
-      auto* node = canvasNode->createChild(def.node);
-      auto* cb = node->addComponent<UICheckbox>(sf::Vector2f{24.f, 24.f});
-      cb->setPosition({rx, ry});
-      cb->syncColliderToRect();
-      cb->setGroup(radioGroup.get());
-      uiCanvas.addWidget(cb);
-
-      auto* lblNode = canvasNode->createChild(String(def.node) + "Lbl");
-      auto* lbl = lblNode->addComponent<UILabel>(sf::Vector2f{100.f, 24.f});
-      lbl->setPosition({rx + 28.f, ry + 2.f});
-      lbl->setFont(font);
-      lbl->setText(def.label);
-      lbl->setCharacterSize(14);
-      lbl->setTextColor(sf::Color::White);
-      uiCanvas.addWidget(lbl);
-
-      groupLogs.push_back(cb->onValueChanged([name = String(def.label)](bool checked) {
-        std::cout << "[UI Radio] " << name << ": " << (checked ? "selected" : "deselected") << "\n";
-      }));
-
-      rx += 100.f;
+    // Debug label
+    if (fontLoaded) {
+      auto* debugNode = canvasNode->createChild("DebugLabel");
+      debugLabel = debugNode->addComponent<UILabel>(sf::Vector2f{float(windowWidth), 50.f});
+      debugLabel->setPosition({25.0f, windowHeight - 50.0f});
+      debugLabel->setFontAsset(fontAsset);
+      debugLabel->setText("");
+      debugLabel->setCharacterSize(22);
+      debugLabel->setTextColor(sf::Color::White);
+      uiCanvas.addWidget(debugLabel);
     }
+
+    // Show upgrades menu button
+    auto* upgradesNode = canvasNode->createChild("UpgradesButton");
+    UIButton* upgradesBtn = upgradesNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    upgradesBtn->setPosition({25.0f, 25.0f});
+    upgradesBtn->syncColliderToRect();
+    uiCanvas.addWidget(upgradesBtn);
+
+    // Info label
+    if (fontLoaded) {
+      auto* infoNode = canvasNode->createChild("InfoLabel");
+      auto* infoLabel = infoNode->addComponent<UILabel>(sf::Vector2f{400.f, 50.f});
+      infoLabel->setPosition({250.0f, 25.0f});
+      infoLabel->setFontAsset(fontAsset);
+      infoLabel->setText("");
+      infoLabel->setCharacterSize(22);
+      infoLabel->setTextColor(sf::Color::White);
+      uiCanvas.addWidget(infoLabel);
+    }
+
+    // Upgrades menu
+    if (fontLoaded) {
+      // Upgrades scroll view
+      auto* upgradesMenuNode = canvasNode->createChild("UpgradesMenu");
+      UIScrollView* scrollView = upgradesMenuNode->addComponent<UIScrollView>(
+        sf::Vector2f{310.0f, 250.f});
+      scrollView->setPosition({25.0f, 100.0f});
+      scrollView->syncColliderToRect();
+      scrollView->setBackgroundColor(sf::Color(255, 101, 224, 128));
+      uiCanvas.addWidget(scrollView);
+
+      // Upgrades list container
+      auto* upgradesListNode = canvasNode->createChild("UpgradesList");
+      UIVerticalBox* list = upgradesListNode->addComponent<UIVerticalBox>(
+        sf::Vector2f{310.f, 60.f});
+      list->setPadding({15.0f, 10.0f});
+      list->setSpacing(5.0f);
+      list->setBoxColor(sf::Color::Transparent);
+      scrollView->addChild(list);
+      
+      // Helper local function to add upgrade entries
+      auto addBuyUnitButton = [&](const char* name) {
+        // Upgrade container
+        auto* hboxNode = canvasNode->createChild(String(name) + " HBox");
+        UIHorizontalBox* hbox = hboxNode->addComponent<UIHorizontalBox>(
+          sf::Vector2f{280.f, 50.f});
+        hbox->setPosition({0.0f, 0.0f});
+        hbox->setPadding({10.0f, 10.0f});
+        hbox->setSpacing(10.f);
+        hbox->setBoxColor(sf::Color(40, 40, 55, 200));
+        list->addChild(hbox);
+        
+        // Upgrade name label
+        auto* ln = canvasNode->createChild(String(name) + " Label");
+        auto* lbl = ln->addComponent<UILabel>(sf::Vector2f{200.f, 30.f});
+        lbl->setPosition({0.f, 0.f});
+        lbl->setFontAsset(fontAsset);
+        lbl->setText(name);
+        lbl->setCharacterSize(13);
+        lbl->setTextColor(sf::Color::White);
+        hbox->addChild(lbl);
+
+        // Upgrade button
+        auto* n = canvasNode->createChild(String(name) + " Button");
+        auto* btn = n->addComponent<UIButton>(sf::Vector2f{50.f, 30.f});
+        btn->setPosition({0.f, 0.f});
+        hbox->addChild(btn);
+        
+        hbox->updateLayout();
+      };
+      
+      // Buy quantity slider
+      {
+        // Buy label
+        auto* buyLabelNode = canvasNode->createChild("BuyLabel");
+        auto* label = buyLabelNode->addComponent<UILabel>(sf::Vector2f{180.f, 22.f});
+        label->setPosition({0.f, 0.f});
+        label->setFontAsset(fontAsset);
+        label->setText("Amount of units to buy");
+        label->setCharacterSize(14);
+        label->setTextColor(sf::Color::White);
+        list->addChild(label);
+
+        // Buy slider
+        auto* buySliderNode = canvasNode->createChild("BuySlider");
+        UISlider* buySlider = buySliderNode->addComponent<UISlider>(sf::Vector2f{180.f, 20.f});
+        buySlider->setPosition({0.f, 0.f});
+        buySlider->setRange(1.f, 10.f);
+        buySlider->setValue(1.f);
+        buySlider->setStepValue(1.0f);
+        list->addChild(buySlider);
+      }
+
+      addBuyUnitButton("Common Mage");
+      addBuyUnitButton("Fire Mage");
+      addBuyUnitButton("Thunder Mage");
+      addBuyUnitButton("Elder Wizard");
+      addBuyUnitButton("Elite Warlock");
+
+      list->updateLayout();
+
+      // Fit the box to content height, scroll view handles overflow
+      float contentH = 8.f; // top padding
+      for (auto* child : list->getChildren()) {
+        contentH += child->getSize().y + 6.f;
+      }
+      list->setSize({list->getSize().x, contentH});
+      scrollView->setContentHeight(contentH);
+    }
+
+    // Exit game button
+    auto* btnExitNode = canvasNode->createChild("ExitBtn");
+    UIButton* btnExit = btnExitNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    btnExit->setPosition({windowWidth - 225.0f,
+                          windowHeight - 75.0f});
+    btnExit->syncColliderToRect();
+    btnExit->setNormalColor(sf::Color(180, 80, 80));
+    uiCanvas.addWidget(btnExit);
   }
 
-  // ── UITextBox demo ─────────────────────────────────────────────────────
-  if (fontLoaded) {
-    auto* textBoxNode = canvasNode->createChild("DemoTextBox");
-    UITextBox* textBox = textBoxNode->addComponent<UITextBox>(sf::Vector2f{300.f, 40.f});
-    textBox->setPosition({windowWidth * 0.5f - 150.f, windowHeight * 0.75f});
-    textBox->syncColliderToRect();
-    textBox->setFont(font);
-    textBox->setCharacterSize(20);
-    textBox->setPlaceholder("Type here...");
-    uiCanvas.addWidget(textBox);
-  }
+  /*                                                                          */
+  /*                                 UI Setup                                 */
+  /****************************************************************************/
+  
+  SceneNode* gameManager = scene.createNode("GameManager");
+  gameManager->addComponent<ScriptComponent>(sfmx::UUID::createFromName("gameManager.lua"));
 
-  std::cout << "[UI] System ready - interact with the widgets\n"
-            << "[UI] Navigate: Arrow keys / WASD  |  Submit: Space / Enter  |  Cancel: Escape\n";
+  sf::Clock clock;
+
+  constexpr size_t deltasSize = 100;
+  std::array<float, deltasSize> deltas;
+  uint32 index = 0;
 
   while (window.isOpen())
   {
@@ -522,20 +440,21 @@ int main(int argc, char** argv)
 
     const float deltaTime = clock.restart().asSeconds();
 
-    // InputSystem: here is where the mappings are being executed
-    InputSystem::instance().update(deltaTime, window);
+    deltas[index] = deltaTime;
+    index = (index + 1) % deltasSize;
+    float avg = 0.0f;
+    for (uint32 i = 0; i < deltasSize; ++i) avg += deltas[index];
+    avg /= static_cast<float>(deltasSize);
 
-    // InputSystem: example of "Direct Mode".
+    debugLabel->setText(std::format("FPS: {0}\nNodes: {1}", std::round(1.0f / avg), scene.getNodeCount()));
+    
+    
+    InputSystem::instance().update(deltaTime, window);
+    
     if (Keyboard::instance().wasPressedThisFrame(Key::kEscape)) {
       window.close();
     }
-    if (Keyboard::instance().wasPressedThisFrame(Key::kSpace)) {
-      std::cout << "[Input] Space pressed\n";
-      if (nullptr != rt.moonSfx) {
-        rt.moonSfx->stop();
-        rt.moonSfx->play();
-      }
-    }
+
 #if USING(SFMX_DEBUG_MODE)
     // Dev hot-reload: F5 re-decodes each script's LuaAsset (its raw source in raw mode)
     // and re-binds it, so an edited .lua takes effect without restarting the game.
@@ -553,23 +472,6 @@ int main(int argc, char** argv)
       std::cout << "[Script] hot-reloaded (F5)\n";
     }
 #endif
-    if (Mouse::instance().wasPressedThisFrame(MouseButton::kLeft)) {
-      const Vector2i pos = Mouse::instance().getPosition();
-      std::cout << "[Input] Left click at (" << pos.x << ", " << pos.y << ")\n";
-    }
-    if (Gamepad::instance().isConnected(0)) {
-      const float lx = Gamepad::instance().get(0).getAxis(Axis::kLeftX);
-      if (lx != 0.f) {
-        std::cout << "[Input] Gamepad 0 LeftX = " << lx << "\n";
-      }
-    }
-
-    // Rotating the parent drags the child with it: proof of transform
-    // composition down the hierarchy.
-    if (nullptr != rt.sun)     { rt.sun->transform().rotate(sf::degrees(45.f * deltaTime)); }
-    if (nullptr != rt.sun2)    { rt.sun2->transform().rotate(sf::degrees(10.f * deltaTime)); }
-    if (nullptr != rt.earth)   { rt.earth->transform().rotate(sf::degrees(215.f * deltaTime)); }
-    if (nullptr != rt.neptune) { rt.neptune->transform().rotate(sf::degrees(-15.f * deltaTime)); }
 
     // Finalize any assets whose background decode completed (GPU upload on this,
     // the GL-owning thread) and fire their loadAsync callbacks BEFORE the scene
@@ -580,26 +482,34 @@ int main(int argc, char** argv)
     SceneManager::instance().update(deltaTime);
 
     window.clear(sf::Color(24, 24, 28));
+
     scenes.draw(window);
+
+    // Screen-space canvas: reset the view so coordinates match window pixels.
+    window.setView(window.getDefaultView());
+    uiCanvas.draw(window, sf::RenderStates::Default);
+
     window.display();
   }
 
-  // Release any pending async-load callbacks (they may hold Lua closures) while the
-  // script engine / Lua state is still alive — AssetManager shuts down much later.
+  // Release any pending async-load callbacks (they may hold Lua closures) and tear down
+  // the scenes (their ScriptComponents hold Lua handles) while the script engine / Lua
+  // state is still alive — ScriptEngine / AssetManager shut down just below.
   AssetManager::instance().cancelAsyncLoads();
+  SceneManager::instance().destroyAllScenes();
+
+  UIEventSystem::shutDown();
 
   ScriptEngine::shutDown();
-
+  AssetManager::shutDown();
   // Shut the scene manager down before the pools: it clears every scene, which
   // returns pooled nodes/components while the pools (and SFML) are still alive.
   SceneManager::shutDown();
   ComponentRegistry::shutDown();
 
-  InputSystem::shutDown();
-  UIEventSystem::shutDown();
   PhysicsSystem::shutDown();
+  InputSystem::shutDown();
   MemoryPoolHandler::shutDown();
-  AssetManager::shutDown();
 
   // Shut the window down last: keep its GL context alive until every sf::Texture
   // owned by the (now torn-down) AssetManager has been released.

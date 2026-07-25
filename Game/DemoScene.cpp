@@ -20,6 +20,9 @@
 #include "ui/UICheckbox.h"
 #include "ui/UITextBox.h"
 #include "ui/UISlider.h"
+#include "ui/UIVerticalBox.h"
+#include "ui/UIHorizontalBox.h"
+#include "ui/UIScrollView.h"
 
 #include "resource/SpriteAtlas.h"
 #include "resource/Frame.h"
@@ -116,28 +119,46 @@ firstByName(Scene& scene, StringView name) {
 
 void
 registerDemoPools(MemoryPoolHandler& pools) {
-  // SceneNode + SpriteComponent are sized generously for the Lua projectile stress
-  // demo (F fires bursts of bullets, each a node + sprite drawn from these pools;
-  // kMaxBullets in character.lua = 512). Fixed-capacity, reserved once at startup.
-  pools.registerPool<SceneNode>(4096);
+  pools.registerPool<SceneNode>(1024 * 100);
   pools.registerPool<CircleComponent>(64);
   pools.registerPool<SourceComponent>(4);
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<CameraComponent>(1);
-  pools.registerPool<SpriteComponent>(1024);
-  pools.registerPool<AnimatorComponent>(8);
-  pools.registerPool<Particle>(2048);
-  pools.registerPool<ParticleSystemComponent>(8);
+  pools.registerPool<SpriteComponent>(1024 * 100);
+  pools.registerPool<AnimatorComponent>(256);
+  pools.registerPool<Particle>(1024 * 10);
+  pools.registerPool<ParticleSystemComponent>(64);
   pools.registerPool<ColliderComponent>(64);
   pools.registerPool<RigidBodyComponent>(64);
-  pools.registerPool<ScriptComponent>(1024);
+  pools.registerPool<ScriptComponent>(1024 * 100);
   pools.registerPool<UIButton>(64);
   pools.registerPool<UILabel>(64);
   pools.registerPool<UIImage>(64);
   pools.registerPool<UICheckbox>(64);
   pools.registerPool<UITextBox>(64);
   pools.registerPool<UISlider>(64);
+  pools.registerPool<UIVerticalBox>(16);
+  pools.registerPool<UIHorizontalBox>(16);
+  pools.registerPool<UIScrollView>(16);
   pools.registerPool<CanvasComponent>(8);
+  
+  std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
+  std::cout << "[Info] SceneNode pool memory usage: " << pools.pool<SceneNode>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] CircleComponent pool memory usage: " << pools.pool<CircleComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] SourceComponent pool memory usage: " << pools.pool<SourceComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] ListenerComponent pool memory usage: " << pools.pool<ListenerComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] CameraComponent pool memory usage: " << pools.pool<CameraComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] SpriteComponent pool memory usage: " << pools.pool<SpriteComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] AnimatorComponent pool memory usage: " << pools.pool<AnimatorComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] Particle pool memory usage: " << pools.pool<Particle>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] ParticleSystemComponent pool memory usage: " << pools.pool<ParticleSystemComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] ColliderComponent pool memory usage: " << pools.pool<ColliderComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] RigidBodyComponent pool memory usage: " << pools.pool<RigidBodyComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] ScriptComponent pool memory usage: " << pools.pool<ScriptComponent>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] UIButton pool memory usage: " << pools.pool<UIButton>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] UILabel pool memory usage: " << pools.pool<UILabel>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] UIImage pool memory usage: " << pools.pool<UIImage>().getMemoryUsage() << std::endl;
+  std::cout << "[Info] CanvasComponent pool memory usage: " << pools.pool<CanvasComponent>().getMemoryUsage() << std::endl;
 }
 
 void
@@ -160,11 +181,41 @@ registerDemoComponents() {
   reg.registerComponent<UICheckbox>();
   reg.registerComponent<UITextBox>();
   reg.registerComponent<UISlider>();
+  reg.registerComponent<UIVerticalBox>();
+  reg.registerComponent<UIHorizontalBox>();
+  reg.registerComponent<UIScrollView>();
+}
+
+void
+poolsInfo() {
+  MemoryPoolHandler& pools = MemoryPoolHandler::instance();
+
+  std::cout << "[Info] Total SceneNode elements: " << pools.pool<SceneNode>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total CircleComponent elements: " << pools.pool<CircleComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total SourceComponent elements: " << pools.pool<SourceComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total ListenerComponent elements: " << pools.pool<ListenerComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total CameraComponent elements: " << pools.pool<CameraComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total SpriteComponent elements: " << pools.pool<SpriteComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total AnimatorComponent elements: " << pools.pool<AnimatorComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total Particle elements: " << pools.pool<Particle>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total ParticleSystemComponent elements: " << pools.pool<ParticleSystemComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total ColliderComponent elements: " << pools.pool<ColliderComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total RigidBodyComponent elements: " << pools.pool<RigidBodyComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total ScriptComponent elements: " << pools.pool<ScriptComponent>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total UIButton elements: " << pools.pool<UIButton>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total UILabel elements: " << pools.pool<UILabel>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total UIImage elements: " << pools.pool<UIImage>().getAllocatedCount() << std::endl;
+  std::cout << "[Info] Total CanvasComponent elements: " << pools.pool<CanvasComponent>().getAllocatedCount() << std::endl;
 }
 
 void
 buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   const sf::Vector2f center = {windowWidth * 0.5f, windowHeight * 0.5f};
+  
+  SceneNode* cameraNode = scene.createNode("Camera");
+  auto* camera = cameraNode->addComponent<CameraComponent>();
+  camera->setSize({windowWidth, windowHeight});
+  camera->setFollowNode(true);
 
   SceneNode* sun = scene.createNode("Sun");
   sun->transform().setPosition(center);
@@ -208,11 +259,6 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
 
   SceneNode* sun2 = scene.createNode("Sun2");
   sun2->transform().setPosition(center);
-
-  SceneNode* cameraNode = scene.createNode("Camera", sun);
-  auto* camera = cameraNode->addComponent<CameraComponent>();
-  camera->setSize({windowWidth * 2.f, windowHeight * 2.f});
-  camera->setFollowNode(true);
 
   SceneNode* earth = scene.createNode("Earth", sun);
   earth->transform().setPosition({140.f, 0.f});
@@ -465,14 +511,6 @@ buildDemoScene(Scene& scene, float windowWidth, float windowHeight) {
   else {
     std::cerr << "[SpriteAtlas] Failed to load playerwalking.png\n";
   }
-
-  // -- Spaceship: Lua script --
-  SceneNode* spaceship = scene.createNode("Spaceship");
-  spaceship->transform().setPosition({center.x, 0.f});
-  spaceship->addComponent<CircleComponent>(10.f, sf::Color(180, 180, 180));
-  // The script is a cooked LuaAsset, referenced by UUID (the cooker's id for the
-  // source path relative to resources/).
-  spaceship->addComponent<ScriptComponent>(sfmx::UUID::createFromName("character.lua"));
 }
 
 DemoRuntime

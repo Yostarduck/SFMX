@@ -54,6 +54,9 @@ class Scene
 
   /** @brief Resolve a handle to a live node, or nullptr if dead/unknown. */
   NODISCARD SceneNode* findNode(NodeId id) const;
+  
+  /** @brief Resolve a name to a live node, or nullptr if dead/unknown. */
+  NODISCARD SceneNode* findNode(StringView name) const;
 
   /** @brief Every node whose name equals @p name (names are not unique). */
   NODISCARD Vector<SceneNode*> findNodesByName(StringView name) const;
@@ -89,12 +92,19 @@ class Scene
   void registerNode(SceneNode* node);
   void unregisterNode(NodeId id);
   void destroyNodeRecursive(SceneNode* node);
+  
+  /** @brief Destroy every node queued by @ref destroyNode during the traversal. */
+  void flushDestroyQueue();
 
   Array<char, kMaxNameLength> m_name;
   SceneNode* m_root;
   Vector<CameraComponent*> m_cameras;
   NodeId m_nextId;
   UnorderedMap<NodeId, SceneNode*> m_registry;
+
+  Vector<NodeId> m_pendingDestroy;
+  
+  bool m_updating = false;
 };
 
 }  // namespace sfmx

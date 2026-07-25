@@ -48,28 +48,41 @@ UUID UIButton::getTypeId() const {
 
 // -- Pointer events ----------------------------------------------------------
 
-void UIButton::onPointerEnter(sf::Vector2f position) {
+void UIButton::triggerPointerEnter(sf::Vector2f position) {
   m_visualState = VisualState::kHovered;
   m_visualDirty = true;
-  UIWidget::onPointerEnter(position);
+  UIWidget::triggerPointerEnter(position);
 }
 
-void UIButton::onPointerExit(sf::Vector2f position) {
+void UIButton::triggerPointerExit(sf::Vector2f position) {
   m_visualState = VisualState::kNormal;
   m_visualDirty = true;
-  UIWidget::onPointerExit(position);
+  UIWidget::triggerPointerExit(position);
 }
 
-void UIButton::onPointerDown(sf::Vector2f position) {
+void UIButton::triggerPointerDown(sf::Vector2f position) {
   m_visualState = VisualState::kPressed;
   m_visualDirty = true;
-  UIWidget::onPointerDown(position);
+  UIWidget::triggerPointerDown(position);
 }
 
-void UIButton::onPointerUp(sf::Vector2f position) {
+void UIButton::triggerPointerUp(sf::Vector2f position) {
   m_visualState = VisualState::kHovered;
   m_visualDirty = true;
-  UIWidget::onPointerUp(position);
+  UIWidget::triggerPointerUp(position);
+}
+
+// -- Focus -------------------------------------------------------------------
+
+void UIButton::triggerSelect() {
+  m_visualDirty = true;
+  UIWidget::triggerSelect();
+}
+
+void UIButton::triggerDeselect() {
+  m_visualState = VisualState::kNormal;
+  m_visualDirty = true;
+  UIWidget::triggerDeselect();
 }
 
 // -- Drawing -----------------------------------------------------------------

@@ -1,5 +1,7 @@
 #include "scripts/RegisterTransformComponent.h"
 
+#include <SFML/System/Vector2.hpp>
+
 #include "core/platform/Prerequisites.h"
 #include "scene/Transform.h"
 
@@ -16,7 +18,10 @@ registerTransformComponent(sol::state_view lua) {
     sol::base_classes, sol::bases<Component>(),
 
     "setPosition", &Transform::setPosition,
-    "move", &Transform::move,
+    "move", sol::overload(
+      [](Transform& t, const sf::Vector2f& offset) { t.move(offset); },
+      [](Transform& t, float dx, float dy) { t.move(sf::Vector2f(dx, dy)); }
+    ),
 
     "setRotation", &Transform::setRotation,
     "rotate", &Transform::rotate,
