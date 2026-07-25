@@ -2,6 +2,9 @@
 
 set -e
 
+# Run from the repo root regardless of where this script is called from.
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
+
 BUILD_TYPE="Debug"
 
 if [[ -n "$1" ]]; then
