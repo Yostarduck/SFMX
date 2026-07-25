@@ -14,6 +14,9 @@ class SFMX_UTILITY_EXPORT FontCodec : public IAssetCodec
   assetType() const override { return TypeTraits<FontAsset>::getTypeId(); }
 
   NODISCARD SPtr<IAsset>
+  create() const override { return MakeShared<FontAsset>(); }
+
+  NODISCARD SPtr<IAsset>
   decode(AssetFileReader& reader) const override;
 };
 

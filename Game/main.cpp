@@ -473,6 +473,11 @@ int main(int argc, char** argv)
     }
 #endif
 
+    // Finalize any assets whose background decode completed (GPU upload on this,
+    // the GL-owning thread) and fire their loadAsync callbacks BEFORE the scene
+    // updates, so components/scripts see freshly loaded assets this same frame.
+    AssetManager::instance().finalize();
+
     UIEventSystem::instance().update(window, deltaTime);
     SceneManager::instance().update(deltaTime);
 
@@ -487,10 +492,14 @@ int main(int argc, char** argv)
     window.display();
   }
 
+  // Release any pending async-load callbacks (they may hold Lua closures) and tear down
+  // the scenes (their ScriptComponents hold Lua handles) while the script engine / Lua
+  // state is still alive — ScriptEngine / AssetManager shut down just below.
+  AssetManager::instance().cancelAsyncLoads();
   SceneManager::instance().destroyAllScenes();
 
   UIEventSystem::shutDown();
-  
+
   ScriptEngine::shutDown();
   AssetManager::shutDown();
   // Shut the scene manager down before the pools: it clears every scene, which

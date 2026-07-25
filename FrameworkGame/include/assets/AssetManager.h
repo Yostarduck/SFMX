@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>
 #include <typeindex>
 
 #include "core/platform/Prerequisites.h"
@@ -34,8 +35,13 @@ concept AssetType = std::is_base_of_v<IAsset, T>;
  * then @c load by UUID. Decoding is dispatched by @c assetType through the owned
  * @ref AssetCodecRegistry; loaded assets are cached and shared via @c SPtr.
  *
- * Loading is synchronous in v1 (async is a later milestone). Assets are created
- * at load time and are not pooled.
+ * Two load paths share one cache. The synchronous @ref load / @ref loadSync decode
+ * now and block. @ref loadAsync hands the IO + CPU decode to a worker thread and
+ * returns immediately; the main-thread @ref finalize pump (called once per frame)
+ * completes any GPU upload, caches the asset, and fires the callback. The intended
+ * usage is eager loading at load/level time — @c loadAsync exists for that seam but
+ * is not required for a game that loads everything up front. Assets are created at
+ * load time and are not pooled.
  */
 class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
 {
@@ -106,6 +112,49 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
   NODISCARD SPtr<T>
   load(const UUID& id);
 
+  /** @brief Explicit synchronous alias of @ref load (reads + decodes now, blocking). */
+  NODISCARD FORCEINLINE SPtr<IAsset>
+  loadSync(const UUID& id) { return load(id); }
+
+  /**
+   * @brief Kick off a background decode of @p id, invoking @p onLoaded once it is
+   *        ready (or failed). Returns immediately.
+   *
+   * The worker thread does the IO + CPU decode; the main-thread @ref finalize pump
+   * completes any GPU upload, caches the asset, and fires @p onLoaded with it (check
+   * @c asset->state() for success). @p onLoaded always fires from the pump on the
+   * main thread — even on a cache hit — so it is safe to create nodes / touch pools
+   * from it, and the timing is uniform. Multiple @c loadAsync calls for the same @p id
+   * coalesce into one decode; every callback fires. The returned handle is the
+   * (possibly still @ref AssetState::kLoading) asset; ignoring it is fine.
+   *
+   * @return The shared asset (already cached, in flight, or freshly created), or
+   *         @c nullptr if @p id is not cataloged or has no codec.
+   */
+  SPtr<IAsset>
+  loadAsync(const UUID& id, Function<void(SPtr<IAsset>)> onLoaded = {});
+
+  /**
+   * @brief Per-frame pump: finalize assets whose background decode completed and fire
+   *        their @ref loadAsync callbacks. Call once per frame on the main thread.
+   *
+   * Bounded and allocation-free when idle. This is where @c kLoading → @c kLoaded
+   * (GPU upload) happens, so components created this frame see freshly loaded assets.
+   */
+  void
+  finalize();
+
+  /**
+   * @brief Join the worker and drop all pending async loads and their callbacks.
+   *
+   * Call this once when tearing down, BEFORE any subsystem a callback might reference
+   * (e.g. the Lua state) is shut down — @ref onShutDown runs late in the Module order,
+   * so lingering Lua-closure callbacks would otherwise be destroyed after Lua is gone.
+   * Idempotent; @ref onShutDown also calls it.
+   */
+  void
+  cancelAsyncLoads();
+
   /** @brief The cached asset for @p id, or @c nullptr if not loaded (no decode). */
   NODISCARD SPtr<IAsset>
   get(const UUID& id) const;
@@ -168,8 +217,12 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
 #endif // USING(SFMX_DEBUG_MODE)
 
  protected:
-  // Destroys cached assets while SFML is still alive (call shutDown before the
-  // render window dies — same ordering rule as the other Modules).
+  // Spawns the async-load worker thread (idle until the first loadAsync).
+  void
+  onStartUp() override;
+
+  // Joins the worker, then destroys cached assets while SFML is still alive (call
+  // shutDown before the render window dies — same ordering rule as the other Modules).
   void
   onShutDown() override;
 
@@ -181,6 +234,31 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
     FileSystemPath path;
     AssetMetadata  metadata;
   };
+
+  // -- Async loading (worker thread + main-thread finalize pump) --------------------
+  // A load in flight: one job on the worker, N callbacks waiting on the main thread.
+  struct LoadJob {
+    UUID           id;
+    SPtr<IAsset>   asset;   // shared with m_inflight; only one thread touches it at a time
+    FileSystemPath path;
+  };
+  struct PendingLoad {
+    SPtr<IAsset>                         asset;
+    Vector<Function<void(SPtr<IAsset>)>> callbacks;
+  };
+  // A cache-hit callback deferred to the next pump (uniform timing, no reentrancy).
+  struct ReadyCallback {
+    SPtr<IAsset>                 asset;
+    Function<void(SPtr<IAsset>)> callback;
+  };
+
+  // Worker body: pops jobs, does IO + decodeCPU, pushes ids to the done queue.
+  void
+  workerLoop();
+
+  // Main thread: finalize one completed asset, cache it, fire its callbacks.
+  void
+  finalizeCompleted(const UUID& id);
 
   // Type-erased per-output-type decoder tables: one DecoderTable<TOutput> per output
   // type (sf::Image, sf::SoundBuffer, ...), each mapping ChunkFormat -> decoder. This
@@ -197,6 +275,26 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
   UnorderedMap<UUID, SPtr<IAsset>>  m_cache;     // Loaded
   UnorderedSet<UUID>                m_loading;   // guards against reference cycles
   AssetCodecRegistry                m_codecs;
+
+  // Async loading. The worker owns nothing shared except the two queues (mutex-guarded);
+  // m_inflight / m_readyCallbacks / m_cache are touched only on the main thread, so no
+  // lock is needed on the manager's maps. An asset is handed worker↔main via the queues,
+  // so exactly one thread accesses a given asset object at a time.
+  //
+  // The worker DOES read some manager state without a lock: m_decoders (via
+  // TextureAsset::decodeCPU -> findDecoder) and, in debug, the raw-script flags. That is
+  // safe only because both are populated once at startup (registerDecoder / setRawScriptMode,
+  // before the first loadAsync) and never mutated while loads are in flight. Keep it that way:
+  // registering a decoder mid-load would be a data race.
+  Thread                            m_worker;
+  Mutex                             m_jobMutex;
+  std::condition_variable           m_jobCv;
+  Deque<LoadJob>                    m_jobQueue;        // main → worker
+  Mutex                             m_doneMutex;
+  Deque<UUID>                       m_doneQueue;       // worker → main
+  Atomic<bool>                      m_workerStop{false};
+  UnorderedMap<UUID, PendingLoad>   m_inflight;        // main-thread only
+  Vector<ReadyCallback>             m_readyCallbacks;  // main-thread only (cache-hit deferrals)
 #if USING(SFMX_DEBUG_MODE)
   bool                              m_rawScripts   = false;       // debug-only dev flag
   String                            m_rawScriptDir = "resources"; // raw source dir (content-root-relative)

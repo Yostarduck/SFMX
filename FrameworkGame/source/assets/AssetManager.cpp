@@ -147,6 +147,179 @@ AssetManager::reload(const UUID& id) {
   return load(id);
 }
 
+// ---------------------------------------------------------------------------------
+// Async loading
+// ---------------------------------------------------------------------------------
+
+SPtr<IAsset>
+AssetManager::loadAsync(const UUID& id, Function<void(SPtr<IAsset>)> onLoaded) {
+  // Already decoded and cached: defer the callback to the pump so its timing matches
+  // the in-flight case (always fired next finalize, on the main thread).
+  const auto cached = m_cache.find(id);
+  if (cached != m_cache.end()) {
+    if (onLoaded) {
+      m_readyCallbacks.push_back(ReadyCallback{cached->second, std::move(onLoaded)});
+    }
+    return cached->second;
+  }
+
+  // Already in flight: attach this callback to the existing job, do not enqueue again.
+  const auto pending = m_inflight.find(id);
+  if (pending != m_inflight.end()) {
+    if (onLoaded) {
+      pending->second.callbacks.push_back(std::move(onLoaded));
+    }
+    return pending->second.asset;
+  }
+
+  const auto entry = m_catalog.find(id);
+  if (entry == m_catalog.end()) {
+    std::cerr << "AssetManager::loadAsync: unknown asset " << id.toString()
+              << " (not mounted)" << std::endl;
+    if (onLoaded) {
+      onLoaded(nullptr);  // hard failure, nothing to decode — report immediately
+    }
+    return nullptr;
+  }
+
+  const IAssetCodec* codec = m_codecs.find(entry->second.metadata.assetType);
+  if (nullptr == codec) {
+    std::cerr << "AssetManager::loadAsync: no codec for assetType "
+              << entry->second.metadata.assetType.toString() << " (asset "
+              << id.toString() << ")" << std::endl;
+    if (onLoaded) {
+      onLoaded(nullptr);
+    }
+    return nullptr;
+  }
+
+  SPtr<IAsset> asset = codec->create();
+  if (nullptr == asset) {
+    if (onLoaded) {
+      onLoaded(nullptr);
+    }
+    return nullptr;
+  }
+  // Stamp the cataloged metadata and mark it in flight before handing it to the worker.
+  asset->setMetadata(entry->second.metadata);
+  asset->setState(AssetState::kLoading);
+
+  PendingLoad& p = m_inflight[id];
+  p.asset = asset;
+  if (onLoaded) {
+    p.callbacks.push_back(std::move(onLoaded));
+  }
+
+  {
+    LockGuard<Mutex> lock(m_jobMutex);
+    m_jobQueue.push_back(LoadJob{id, asset, entry->second.path});
+  }
+  m_jobCv.notify_one();
+
+  return asset;
+}
+
+void
+AssetManager::workerLoop() {
+  for (;;) {
+    LoadJob job;
+    {
+      std::unique_lock<Mutex> lock(m_jobMutex);
+      m_jobCv.wait(lock, [this] {
+        return m_workerStop.load() || !m_jobQueue.empty();
+      });
+      if (m_workerStop.load() && m_jobQueue.empty()) {
+        return;
+      }
+      job = std::move(m_jobQueue.front());
+      m_jobQueue.pop_front();
+    }
+
+    // IO + CPU decode off the main thread. MUST NOT touch pools, m_cache, m_catalog,
+    // or any GL resource — only the job's own asset object (which no other thread
+    // touches until we hand it back via the done queue).
+    SPtr<DataStream> stream = FileSystem::openFile(job.path, AccessMode::kRead);
+    AssetFileReader reader;
+    if (nullptr != stream && reader.open(stream)) {
+      job.asset->decodeCPU(reader);  // sets kLoading (cpu ok) or kFailed
+      reader.close();
+    }
+    else {
+      job.asset->setState(AssetState::kFailed);
+    }
+    stream.reset();  // release the file handle (Windows locks open files)
+
+    {
+      LockGuard<Mutex> lock(m_doneMutex);
+      m_doneQueue.push_back(job.id);
+    }
+  }
+}
+
+void
+AssetManager::finalize() {
+  // Drain everything the worker finished since the last pump.
+  for (;;) {
+    UUID id;
+    {
+      LockGuard<Mutex> lock(m_doneMutex);
+      if (m_doneQueue.empty()) {
+        break;  // idle path: one lock, no allocation
+      }
+      id = m_doneQueue.front();
+      m_doneQueue.pop_front();
+    }
+    finalizeCompleted(id);
+  }
+
+  // Fire cache-hit callbacks deferred by loadAsync. Swap out first so a callback that
+  // itself calls loadAsync (re-entrancy) does not mutate the vector we iterate.
+  if (!m_readyCallbacks.empty()) {
+    Vector<ReadyCallback> ready;
+    ready.swap(m_readyCallbacks);
+    for (ReadyCallback& r : ready) {
+      if (r.callback) {
+        r.callback(r.asset);
+      }
+    }
+  }
+}
+
+void
+AssetManager::finalizeCompleted(const UUID& id) {
+  const auto it = m_inflight.find(id);
+  if (it == m_inflight.end()) {
+    return;  // shut down mid-flight, or already handled
+  }
+
+  SPtr<IAsset> asset = it->second.asset;
+
+  // Main-thread phase 2 (GPU upload etc.). Byte/PCM assets already reached kLoaded on
+  // the worker, so their finalize() is a no-op; a failed CPU decode skips it.
+  if (asset->state() != AssetState::kFailed) {
+    asset->finalize();
+  }
+
+  if (AssetState::kLoaded == asset->state()) {
+    // emplace (not assign): if a synchronous load() cached this id while the async
+    // decode was in flight, the sync copy stays authoritative and this one is dropped
+    // from the cache. Callbacks below still receive this asset — harmless, since both
+    // decode the same bytes; only relevant if sync and async are mixed for one id.
+    m_cache.emplace(id, asset);
+  }
+
+  // Move the callbacks out and drop the in-flight entry before firing them: a callback
+  // may re-enter loadAsync for this same id (now a clean cache hit / fresh load).
+  Vector<Function<void(SPtr<IAsset>)>> callbacks = std::move(it->second.callbacks);
+  m_inflight.erase(it);
+
+  for (Function<void(SPtr<IAsset>)>& cb : callbacks) {
+    if (cb) {
+      cb(asset);  // caller inspects asset->state() for success/failure
+    }
+  }
+}
+
 #if USING(SFMX_DEBUG_MODE)
 void
 AssetManager::setRawScriptMode(bool enabled, StringView sourceDir) {
@@ -156,7 +329,41 @@ AssetManager::setRawScriptMode(bool enabled, StringView sourceDir) {
 #endif
 
 void
+AssetManager::onStartUp() {
+  // Spawn the async-load worker; it idle-waits on the job CV until the first loadAsync.
+  m_workerStop.store(false);
+  m_worker = Thread(&AssetManager::workerLoop, this);
+}
+
+void
+AssetManager::cancelAsyncLoads() {
+  // Stop and join the worker first, so it is no longer touching any asset afterwards.
+  m_workerStop.store(true);
+  m_jobCv.notify_all();
+  if (m_worker.joinable()) {
+    m_worker.join();
+  }
+
+  // Drop still-in-flight / completed-but-unfinalized loads and their callbacks. The
+  // callbacks may hold Lua closures, so releasing them here (while the caller
+  // guarantees Lua is alive) avoids destroying them after the script engine is gone.
+  {
+    LockGuard<Mutex> lock(m_jobMutex);
+    m_jobQueue.clear();
+  }
+  {
+    LockGuard<Mutex> lock(m_doneMutex);
+    m_doneQueue.clear();
+  }
+  m_inflight.clear();
+  m_readyCallbacks.clear();
+}
+
+void
 AssetManager::onShutDown() {
+  // Join the worker and release pending callbacks (idempotent if already cancelled).
+  cancelAsyncLoads();
+
   // Destroy cached assets (e.g. sf::Texture) while SFML is still alive.
   m_cache.clear();
   m_catalog.clear();

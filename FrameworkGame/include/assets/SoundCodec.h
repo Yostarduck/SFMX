@@ -21,6 +21,9 @@ class SFMX_UTILITY_EXPORT SoundCodec : public IAssetCodec
   assetType() const override { return TypeTraits<SoundAsset>::getTypeId(); }
 
   NODISCARD SPtr<IAsset>
+  create() const override { return MakeShared<SoundAsset>(); }
+
+  NODISCARD SPtr<IAsset>
   decode(AssetFileReader& reader) const override;
 };
 

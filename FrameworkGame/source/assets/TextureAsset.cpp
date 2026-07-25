@@ -11,6 +11,15 @@ namespace sfmx
 
 bool
 TextureAsset::decodeFrom(AssetFileReader& reader) {
+  // Synchronous path: the CPU decode and the GPU upload both run here, on the
+  // caller's (GL-owning) thread. Split into the same two phases the async path uses.
+  return decodeCPU(reader) && finalize();
+}
+
+bool
+TextureAsset::decodeCPU(AssetFileReader& reader) {
+  // WORKER thread: decode the image bytes to a CPU sf::Image only. No GL/GPU here —
+  // the upload is deferred to finalize() on the main thread.
   setMetadata(reader.metadata());
 
   if (reader.chunkCount() == 0) {
@@ -34,16 +43,21 @@ TextureAsset::decodeFrom(AssetFileReader& reader) {
           ? AssetManager::instance().findDecoder<sf::Image>(reader.chunk(0).format)
           : nullptr;
 
-  bool ok = false;
-  if (decoder) {
-    sf::Image image;
-    ok = decoder->decode(bytes.data(), bytes.size(), image) &&
-         m_texture.loadFromImage(image);
-  }
-  else {
-    ok = m_texture.loadFromMemory(bytes.data(), bytes.size());
-  }
+  const bool ok = decoder
+                      ? decoder->decode(bytes.data(), bytes.size(), m_pendingImage)
+                      : m_pendingImage.loadFromMemory(bytes.data(), bytes.size());
 
+  // Stay kLoading on success (the GPU upload in finalize completes the load);
+  // fail fast otherwise so the pump skips the upload.
+  setState(ok ? AssetState::kLoading : AssetState::kFailed);
+  return ok;
+}
+
+bool
+TextureAsset::finalize() {
+  // MAIN thread: upload the CPU image to the GPU texture (needs the GL context).
+  const bool ok = m_texture.loadFromImage(m_pendingImage);
+  m_pendingImage = sf::Image();  // release the transient CPU pixels
   setState(ok ? AssetState::kLoaded : AssetState::kFailed);
   return ok;
 }

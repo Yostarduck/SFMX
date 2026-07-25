@@ -40,7 +40,12 @@ registerSceneManager(sol::state_view lua) {
     "getSceneCount", &SceneManager::getSceneCount
   );
 
-  lua["SceneManager"] = std::ref(SceneManager::instance());
+  // Only bind the singleton global if the module is up: bindings are registered from
+  // ScriptEngine::onStartUp, which may run before SceneManager::startUp (e.g. in tests
+  // that drive a Scene directly without the manager). instance() throws if not started.
+  if (SceneManager::isStarted()) {
+    lua["SceneManager"] = std::ref(SceneManager::instance());
+  }
 }
 
 }  // namespace script

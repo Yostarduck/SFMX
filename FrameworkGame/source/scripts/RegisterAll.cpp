@@ -34,6 +34,7 @@
 #include "scripts/RegisterSceneManager.h"
 #include "scripts/RegisterScene.h"
 #include "scripts/RegisterSceneNode.h"
+#include "scripts/RegisterAssetManager.h"
 
 #include "scripts/RegisterUIWidget.h"
 #include "scripts/RegisterUIButton.h"

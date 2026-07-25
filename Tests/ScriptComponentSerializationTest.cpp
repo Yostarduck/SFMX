@@ -68,11 +68,12 @@ struct ManagerScope {
   }
 };
 
-// Cook a minimal valid Lua script (returns a per-frame function) into a LuaAsset
-// `.sfmxasset` with the given id, inside dir.
+// Cook a minimal valid Lua script into a LuaAsset `.sfmxasset` with the given id,
+// inside dir. The ScriptEngine expects a script to return a table of hooks
+// (onCreated / onStart / onUpdate / onDestroyed).
 void
 writeLuaAsset(const FileSystemPath& dir, const sfmx::UUID& id) {
-  const String body = "return function(self, dt) end\n";
+  const String body = "return { onUpdate = function(self, dt) end }\n";
 
   AssetFileWriter writer;
   AssetMetadata meta;

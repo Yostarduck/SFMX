@@ -11,6 +11,7 @@ add_executable(UnitTests
     AssetCodecTest.cpp
     LuaAssetTest.cpp
     AssetManagerTest.cpp
+    AsyncLoadTest.cpp
     ComponentRegistryTest.cpp
     SceneSerializerTest.cpp
     ComponentSerializationTest.cpp

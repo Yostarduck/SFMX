@@ -21,6 +21,9 @@ class SFMX_UTILITY_EXPORT LuaCodec : public IAssetCodec
   assetType() const override { return TypeTraits<LuaAsset>::getTypeId(); }
 
   NODISCARD SPtr<IAsset>
+  create() const override { return MakeShared<LuaAsset>(); }
+
+  NODISCARD SPtr<IAsset>
   decode(AssetFileReader& reader) const override;
 };
 

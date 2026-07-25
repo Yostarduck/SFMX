@@ -21,6 +21,9 @@ class SFMX_UTILITY_EXPORT TextureCodec : public IAssetCodec
   assetType() const override { return TypeTraits<TextureAsset>::getTypeId(); }
 
   NODISCARD SPtr<IAsset>
+  create() const override { return MakeShared<TextureAsset>(); }
+
+  NODISCARD SPtr<IAsset>
   decode(AssetFileReader& reader) const override;
 };
 

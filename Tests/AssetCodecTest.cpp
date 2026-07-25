@@ -24,11 +24,20 @@ struct DummyAsset : AssetT<DummyAsset> {
     setMetadata(meta);
     setState(AssetState::kLoaded);
   }
+
+  bool
+  decodeFrom(AssetFileReader& reader) override {
+    loadDummy(reader.metadata());
+    return true;
+  }
 };
 
 struct DummyCodec : IAssetCodec {
   const sfmx::UUID&
   assetType() const override { return TypeTraits<DummyAsset>::getTypeId(); }
+
+  SPtr<IAsset>
+  create() const override { return MakeShared<DummyAsset>(); }
 
   SPtr<IAsset>
   decode(AssetFileReader& reader) const override {
