@@ -83,6 +83,15 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   NODISCARD FORCEINLINE bool
   isInitialized() const { return m_initialized; }
 
+  /** @brief The script's returned table: its lifecycle hooks plus any state the
+   *         script chooses to publish as fields. Bound to Lua as
+   *         `scriptComponent:instance()`, so another script can read or write
+   *         shared fields on it, e.g. `other:instance().speed = 200`. Invalid
+   *         (nil in Lua) until the script is bound. Lua locals stay private —
+   *         only table fields are reachable this way. */
+  NODISCARD FORCEINLINE const sol::table&
+  getInstanceTable() const { return m_instance; }
+
  private:
   friend ScriptEngine;
 
@@ -101,7 +110,9 @@ class ScriptComponent : public ComponentT<ScriptComponent>
 
   SPtr<LuaAsset>          m_scriptAsset;                 // keep-alive for the resolved script
   UUID                    m_scriptAssetId = UUID::null();
-  
+
+  sol::table              m_instance;                    // the script's returned table (hooks + published state)
+
   sol::protected_function m_onCreated;
   sol::protected_function m_onStart;
   sol::protected_function m_onUpdate;
