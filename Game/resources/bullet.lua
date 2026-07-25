@@ -1,55 +1,47 @@
--- Simple Lua script to control a bullet
 -- File: bullet.lua
-
-local lifetime = 0.0
-local maxLifetime = 10.0
-
--- Precomputed straight-line velocity (world units/sec), filled in onStart.
--- A bullet's rotation never changes, so we resolve the direction once instead
--- of allocating Vector2f/Angle userdata every frame.
-local vx = 0.0
-local vy = 0.0
-
--- Script driven by a ScriptComponent.
---
--- A script must return a table of optional lifecycle hooks, as below. Each hook
--- receives the owning SceneNode as `self`; onUpdate also receives the frame
--- delta.
---
---   onCreated(self)            -- once, after the component is linked to the node
---   onStart(self)              -- once, just before the first onUpdate
---   onUpdate(self, deltaTime)  -- every frame
---   onDestroyed(self)          -- once, when the component is destroyed
---
--- Two nodes can share this same file but each receives its own owner.
+-- Simple Lua script to control a bullet
 local Bullet = {}
 
--- Published as a table field (not a local) so other scripts can override it via
--- scriptComponent:instance().speed before the bullet starts. onStart reads it
--- once to fill in the constant velocity below.
-Bullet.speed = 100
-
 function Bullet.onCreated(self)
-  -- The node is fully linked here, so owner queries like getName() are valid.
+  self.gameManager = nil
+
+  self.speed = 10
+  self.maxLifetime = 20.0
+  self.damage = 1
 end
 
 function Bullet.onStart(self)
-  lifetime = 0.0
-
-  -- Resolve the constant velocity from the (fixed) spawn rotation just once.
-  local rotation = self:transform():getRotation()
-  local direction = Vector2f(1, 0):rotatedBy(rotation)
-  vx = direction.x * Bullet.speed
-  vy = direction.y * Bullet.speed
+  self.lifetime = 0.0
+  
+  local rotation = self.transform:getRotation()
+  self.velocity = Vector2f(self.speed, 0):rotatedBy(rotation)
 end
 
 function Bullet.onUpdate(self, deltaTime)
-  -- Hot path: only a scalar move, no Lua userdata allocations.
-  self:transform():move(vx * deltaTime, vy * deltaTime)
+  if self.gameManager.targetEnemy ~= nil then
+    diff = self.gameManager.targetEnemy.transform:getPosition() - self.transform:getPosition()
+    len = diff:lengthSquared()
+    
+    if len < 1000 then
+      SceneManager:getActiveScene():destroyNode(self.owner)
+      
+      self.gameManager.targetEnemy.script:damage(self.damage)
+      return
+    end
 
-  lifetime = lifetime + deltaTime
-  if lifetime >= maxLifetime then
-    SceneManager:getActiveScene():destroyNode(self)
+    curAngle = self.velocity:angle()
+    tarAngle = diff:angle()
+
+    angle = tarAngle - curAngle
+
+    self.velocity = self.velocity:rotatedBy(angle * deltaTime)
+  end
+
+  self.transform:move(self.velocity * deltaTime)
+
+  self.lifetime = self.lifetime + deltaTime
+  if self.lifetime >= self.maxLifetime then
+    SceneManager:getActiveScene():destroyNode(self.owner)
   end
 end
 
