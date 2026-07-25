@@ -53,7 +53,7 @@ ScriptComponent::onUpdate(float deltaTime) {
     return;
   }
 
-  sol::protected_function_result result = m_onUpdate(getOwner(), deltaTime);
+  sol::protected_function_result result = m_onUpdate(m_instance, deltaTime);
   if (!result.valid()) {
     const sol::error err = result;
     // TODO: log error
@@ -80,7 +80,7 @@ ScriptComponent::callHook(const sol::protected_function& fn) {
     return;
   }
 
-  sol::protected_function_result result = fn(getOwner());
+  sol::protected_function_result result = fn(m_instance);
   if (!result.valid()) {
     const sol::error err = result;
     // TODO: log error
@@ -114,6 +114,10 @@ ScriptComponent::setScriptAsset(SPtr<LuaAsset> asset) {
   // Compile + bind the Lua function from the asset's text, when both are running.
   if (nullptr != asset && asset->isLoaded() && ScriptEngine::isStarted()) {
     ScriptEngine::instance().initializeScript(this);
+    if (m_initialized) {
+      m_instance["owner"] = getOwner();
+      m_instance["transform"] = &getOwner()->transform();
+    }
     triggerOnCreated();
   }
 }
