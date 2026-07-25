@@ -63,6 +63,10 @@ ScriptEngine::loadScript(ScriptComponent* scriptComponent) {
   }
 
   const sol::table hooks = returned;
+  // Retain the whole table so other scripts can reach its published fields
+  // through scriptComponent:instance(); the hooks below are just cached lookups
+  // into this same table.
+  scriptComponent->m_instance    = hooks;
   scriptComponent->m_onCreated   = hooks["onCreated"];
   scriptComponent->m_onStart     = hooks["onStart"];
   scriptComponent->m_onUpdate    = hooks["onUpdate"];
