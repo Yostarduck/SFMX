@@ -18,6 +18,22 @@ function setData(type, health, damage, speed, spriteID)
   m_spriteComponent = self:addComponent(SpriteComponent)
 end
 
+function getHealth()
+  return m_health
+end
+
+function getDamage()
+  return m_damage
+end
+
+function getSpeed()
+  return m_speed
+end
+
+function getEntityType()
+  return m_entityType
+end
+
 function Entity.onCreated(self)
 
 end
