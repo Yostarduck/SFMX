@@ -30,8 +30,8 @@ enum class AssetState : uint8 {
 /**
  * @brief Base for every loadable runtime resource (texture, audio, mesh, ...).
  *
- * An asset is created at *load time* (never in the game loop[not yet at least]) and owned through
- * an @c SPtr by the AssetManager's cache (TODO); it is not pooled. It carries its
+ * An asset is created at *load time* (not in the steady-state game loop) and owned
+ * through an @c SPtr by the AssetManager's cache; it is not pooled. It carries its
  * @ref AssetMetadata (id, assetType, name, ...) and a @ref AssetState. The codec
  * for its @c assetType fills the concrete resource and flips the state.
  *

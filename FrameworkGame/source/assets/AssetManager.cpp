@@ -301,6 +301,10 @@ AssetManager::finalizeCompleted(const UUID& id) {
   }
 
   if (AssetState::kLoaded == asset->state()) {
+    // emplace (not assign): if a synchronous load() cached this id while the async
+    // decode was in flight, the sync copy stays authoritative and this one is dropped
+    // from the cache. Callbacks below still receive this asset — harmless, since both
+    // decode the same bytes; only relevant if sync and async are mixed for one id.
     m_cache.emplace(id, asset);
   }
 

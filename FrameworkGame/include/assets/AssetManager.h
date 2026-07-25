@@ -35,8 +35,13 @@ concept AssetType = std::is_base_of_v<IAsset, T>;
  * then @c load by UUID. Decoding is dispatched by @c assetType through the owned
  * @ref AssetCodecRegistry; loaded assets are cached and shared via @c SPtr.
  *
- * Loading is synchronous in v1 (async is a later milestone). Assets are created
- * at load time and are not pooled.
+ * Two load paths share one cache. The synchronous @ref load / @ref loadSync decode
+ * now and block. @ref loadAsync hands the IO + CPU decode to a worker thread and
+ * returns immediately; the main-thread @ref finalize pump (called once per frame)
+ * completes any GPU upload, caches the asset, and fires the callback. The intended
+ * usage is eager loading at load/level time — @c loadAsync exists for that seam but
+ * is not required for a game that loads everything up front. Assets are created at
+ * load time and are not pooled.
  */
 class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
 {
@@ -275,6 +280,12 @@ class SFMX_UTILITY_EXPORT AssetManager : public Module<AssetManager>
   // m_inflight / m_readyCallbacks / m_cache are touched only on the main thread, so no
   // lock is needed on the manager's maps. An asset is handed worker↔main via the queues,
   // so exactly one thread accesses a given asset object at a time.
+  //
+  // The worker DOES read some manager state without a lock: m_decoders (via
+  // TextureAsset::decodeCPU -> findDecoder) and, in debug, the raw-script flags. That is
+  // safe only because both are populated once at startup (registerDecoder / setRawScriptMode,
+  // before the first loadAsync) and never mutated while loads are in flight. Keep it that way:
+  // registering a decoder mid-load would be a data race.
   Thread                            m_worker;
   Mutex                             m_jobMutex;
   std::condition_variable           m_jobCv;
