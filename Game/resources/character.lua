@@ -6,6 +6,7 @@ local speed = 500.0
 local scene
 local cameraComponent
 local myTransform
+local labelInfoComponent
 local currentPosition = Vector2f(0, 0)
 
 -- Script driven by a ScriptComponent.
@@ -40,7 +41,48 @@ function Character.onCreated(self)
   cameraComponent = scene:getCamera()
 end
 
-function Character.onUpdate(self, deltaTime)  
+function Character.onStart(self)
+  print("Character script started")
+
+  if scene == nil then
+    scene = SceneManager:getActiveScene()
+  end
+
+  buttonNode = scene:findNode("StartBtn")
+  if buttonNode == nil then
+    print("StartBtn node not found in scene")
+    return
+  end
+  
+  uiButtonComponent = buttonNode:getComponent(UIButton)
+  if uiButtonComponent == nil then
+    print("UIButton component not found on StartBtn node")
+    return
+  end
+
+  ownScriptComponent = self:getComponent(ScriptComponent)
+  if ownScriptComponent == nil then
+    print("ScriptComponent not found on character node")
+    return
+  end
+
+  uiButtonComponent:onPointerClick(ownScriptComponent, "customAction")
+  print("Registered customAction callback for StartBtn")
+
+  labelNode = scene:findNode("InfoLabel")
+  if labelNode == nil then
+    print("InfoLabel node not found in scene")
+    return
+  end
+
+  labelInfoComponent = labelNode:getComponent(UILabel)
+  if labelInfoComponent == nil then
+    print("UILabel component not found on InfoLabel node")
+    return
+  end
+end
+
+function Character.onUpdate(self, deltaTime)
   if scene == nil then
     scene = SceneManager:getActiveScene()
   end
@@ -79,6 +121,15 @@ function Character.onUpdate(self, deltaTime)
     fireBullet(angle)
   end
 
+  if labelInfoComponent ~= nil then
+    local infoText = string.format("Position: (%.2f, %.2f)", currentPosition.x, currentPosition.y)
+    labelInfoComponent:setText(infoText)
+  end
+
+end
+
+function Character.customAction(self)
+  print("Custom action triggered!")
 end
 
 return Character

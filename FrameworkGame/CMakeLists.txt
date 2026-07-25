@@ -142,6 +142,16 @@ add_library(FrameworkGame STATIC
 
     source/scripts/RegisterUIWidget.cpp
 
+    source/scripts/RegisterUIButton.cpp
+    source/scripts/RegisterUICheckbox.cpp
+    source/scripts/RegisterUIHorizontalBox.cpp
+    source/scripts/RegisterUIImage.cpp
+    source/scripts/RegisterUILabel.cpp
+    source/scripts/RegisterUIScrollView.cpp
+    source/scripts/RegisterUISlider.cpp
+    source/scripts/RegisterUITextBox.cpp
+    source/scripts/RegisterUIVerticalBox.cpp
+
     source/scripts/RegisterScene.cpp
     source/scripts/RegisterSceneNode.cpp
     source/scripts/RegisterSceneManager.cpp

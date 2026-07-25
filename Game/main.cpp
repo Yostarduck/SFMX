@@ -667,6 +667,20 @@ int main(int argc, char** argv)
     textBox->setPlaceholder("Type here...");
     uiCanvas.addWidget(textBox);
   }
+  
+  if (fontLoaded) {
+    auto* lblNode = canvasNode->createChild("InfoLabel");
+    auto* label = lblNode->addComponent<UILabel>(sf::Vector2f{float(windowWidth), 50.f});
+    label->setPivot(sf::Vector2f{0.5f, 1.0f});
+    label->setPosition(sf::Vector2f{0.0f, windowHeight - 50.f});
+    label->setFontAsset(fontAsset);
+    label->setText("Character position: (0, 0)");
+    label->setCharacterSize(22);
+    label->setTextColor(sf::Color::White);
+    uiCanvas.addWidget(label);
+  } else {
+    std::cout << "[UI] Could not load DejaVuSans font; skipping label\n";
+  }
 
   std::cout << "[UI] System ready - interact with the widgets\n"
             << "[UI] Navigate: Arrow keys / WASD  |  Submit: Space / Enter  |  Cancel: Escape\n";
