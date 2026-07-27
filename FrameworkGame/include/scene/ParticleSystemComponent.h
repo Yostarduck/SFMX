@@ -8,6 +8,7 @@
 #include <SFML/System/Angle.hpp>
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
 #include "scene/Component.h"
 #include "scene/SceneNode.h"
 #include "utils/MemoryPoolHandler.h"

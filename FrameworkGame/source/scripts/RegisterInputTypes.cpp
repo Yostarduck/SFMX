@@ -1,6 +1,7 @@
 #include "scripts/RegisterInputTypes.h"
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
 #include "input/InputTypes.h"
 
 namespace sfmx

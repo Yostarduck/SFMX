@@ -7,6 +7,8 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
+#include "core/platform/STDHeaders.h"
 #include "core/physics/PhysicsSystem.h"
 #include "scene/CameraComponent.h"
 #include "scene/Component.h"

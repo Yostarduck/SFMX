@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Font.hpp>
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/STDHeaders.h"
 #include "assets/Asset.h"
 
 namespace sfmx

@@ -4,6 +4,7 @@
 #include <SFML/Graphics/Rect.hpp>
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/STDHeaders.h"
 
 namespace sfmx::Atlas
 {

@@ -16,6 +16,9 @@
 #include "scene/Component.h"
 #include "utils/UUID.h"
 
+#include "core/platform/Pointer.h"
+#include "core/platform/String.h"
+
 namespace sfmx
 {
 

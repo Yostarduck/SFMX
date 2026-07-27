@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
 #include "utils/UUID.h"
 
 namespace sfmx

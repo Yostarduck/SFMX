@@ -3,6 +3,9 @@
 #include <typeindex>
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
+#include "core/platform/STDHeaders.h"
+#include "core/platform/String.h"
 #include "assets/Asset.h"
 #include "assets/AssetCodecRegistry.h"
 #include "assets/AssetMetadata.h"

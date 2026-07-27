@@ -1,6 +1,7 @@
 #include "scripts/RegisterIAsset.h"
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
 #include "assets/Asset.h"
 #include "assets/AssetMetadata.h"
 

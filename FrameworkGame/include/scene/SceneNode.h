@@ -4,6 +4,8 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
+#include "core/platform/STDHeaders.h"
 #include "scene/Component.h"
 #include "utils/MemoryPoolHandler.h"
 #include "scene/SceneTypes.h"

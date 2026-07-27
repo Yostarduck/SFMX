@@ -1,5 +1,6 @@
 #pragma once
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Vector2.hpp>

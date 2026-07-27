@@ -16,6 +16,8 @@
 
 #include "core/physics/Collider.h"
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
+#include "core/platform/STDHeaders.h"
 #include "utils/EventSystem.h"
 #include "utils/TypeTraits.h"
 

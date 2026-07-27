@@ -1,6 +1,8 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/STDHeaders.h"
+#include "core/platform/String.h"
 #include "input/InputTypes.h"
 #include "input/InputValue.h"
 #include "input/Processor.h"

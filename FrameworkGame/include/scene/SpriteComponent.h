@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
 
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Color.hpp>

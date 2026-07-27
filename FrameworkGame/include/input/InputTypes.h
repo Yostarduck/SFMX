@@ -3,6 +3,7 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
 
 // Forward declarations of the SFML input enums so consumers of this header stay
 // free of the heavy <SFML/Window/...> includes. SFML declares these as scoped

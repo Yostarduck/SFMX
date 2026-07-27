@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
 #include "assets/Asset.h"
 
 namespace sfmx

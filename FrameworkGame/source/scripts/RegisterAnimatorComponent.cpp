@@ -1,6 +1,7 @@
 #include "scripts/RegisterAnimatorComponent.h"
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
 #include "scene/AnimatorComponent.h"
 
 namespace sfmx

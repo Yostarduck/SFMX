@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/STDHeaders.h"
 #include "utils/UUID.h"
 
 #include <SFML/Graphics/Color.hpp>

@@ -13,6 +13,8 @@
 #include <SFML/Graphics/Transform.hpp>
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/STDHeaders.h"
+#include "core/platform/String.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx

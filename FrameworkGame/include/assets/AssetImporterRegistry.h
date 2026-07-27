@@ -1,6 +1,8 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
+#include "core/platform/STDHeaders.h"
 
 #include "assets/AssetMetadata.h"   // ChunkFormat
 #include "utils/Module.h"

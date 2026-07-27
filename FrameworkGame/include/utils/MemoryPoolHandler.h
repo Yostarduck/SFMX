@@ -2,6 +2,8 @@
 
 #include "core/MemoryPool.h"
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
+#include "core/platform/STDHeaders.h"
 #include "scene/Component.h"
 #include "utils/Module.h"
 #include "utils/TypeTraits.h"

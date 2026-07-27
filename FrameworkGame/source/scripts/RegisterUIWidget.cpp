@@ -5,6 +5,7 @@
 #include "scene/SceneNode.h"
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
 
 #include <utility>
 

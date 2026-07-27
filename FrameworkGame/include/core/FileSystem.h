@@ -1,6 +1,8 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
+#include "core/platform/STDHeaders.h"
 #include "core/DataStream.h"
 
 namespace sfmx

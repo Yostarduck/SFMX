@@ -1,6 +1,7 @@
 #include "scripts/RegisterComponentAccess.h"
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/STDHeaders.h"
 #include "scene/SceneNode.h"
 
 namespace sfmx

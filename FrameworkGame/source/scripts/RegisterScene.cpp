@@ -1,6 +1,7 @@
 #include "scripts/RegisterScene.h"
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
 #include "scene/Scene.h"
 
 namespace sfmx

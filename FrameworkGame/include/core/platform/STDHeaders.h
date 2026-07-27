@@ -1,4 +1,3 @@
-
 #pragma once
 
 /************************************************************************/
@@ -46,24 +45,12 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-#include <sstream>
-#include <string>
-#include <cstring>
 
-#include <functional>
 
 #include <locale>
 #include <codecvt>
 
 #include <filesystem>
-
-/************************************************************************/
-/*
- * Threading
- */
-/************************************************************************/
-#include <mutex>
-#include <thread>
 
 #include <optional>
 #include <variant>
@@ -73,11 +60,11 @@
 #include <chrono>
 #include <atomic>
 
-
 #include <any>
 
+#include <functional>
+
 #include <initializer_list>
-#include <string_view>
 
 
 #include "PlatformDefines.h"
@@ -104,9 +91,6 @@
 
 namespace sfmx
 {
-using std::char_traits;
-using std::basic_string;
-using std::basic_stringstream;
 using std::min;
 using std::forward;
 using std::ios;
@@ -194,115 +178,6 @@ using Queue =  std::queue<T, Container>;
 template<typename T, class A = Alloc<T>>
 using Deque = std::deque<T, A>;
 
-/************************************************************************/
-/*
- * Smart pointers
- */
-/************************************************************************/
-
-/**
- *   Shared pointer that will be used for Chimera.
- **/
-template <typename T>
-using SPtr = std::shared_ptr<T>;
-
-/**
- *   Weak pointer used along Chimera.
- **/
-template<typename T>
-using WeakPtr = std::weak_ptr<T>;
-
-template<typename T>
-struct ForwardDeleter {
-    void operator()(T* ptr) const {
-        delete ptr;
-    }
-};
-
-/**
- *   Unique pointer used along Chimera.
- **/
-template<class T>
-using UniquePtr = std::unique_ptr<T, ForwardDeleter<T>>;
-
-/**
- * @brief Create a new shared pointer using a custom allocator category.
- */
-template<class T, class... Args>
-SPtr<T>
-MakeShared(Args&&... args) {
-  return std::allocate_shared<T>(Alloc<T>(),
-                                 std::forward<Args>(args)...);
-}
-
-/**
- * @brief Create a new shared pointer using a custom allocator category.
- */
-template<class T, class... Args>
-UniquePtr<T> MakeUnique(Args&&... args) {
-    return UniquePtr<T>(new T(std::forward<Args>(args)...));
-}
-
-/************************************************************************/
-/*
- * String related
- */
-/************************************************************************/
-/**
- * @brief Wide string stream used for primarily for constructing strings
- *        consisting of ASCII text.
- */
-using StringStream = std::stringstream;
-
-/**
- * @brief Basic string that uses geEngine memory allocators.
- */
-template<typename T>
-using BasicString = basic_string<T, char_traits<T>, std::allocator<T>>;
-
-/**
- * @brief Basic string stream that uses geEngine memory allocators.
- */
-template<typename T>
-using BasicStringStream = basic_stringstream<T, char_traits<T>, std::allocator<T>>;
-
-/**
- * @brief Wide string used primarily for handling Unicode text.
- */
-using WString = std::wstring;
-
-/**
- * @brief Narrow string used primarily for handling ASCII text.
- */
-using String = std::string;//= BasicString<ANSICHAR>;
-
-using StringView = std::string_view;
-
-/**
- * @brief Wide string used UTF-16 encoded strings.
- */
-using U16String = BasicString<char16_t>;
-
-/**
- * @brief Wide string used UTF-32 encoded strings.
- */
-using U32String = BasicString<char32_t>;
-
-/************************************************************************/
-/*
- * Threading
- */
- /************************************************************************/
-
-/**
- * @brief Wrapper for the C++ std::recursive_mutex.
- */
-using RecursiveMutex = std::recursive_mutex;
-
-/**
- * @brief Wrapper for the C++ std::unique_lock<std::recursive_mutex>.
- */
-using RecursiveLock = std::unique_lock<RecursiveMutex>;
 
 template<typename T>
 using Optional = std::optional<T>;
@@ -322,26 +197,11 @@ template<size_t N>
 using BitSet = std::bitset<N>;
 
 /**
- * @brief Wrapper for the C++ mutex.
- */
-using Mutex = std::mutex;
-
-/**
- * @brief Wrapper for lock_guard.
- */
-template<typename Mutex>
-using LockGuard = std::lock_guard<Mutex>;
-
-/**
  * @brief Wrapper for the C++ std::atomic.
  */
 template<typename T>
 using Atomic = std::atomic<T>;
 
-/**
- * @brief Wrapper for the C++ std::thread.
- */
-using Thread = std::thread;
 
 /**
  * @brief Wrapper for the C++ std::pair

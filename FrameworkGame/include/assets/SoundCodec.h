@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/Pointer.h"
 #include "assets/IAssetCodec.h"
 #include "assets/SoundAsset.h"
 #include "utils/TypeTraits.h"

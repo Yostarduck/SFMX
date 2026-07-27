@@ -2,6 +2,8 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/STDHeaders.h"
+#include "core/platform/String.h"
 
 #define STDUUID_FORCE_IMPLEMENTATION
 #define UUID_SYSTEM_GENERATOR

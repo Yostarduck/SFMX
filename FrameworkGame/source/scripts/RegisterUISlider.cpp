@@ -3,6 +3,7 @@
 #include "ui/UISlider.h"
 
 #include "core/platform/Prerequisites.h"
+#include "core/platform/String.h"
 #include "scene/Component.h"
 #include "scene/ScriptComponent.h"
 #include "ui/UIWidget.h"
