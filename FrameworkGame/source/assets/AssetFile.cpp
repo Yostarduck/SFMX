@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "zstd.h"                  // vendored single-file zstd (ThirdParty/zstd)
+#include "lz4hc.h"                 // vendored LZ4 HC (ThirdParty/lz4)
 
 #include "core/DataStreamTypes.h"  // UUID operator<< / >>
 
@@ -31,42 +31,44 @@ constexpr uint64 kChunkEntryBytes =
     kUuidBytes +      // format      (ChunkFormatId, a name-derived UUID)
     sizeof(uint16);   // compression (ChunkCompression written as uint16)
 
-// zstd compression level. Levels run 1 (fastest, weakest) to 22 (slowest,
-// strongest); the default is 3, and 19 is the highest "normal" level (20-22 are
-// "ultra" tiers that need much more memory). We pick 19 because cooking is a
-// one-time offline step, so paying extra time for the best ratio is essentially
-// free at runtime: zstd's decompression speed is roughly constant across levels,
-// so a high cook level costs nothing on load.
-constexpr int kZstdLevel = 19;
+// LZ4 HC compression level (2-12). Cooking is a one-time offline step, so we
+// use the highest HC level for the best ratio. LZ4 decompression speed is
+// roughly constant across levels, so a high cook level costs nothing on load.
+constexpr int kLz4Level = 12;
 
-// Compress [src, src+srcSize) into @p out. Returns false on a zstd error (out
+// Compress [src, src+srcSize) into @p out. Returns false on an LZ4 error (out
 // cleared). Cook-time / load-time only, never the game loop, so heap is fine.
 bool
-compressZstd(const uint8* src, size_t srcSize, Vector<uint8>& out) {
-  // The exact compressed size is data-dependent, but ZSTD_compressBound gives the
-  // worst-case upper bound, so a single resize() reserves enough up front (no
-  // incremental growth). The resize(written) below only trims the logical size;
-  // the capacity stays, so it never reallocates.
-  const size_t bound = ZSTD_compressBound(srcSize);
-  out.resize(bound);
-  const size_t written =
-      ZSTD_compress(out.data(), bound, src, srcSize, kZstdLevel);
-  if (0 != ZSTD_isError(written)) {
+compressLz4(const uint8* src, size_t srcSize, Vector<uint8>& out) {
+  // LZ4_compressBound gives the worst-case upper bound for LZ4_compress_default
+  // (which also bounds HC), so a single resize() reserves enough up front.
+  const int srcSizeI = static_cast<int>(srcSize);
+  const int bound = LZ4_compressBound(srcSizeI);
+  out.resize(static_cast<size_t>(bound));
+  const int written = LZ4_compress_HC(
+      reinterpret_cast<const char*>(src),
+      reinterpret_cast<char*>(out.data()),
+      srcSizeI, bound, kLz4Level);
+  if (written < 0) {
     out.clear();
     return false;
   }
-  out.resize(written);
+  out.resize(static_cast<size_t>(written));
   return true;
 }
 
 // Decompress [src, src+srcSize) into @p out, sized to the known @p rawSize.
-// Returns false if zstd errors or the result is not exactly @p rawSize.
+// Returns false if LZ4 errors or the result is not exactly @p rawSize.
 bool
-decompressZstd(const uint8* src, size_t srcSize, size_t rawSize,
-               Vector<uint8>& out) {
+decompressLz4(const uint8* src, size_t srcSize, size_t rawSize,
+              Vector<uint8>& out) {
   out.resize(rawSize);
-  const size_t got = ZSTD_decompress(out.data(), rawSize, src, srcSize);
-  if (0 != ZSTD_isError(got) || got != rawSize) {
+  const int got = LZ4_decompress_safe(
+      reinterpret_cast<const char*>(src),
+      reinterpret_cast<char*>(out.data()),
+      static_cast<int>(srcSize),
+      static_cast<int>(rawSize));
+  if (got < 0 || static_cast<size_t>(got) != rawSize) {
     out.clear();
     return false;
   }
@@ -143,7 +145,7 @@ AssetFileWriter::addChunk(const void* data,
   PendingChunk& chunk = m_chunks.back();
   chunk.format      = format;
   chunk.rawSize     = static_cast<uint64>(size);
-  // Default to uncompressed; only flip to kZstd below if compression actually
+  // Default to uncompressed; only flip to kLZ4 below if compression actually
   // shrinks the payload (so a 0-byte / incompressible chunk never carries a tag
   // that readChunk would then try to decompress).
   chunk.compression = ChunkCompression::kNone;
@@ -151,10 +153,10 @@ AssetFileWriter::addChunk(const void* data,
   if (nullptr != data && size > 0) {
     const uint8* bytes = static_cast<const uint8*>(data);
     Vector<uint8> compressed;
-    if (ChunkCompression::kZstd == compression &&
-        compressZstd(bytes, size, compressed) && compressed.size() < size) {
+    if (ChunkCompression::kLZ4 == compression &&
+        compressLz4(bytes, size, compressed) && compressed.size() < size) {
       chunk.data.swap(compressed);
-      chunk.compression = ChunkCompression::kZstd;
+      chunk.compression = ChunkCompression::kLZ4;
     }
     else {
       // kNone, an unsupported codec, or compression that did not shrink: store raw.
@@ -320,8 +322,8 @@ AssetFileReader::readChunk(size_t index, Vector<uint8>& out) const {
     return got == entry.size;
   }
 
-  if (ChunkCompression::kZstd != entry.compression) {
-    return false;  // unsupported codec (e.g. kLZ4): fail cleanly, never the loop
+  if (ChunkCompression::kLZ4 != entry.compression) {
+    return false;  // unsupported codec: fail cleanly, never the loop
   }
 
   // Read the compressed payload into scratch, then inflate to the known rawSize.
@@ -334,8 +336,8 @@ AssetFileReader::readChunk(size_t index, Vector<uint8>& out) const {
   if (got != entry.size) {
     return false;
   }
-  return decompressZstd(compressed.data(), compressed.size(),
-                        static_cast<size_t>(entry.rawSize), out);
+  return decompressLz4(compressed.data(), compressed.size(),
+                       static_cast<size_t>(entry.rawSize), out);
 }
 
 } // namespace sfmx

@@ -53,8 +53,8 @@ namespace ChunkFormat
 /** @brief Whether a chunk's on-disk bytes are compressed (and with what). */
 enum class ChunkCompression : uint16 {
   kNone = 0,
-  kZstd = 1,
-  kLZ4  = 2,
+  kZstd = 1,  // legacy zstd (can no longer be written; kept for read-back of old files)
+  kLZ4  = 2,  // current default (LZ4 HC)
 };
 
 constexpr size_t kAssetTypeNameLength   = 32;

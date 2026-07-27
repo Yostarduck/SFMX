@@ -1,5 +1,8 @@
 #pragma once
 
+#include <SFML/Graphics/RenderStates.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
+
 #include "scene/Component.h"
 #include "scene/SceneNode.h"
 #include "ui/Canvas.h"

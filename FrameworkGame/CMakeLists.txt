@@ -24,16 +24,18 @@ FetchContent_Declare(sol2
     SYSTEM)
 FetchContent_MakeAvailable(sol2)
 
-# Vendored zstd (single-file amalgamation in ThirdParty/zstd). Small + self-contained,
-# so it lives in-repo (unlike SFML/luajit, which are fetched). Built as its own static
-# lib to isolate its C warnings; linked PRIVATE to FrameworkGame because compression is
-# an internal detail of AssetFile, not exposed to the Game exe.
-add_library(zstd_vendored STATIC ${CMAKE_SOURCE_DIR}/ThirdParty/zstd/zstd.c)
-target_include_directories(zstd_vendored PUBLIC ${CMAKE_SOURCE_DIR}/ThirdParty/zstd)
+# Vendored lz4 (ThirdParty/lz4). Small + self-contained, so it lives in-repo (unlike
+# SFML/luajit, which are fetched). Built as its own static lib to isolate its C
+# warnings; linked PRIVATE to FrameworkGame because compression is an internal
+# detail of AssetFile, not exposed to the Game exe.
+add_library(lz4_vendored STATIC
+    ${CMAKE_SOURCE_DIR}/ThirdParty/lz4/lz4.c
+    ${CMAKE_SOURCE_DIR}/ThirdParty/lz4/lz4hc.c)
+target_include_directories(lz4_vendored PUBLIC ${CMAKE_SOURCE_DIR}/ThirdParty/lz4)
 if(MSVC)
-    target_compile_options(zstd_vendored PRIVATE /w)
+    target_compile_options(lz4_vendored PRIVATE /w)
 else()
-    target_compile_options(zstd_vendored PRIVATE -w)
+    target_compile_options(lz4_vendored PRIVATE -w)
 endif()
 
 add_library(FrameworkGame STATIC
@@ -196,6 +198,6 @@ target_link_libraries(FrameworkGame PUBLIC
     luajit::header
     sol2::sol2)
 
-# PRIVATE: zstd is used only inside AssetFile.cpp (chunk (de)compression); its
+# PRIVATE: lz4 is used only inside AssetFile.cpp (chunk (de)compression); its
 # include dir propagates to FrameworkGame's own TUs but not to downstream consumers.
-target_link_libraries(FrameworkGame PRIVATE zstd_vendored)
+target_link_libraries(FrameworkGame PRIVATE lz4_vendored)

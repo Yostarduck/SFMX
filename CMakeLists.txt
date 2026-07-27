@@ -53,6 +53,22 @@ endforeach()
 add_compile_definitions($<$<CONFIG:Debug>:DEBUG>
                         $<$<CONFIG:Release>:RELEASE>)
 
+include(CheckIPOSupported)
+check_ipo_supported(RESULT result)
+if(result)
+  message(STATUS "IPO / LTO supported and enabled for Release builds")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+endif()
+cmake_policy(SET CMP0069 NEW)
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Gy")
+  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /OPT:REF /OPT:ICF")
+else()
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -fdata-sections")
+  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
+endif()
+
 enable_testing()
 
 add_subdirectory(SketchGfx)

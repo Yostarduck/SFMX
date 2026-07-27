@@ -70,7 +70,7 @@ TEST_CASE("AssetFile multiple chunks keep tags and offsets") {
   const Vector<uint8> b = {1, 2, 3};
   const Vector<uint8> empty;
 
-  writer.addChunk(a.data(), a.size(), ChunkFormat::kRaw, ChunkCompression::kZstd);
+  writer.addChunk(a.data(), a.size(), ChunkFormat::kRaw, ChunkCompression::kLZ4);
   writer.addChunk(b.data(), b.size(), ChunkFormat::kOgg);
   writer.addChunk(empty.data(), empty.size());  // 0-byte chunk
 
@@ -82,7 +82,7 @@ TEST_CASE("AssetFile multiple chunks keep tags and offsets") {
   REQUIRE(reader.open(buffer));
   REQUIRE(reader.chunkCount() == 3u);
   // Chunk 0 was actually zstd-compressed: tag kept and on-disk size < raw size.
-  CHECK(reader.chunk(0).compression == ChunkCompression::kZstd);
+  CHECK(reader.chunk(0).compression == ChunkCompression::kLZ4);
   CHECK(reader.chunk(0).rawSize == a.size());
   CHECK(reader.chunk(0).size < reader.chunk(0).rawSize);
   CHECK(reader.chunk(1).format == ChunkFormat::kOgg);
@@ -109,7 +109,7 @@ TEST_CASE("AssetFile zstd falls back to uncompressed when it would not shrink") 
   // 3 bytes: zstd's frame overhead exceeds the input, so the writer stores it raw
   // and clears the tag (the no-grow fallback) rather than bloating the chunk.
   const Vector<uint8> tiny = {1, 2, 3};
-  writer.addChunk(tiny.data(), tiny.size(), ChunkFormat::kRaw, ChunkCompression::kZstd);
+  writer.addChunk(tiny.data(), tiny.size(), ChunkFormat::kRaw, ChunkCompression::kLZ4);
 
   auto buffer = MakeShared<MemoryDataStream>();
   REQUIRE(writer.writeTo(*buffer));
