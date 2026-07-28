@@ -201,7 +201,7 @@ SceneSerializer::saveToFile(const Scene& scene, const FileSystemPath& path) {
   // The scene blob is structured/raw data (very compressible), so cook it zstd-
   // compressed; the reader inflates it transparently on load. (Falls back to
   // uncompressed automatically if it would not shrink — see AssetFileWriter.)
-  writer.addChunk(blob.data(), blob.size(), ChunkFormat::kRaw, ChunkCompression::kZstd);
+  writer.addChunk(blob.data(), blob.size(), ChunkFormat::kRaw, ChunkCompression::kLz4);
 
   SPtr<DataStream> out = FileSystem::createAndOpenFile(FileSystem::resolve(path));
   if (nullptr == out) {
