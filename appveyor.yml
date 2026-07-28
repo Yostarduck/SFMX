@@ -126,7 +126,7 @@ for:
   test_script:
     - sh: |
         export LD_LIBRARY_PATH="Build/_deps/sfml-build/lib:Build/x64/$CONFIGURATION"
-        output=$(ctest --test-dir Build -C $CONFIGURATION --output-on-failure --timeout 30 2>&1) || true
+        output=$(xvfb-run ctest --test-dir Build -C $CONFIGURATION --output-on-failure --timeout 30 2>&1) || true
         echo "$output"
         summary=$(echo "$output" | grep -oP '\d+% tests passed, \d+ tests failed out of \d+' | tail -1)
         if [ -n "$summary" ]; then
