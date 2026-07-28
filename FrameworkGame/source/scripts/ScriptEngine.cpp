@@ -108,7 +108,8 @@ ScriptEngine::getCompiledChunk(const UUID label, const std::string& scriptCode) 
   sol::load_result chunk = m_lua.load_buffer(scriptCode.c_str(), scriptCode.size());
   if (!chunk.valid()) {
     const sol::error err = chunk;
-    fprintf(stderr, "[Script] failed to load script with UUID: %s\n", label.toString().c_str(), err.what());
+    String errorStr = "[Script] failed to load script with UUID:" + label.toString() + " \n" + err.what() + "\n";
+    fprintf(stderr, "%s", errorStr.c_str());
     return nullptr;
   }
 
