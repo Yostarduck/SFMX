@@ -1,5 +1,7 @@
 #include "scene/CanvasComponent.h"
 #include "ui/UIEventSystem.h"
+#include <SFML/Graphics/RenderStates.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
 
 namespace sfmx
 {

@@ -14,8 +14,7 @@
 #include "utils/TypeTraits.h"
 
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/RenderStates.hpp>
+
 
 namespace sfmx
 {

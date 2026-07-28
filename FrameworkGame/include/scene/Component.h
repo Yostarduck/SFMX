@@ -1,11 +1,14 @@
 #pragma once
 
-#include <SFML/Graphics/RenderStates.hpp>
-#include <SFML/Graphics/RenderTarget.hpp>
 
 #include "core/platform/Prerequisites.h"
 #include "scene/SceneTypes.h"
 #include "utils/TypeTraits.h"
+
+namespace sf {
+class RenderTarget;
+class RenderStates;
+} // namespace sf
 
 namespace sfmx
 {
@@ -75,10 +78,7 @@ class Component
    *               the owning node; pass them straight to @c target.draw.
    */
   virtual void
-  onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
-    SFMX_PARAMETER_UNUSED(target);
-    SFMX_PARAMETER_UNUSED(states);
-  }
+  onDraw(sf::RenderTarget& target, sf::RenderStates states) const;
 
   /**
    * @brief Write this component's persistent state to @p stream.

@@ -1,7 +1,5 @@
 #include "scene/ComponentRegistry.h"
 
-#include <iostream>
-
 namespace sfmx
 {
 

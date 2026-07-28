@@ -3,7 +3,8 @@
 #include "scene/Transform.h"
 
 #include <SFML/Graphics/VertexArray.hpp>
-#include <cmath>
+#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/RenderStates.hpp>
 
 #include "core/DataStream.h"
 

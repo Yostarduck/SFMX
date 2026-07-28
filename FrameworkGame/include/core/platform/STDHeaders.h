@@ -38,6 +38,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
+// TODO: Maybe should move to a separate file to debloat
  /************************************************************************/
  /*
   * C++ Stream Stuff
@@ -45,18 +46,16 @@
  /************************************************************************/
 #include <fstream>
 #include <iostream>
-#include <iomanip>
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <string_view>
 
 #include <functional>
 
-#include <locale>
-#include <codecvt>
-
 #include <filesystem>
 
+// TODO: Maybe should move to a separate file to debloat
 /************************************************************************/
 /*
  * Threading
@@ -77,7 +76,6 @@
 #include <any>
 
 #include <initializer_list>
-#include <string_view>
 
 
 #include "PlatformDefines.h"
