@@ -8,10 +8,7 @@
 
 namespace sfmx
 {
-enum EAchievements
-{
-  
-}
+
 
 struct Achievement
 {
@@ -31,6 +28,8 @@ class AchievementManager : Module<AchievementManager>
   void
   loadAchievements();
 
+  void
+  unlockAchievement(const UUID& id);
 
   // Anyone can subscribe into this event to be notified
   Event<void, const Achievement&> onAchievementUnlocked;
