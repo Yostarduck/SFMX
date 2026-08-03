@@ -1,6 +1,9 @@
 @echo off
 SETLOCAL ENABLEDELAYEDEXPANSION
 
+REM Run from the repo root regardless of where this script is called from.
+cd /d "%~dp0.."
+
 REM Default build type
 set "BUILD_TYPE=Debug"
 
