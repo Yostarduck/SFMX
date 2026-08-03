@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+REM Run from the repo root regardless of where this script is called from.
+cd /d "%~dp0.."
+
 set BUILD_TYPE=Debug
 set BUILD_ARCH=x64
 set "FORWARD_ARGS="
