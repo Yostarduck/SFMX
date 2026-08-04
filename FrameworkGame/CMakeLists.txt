@@ -47,7 +47,10 @@ add_library(FrameworkGame STATIC
     source/core/Window.cpp
     source/core/physics/Collider.cpp
     source/core/physics/PhysicsSystem.cpp
+    source/core/achievements/Achievement.cpp
 
+    source/assets/AchievementAsset.cpp
+    source/assets/AchievementCodec.cpp
     source/assets/AssetFile.cpp
     source/assets/AssetCooker.cpp
     source/assets/AssetImporterRegistry.cpp
