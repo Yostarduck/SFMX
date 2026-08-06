@@ -22,13 +22,13 @@ bool AchievementAsset::decodeFrom(AssetFileReader& reader) {
   // data is organized as follows:
   // [namesize][name][descsize][desc][iconID]
   // Read size of name, get chunk of name, and so on for description and iconID
-  uint32 offset;
-  uint32 nameSize;
-  uint32 descSize;
+  uint32 offset = 0;
+  uint32 nameSize = 0;
+  uint32 descSize = 0;
 
-  String  name;
-  String  desc;
-  UUID    iconID;
+  String  name = "";
+  String  desc = "";
+  UUID    iconID = UUID::null();
 
 
   if (offset + sizeof(nameSize) > bytes.size()) {

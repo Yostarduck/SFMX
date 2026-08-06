@@ -5,6 +5,7 @@
 #include "assets/SoundAsset.h"
 #include "assets/TextureAsset.h"
 #include "assets/FontAsset.h"
+#include "assets/AchievementAsset.h"
 
 namespace sfmx
 {
@@ -30,6 +31,8 @@ AssetImporterRegistry::registerBuiltins() {
   registerImporter<LuaAsset>(ChunkFormat::kRaw, ".lua");
   registerImporter<FontAsset>(ChunkFormat::kTtf,  ".ttf");
   registerImporter<FontAsset>(ChunkFormat::kOtf,  ".otf");
+  // Achievements are engine-native text files with .ach extension, only to be used
+  registerImporter<AchievementAsset>(ChunkFormat::kAch, ".ach");
 }
 
 const ImportRule*
