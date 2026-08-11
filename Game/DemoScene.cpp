@@ -7,6 +7,7 @@
 #include "scene/SourceComponent.h"
 #include "scene/ListenerComponent.h"
 #include "scene/SpriteComponent.h"
+#include "scene/MaterialComponent.h"
 #include "scene/AnimatorComponent.h"
 #include "scene/ColliderComponent.h"
 #include "scene/RigidBodyComponent.h"
@@ -31,6 +32,7 @@
 
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
+#include "assets/ShaderAsset.h"
 
 #include "core/DataStream.h"
 #include "core/DataStreamTypes.h"
@@ -125,6 +127,7 @@ registerDemoPools(MemoryPoolHandler& pools) {
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<CameraComponent>(1);
   pools.registerPool<SpriteComponent>(1024 * 100);
+  pools.registerPool<MaterialComponent>(256);
   pools.registerPool<AnimatorComponent>(256);
   pools.registerPool<Particle>(1024 * 10);
   pools.registerPool<ParticleSystemComponent>(64);
@@ -525,6 +528,23 @@ wireDemoRuntime(Scene& scene) {
   if (SceneNode* cam = firstByName(scene, "Camera")) {
     if (auto* cameraComp = cam->getComponent<CameraComponent>()) {
       scene.setCamera(cameraComp);
+    }
+  }
+
+  // Shader demo: give one sprite (Neptune) a tint material through tint.frag. Its
+  // siblings stay unshaded — a material only affects the drawable that owns it,
+  // since each component draws with its own copy of sf::RenderStates. Materials are
+  // not serialized, so this is wired at runtime.
+  if (nullptr != rt.neptune) {
+    if (auto* sprite = rt.neptune->getComponent<SpriteComponent>()) {
+      if (SPtr<ShaderAsset> tint = AssetManager::instance().load<ShaderAsset>(
+              sfmx::UUID::createFromName("shaders/tint.frag"))) {
+        if (auto* material = rt.neptune->addComponent<MaterialComponent>()) {
+          material->setShader(std::move(tint));
+          material->setColor("u_tint", sf::Color(120, 200, 255));
+          sprite->setMaterial(material);
+        }
+      }
     }
   }
 

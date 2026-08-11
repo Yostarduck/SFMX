@@ -56,6 +56,8 @@ add_library(FrameworkGame STATIC
     source/assets/FontCodec.cpp
     source/assets/TextureAsset.cpp
     source/assets/TextureCodec.cpp
+    source/assets/ShaderAsset.cpp
+    source/assets/ShaderCodec.cpp
     source/assets/SoundAsset.cpp
     source/assets/SoundCodec.cpp
     source/assets/MusicAsset.cpp
@@ -104,11 +106,14 @@ add_library(FrameworkGame STATIC
     source/scene/SourceComponent.cpp
     source/scene/ListenerComponent.cpp
     source/scene/SpriteComponent.cpp
+    source/scene/MaterialComponent.cpp
     source/scene/AnimatorComponent.cpp
     source/scene/ColliderComponent.cpp
     source/scene/RigidBodyComponent.cpp
     source/scene/ParticleSystemComponent.cpp
     source/scene/ScriptComponent.cpp
+
+    source/render/PostProcessPipeline.cpp
 
     source/utils/MemoryPoolHandler.cpp
     source/utils/Random.cpp

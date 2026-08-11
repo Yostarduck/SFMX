@@ -9,6 +9,21 @@
 namespace sfmx
 {
 
+class AssetFileWriter;
+
+/**
+ * @brief Optional cook hook: fills a writer's chunks from a source file itself,
+ *        replacing the default "wrap the whole file as one chunk" behaviour.
+ *
+ * Used by multi-chunk sources (e.g. a shader manifest that pulls in several stage
+ * files). Receives the source path, the source root, and the writer to append
+ * chunks to. Returns false to skip the file (nothing usable cooked). Null on a
+ * rule means the default single-chunk path — so existing formats are unchanged.
+ */
+using ChunkCookFn = bool (*)(const FileSystemPath& source,
+                             const FileSystemPath& sourceRoot,
+                             AssetFileWriter& writer);
+
 /**
  * @brief What a source extension cooks into: the target asset type + chunk tag.
  *
@@ -16,12 +31,14 @@ namespace sfmx
  * @ref AssetImporterRegistry::registerImporter, so cooked metadata cannot desync
  * from the real asset type. @c format is the @ref ChunkFormat the source bytes are
  * tagged with (the runtime dispatches decode on it — see @ref IImageDecoder).
+ * @c cook, when set, takes over chunk production entirely (multi-chunk sources).
  */
 struct ImportRule
 {
   UUID            assetType;
   const ansichar* typeName = "Unknown";
   ChunkFormatId   format   = ChunkFormat::kRaw;
+  ChunkCookFn     cook     = nullptr;
 };
 
 /**
@@ -56,6 +73,27 @@ class SFMX_UTILITY_EXPORT AssetImporterRegistry : public Module<AssetImporterReg
     const ImportRule rule{TypeTraits<TAsset>::getTypeId(),
                           TypeTraits<TAsset>::getTypeName(),
                           format};
+    const StringView exts[] = {StringView(extensions)...};
+    for (const StringView& e : exts) {
+      m_rules[String(e)] = rule;
+    }
+  }
+
+  /**
+   * @brief Like @ref registerImporter, but with a @ref ChunkCookFn that produces
+   *        the chunks itself (multi-chunk sources).
+   *
+   * @param format The @ref ChunkFormat recorded on the rule; the cook hook is free
+   *        to tag its own chunks per stage, so this is only a fallback tag.
+   * @param cook The hook the cooker calls instead of the default single-chunk wrap.
+   */
+  template <typename TAsset, typename... Exts>
+  void
+  registerImporterCooked(ChunkFormatId format, ChunkCookFn cook, Exts... extensions) {
+    const ImportRule rule{TypeTraits<TAsset>::getTypeId(),
+                          TypeTraits<TAsset>::getTypeName(),
+                          format,
+                          cook};
     const StringView exts[] = {StringView(extensions)...};
     for (const StringView& e : exts) {
       m_rules[String(e)] = rule;
