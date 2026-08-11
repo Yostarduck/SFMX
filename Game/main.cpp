@@ -264,6 +264,9 @@ int main(int argc, char** argv)
   UIEventSystem::instance().setCancelAction(uiCancel);
 
   UILabel* debugLabel;
+  // Kept alive for the whole loop so the toggle button stays subscribed.
+  HEvent   toggleShaderHandle;
+  UILabel* shaderLabel = nullptr;
   {
     // Load fonts
     SPtr<FontAsset> fontAsset;
@@ -412,6 +415,38 @@ int main(int argc, char** argv)
     btnExit->syncColliderToRect();
     btnExit->setNormalColor(sf::Color(180, 80, 80));
     uiCanvas.addWidget(btnExit);
+
+    // Toggle post-processing shader on/off, to eyeball the effect.
+    auto* toggleNode = canvasNode->createChild("ToggleShaderBtn");
+    UIButton* toggleShaderBtn = toggleNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    toggleShaderBtn->setPosition({windowWidth - 225.0f, windowHeight - 140.0f});
+    toggleShaderBtn->syncColliderToRect();
+    toggleShaderBtn->setNormalColor(sf::Color(80, 140, 180));
+    uiCanvas.addWidget(toggleShaderBtn);
+
+    if (fontLoaded) {
+      auto* shaderLabelNode = canvasNode->createChild("ShaderLabel");
+      shaderLabel = shaderLabelNode->addComponent<UILabel>(sf::Vector2f{200.f, 50.f});
+      shaderLabel->setPosition({windowWidth - 215.0f, windowHeight - 128.0f});
+      shaderLabel->setFontAsset(fontAsset);
+      shaderLabel->setText("Shader: ON");
+      shaderLabel->setCharacterSize(18);
+      shaderLabel->setTextColor(sf::Color::White);
+      uiCanvas.addWidget(shaderLabel);
+    }
+
+    PostProcessPipeline* fx = postFx ? &*postFx : nullptr;
+    toggleShaderHandle = toggleShaderBtn->onPointerClick(
+      [fx, label = shaderLabel](sf::Vector2f) {
+        if (nullptr == fx) {
+          return;
+        }
+        const bool on = !fx->isEnabled();
+        fx->setEnabled(on);
+        if (nullptr != label) {
+          label->setText(on ? "Shader: ON" : "Shader: OFF");
+        }
+      });
   }
 
   /*                                                                          */

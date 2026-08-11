@@ -42,6 +42,15 @@ class SFMX_UTILITY_EXPORT PostProcessPipeline
   NODISCARD FORCEINLINE bool
   hasPasses() const { return !m_passes.empty(); }
 
+  /** @brief Toggle the whole pass chain. When off, @ref render draws the scene
+   *         straight to the window (same path as having no passes). */
+  FORCEINLINE void
+  setEnabled(bool enabled) { m_enabled = enabled; }
+
+  /** @brief Whether the pass chain is currently active. */
+  NODISCARD FORCEINLINE bool
+  isEnabled() const { return m_enabled; }
+
   /**
    * @brief Draw @p scenes to @p window through the pass chain.
    *
@@ -65,6 +74,7 @@ class SFMX_UTILITY_EXPORT PostProcessPipeline
   Vector<Pass>         m_passes;
   sf::Vector2u         m_size;
   bool                 m_ready = false;
+  bool                 m_enabled = true;
 
   // Uniform names bound once at construction, so render() never builds a std::string.
   const String m_uTexture    = "u_texture";

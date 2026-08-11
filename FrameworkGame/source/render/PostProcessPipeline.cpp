@@ -57,8 +57,8 @@ void
 PostProcessPipeline::render(SceneManager& scenes,
                             sf::RenderTarget& window,
                             float timeSeconds) {
-  // No chain (or GPU targets unavailable): draw the scene straight to the window.
-  if (!m_ready || m_passes.empty()) {
+  // Disabled, no chain, or GPU targets unavailable: draw the scene straight to the window.
+  if (!m_enabled || !m_ready || m_passes.empty()) {
     scenes.draw(window);
     return;
   }
