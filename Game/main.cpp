@@ -199,9 +199,11 @@ int main(int argc, char** argv)
   Optional<PostProcessPipeline> postFx;
   postFx.emplace();
   if (postFx->init(window.getSize())) {
-    if (SPtr<ShaderAsset> grade = AssetManager::instance().load<ShaderAsset>(
-            sfmx::UUID::createFromName("shaders/grade.frag"))) {
-      postFx->addPass(std::move(grade));
+    // CRT pass authored as a .shader manifest: a custom vertex stage + fragment stage,
+    // cooked into one multi-chunk asset (exercises the vertex-shader path end to end).
+    if (SPtr<ShaderAsset> crt = AssetManager::instance().load<ShaderAsset>(
+            sfmx::UUID::createFromName("shaders/crt.shader"))) {
+      postFx->addPass(std::move(crt));
     }
   }
 
