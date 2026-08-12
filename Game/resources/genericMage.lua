@@ -59,8 +59,8 @@ function fireBullet(self)
   bulletScript = bulletScriptComponent:instance()
   if bulletScript ~= nil then
     bulletScript.gameManager = self.gameManager
-    bulletScript.speed = GenericMage.bulletSpeed
-    bulletScript.damage = GenericMage.bulletDamage
+    bulletScript.speed = self.bulletSpeed
+    bulletScript.damage = self.bulletDamage
   end
 end
 
