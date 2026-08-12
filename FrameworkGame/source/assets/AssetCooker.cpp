@@ -91,12 +91,6 @@ AssetCooker::cookFile(const FileSystemPath& source,
               << std::endl;
   }
 
-  const Vector<uint8> bytes = FileSystem::fastRead(source);
-  if (bytes.empty()) {
-    std::cerr << "AssetCooker: could not read " << source.string() << std::endl;
-    return false;
-  }
-
   AssetMetadata meta;
   meta.uuid         = UUID::createFromName(relStr);
   meta.assetType    = effective.assetType;
@@ -107,7 +101,22 @@ AssetCooker::cookFile(const FileSystemPath& source,
 
   AssetFileWriter writer;
   writer.setMetadata(meta);
-  writer.addChunk(bytes.data(), bytes.size(), effective.format);
+
+  if (nullptr != effective.cook) {
+    // Multi-chunk source: the hook reads the file(s) and emits the chunks itself.
+    // A false return means nothing usable cooked -> skip (e.g. an empty manifest).
+    if (!effective.cook(source, sourceRoot, writer)) {
+      return false;
+    }
+  }
+  else {
+    const Vector<uint8> bytes = FileSystem::fastRead(source);
+    if (bytes.empty()) {
+      std::cerr << "AssetCooker: could not read " << source.string() << std::endl;
+      return false;
+    }
+    writer.addChunk(bytes.data(), bytes.size(), effective.format);
+  }
 
   FileSystemPath out = outputDir / rel;
   out.replace_extension(".sfmxasset");

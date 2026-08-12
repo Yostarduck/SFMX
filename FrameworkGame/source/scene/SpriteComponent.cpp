@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "scene/SceneNode.h"
+#include "scene/MaterialComponent.h"
 #include "resource/Frame.h"
 
 #include "assets/AssetManager.h"
@@ -299,8 +300,23 @@ SpriteComponent::onDraw(sf::RenderTarget& target,
   {
     states.transform = m_owner->getWorldTransform();
     states.transform.scale({ m_flipX ? -1.f : 1.f, m_flipY ? -1.f : 1.f });
+    if (nullptr != m_material) {
+      m_material->apply(states);
+    }
     target.draw(*m_sprite, states);
   }
+}
+
+void
+SpriteComponent::setMaterial(MaterialComponent* material)
+{
+  m_material = material;
+}
+
+MaterialComponent*
+SpriteComponent::getMaterial() const
+{
+  return m_material;
 }
 
 // -----------------------------------------------------------------------------

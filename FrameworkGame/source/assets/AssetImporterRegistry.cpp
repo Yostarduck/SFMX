@@ -2,6 +2,7 @@
 
 #include "assets/MusicAsset.h"
 #include "assets/LuaAsset.h"
+#include "assets/ShaderAsset.h"
 #include "assets/SoundAsset.h"
 #include "assets/TextureAsset.h"
 #include "assets/FontAsset.h"
@@ -30,6 +31,13 @@ AssetImporterRegistry::registerBuiltins() {
   registerImporter<LuaAsset>(ChunkFormat::kRaw, ".lua");
   registerImporter<FontAsset>(ChunkFormat::kTtf,  ".ttf");
   registerImporter<FontAsset>(ChunkFormat::kOtf,  ".otf");
+  // A loose `.frag` is a fragment-only shader (SFML supplies the default vertex
+  // stage); it cooks as one stage-tagged chunk through the default path. A
+  // `.shader` manifest lists several stage files, so it needs the cook hook to
+  // emit one chunk per stage — the rule format is only a fallback tag there.
+  registerImporter<ShaderAsset>(ShaderChunk::kFrag, ".frag");
+  registerImporterCooked<ShaderAsset>(ChunkFormat::kRaw, &ShaderAsset::cookManifest,
+                                      ".shader");
 }
 
 const ImportRule*

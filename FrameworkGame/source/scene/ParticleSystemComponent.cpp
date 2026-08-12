@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "scene/MaterialComponent.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
@@ -278,6 +279,10 @@ ParticleSystemComponent::onDraw(sf::RenderTarget& target,
 
   states.blendMode = m_config.blendMode;
   states.texture   = m_config.texture;
+
+  if (nullptr != m_material) {
+    m_material->apply(states);
+  }
 
   target.draw(*m_vertexBuffer, 0, m_count * 6, states);
 }
