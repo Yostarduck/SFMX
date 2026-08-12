@@ -60,6 +60,7 @@ function fireBullet(self)
   if bulletScript ~= nil then
     bulletScript.gameManager = self.gameManager
     bulletScript.speed = GenericMage.bulletSpeed
+    bulletScript.damage = GenericMage.bulletDamage
   end
 end
 

@@ -352,14 +352,24 @@ int main(int argc, char** argv)
         list->addChild(hbox);
         
         // Upgrade name label
-        auto* ln = canvasNode->createChild(String(name) + " Label");
-        auto* lbl = ln->addComponent<UILabel>(sf::Vector2f{200.f, 30.f});
-        lbl->setPosition({0.f, 0.f});
-        lbl->setFontAsset(fontAsset);
-        lbl->setText(name);
-        lbl->setCharacterSize(13);
-        lbl->setTextColor(sf::Color::White);
-        hbox->addChild(lbl);
+        auto* nameLn = canvasNode->createChild(String(name) + " Label");
+        auto* nameLbl = nameLn->addComponent<UILabel>(sf::Vector2f{150.f, 30.f});
+        nameLbl->setPosition({0.f, 0.f});
+        nameLbl->setFontAsset(fontAsset);
+        nameLbl->setText(name);
+        nameLbl->setCharacterSize(13);
+        nameLbl->setTextColor(sf::Color::White);
+        hbox->addChild(nameLbl);
+        
+        // Upgrade cost label
+        auto* costLn = canvasNode->createChild(String(name) + " Cost Label");
+        auto* costLbl = costLn->addComponent<UILabel>(sf::Vector2f{40.f, 30.f});
+        costLbl->setPosition({0.f, 0.f});
+        costLbl->setFontAsset(fontAsset);
+        costLbl->setText("$");
+        costLbl->setCharacterSize(13);
+        costLbl->setTextColor(sf::Color::White);
+        hbox->addChild(costLbl);
 
         // Upgrade button
         auto* n = canvasNode->createChild(String(name) + " Button");
@@ -543,7 +553,7 @@ int main(int argc, char** argv)
 
     // Screen-space canvas: reset the view so coordinates match window pixels.
     window.setView(window.getDefaultView());
-    uiCanvas.draw(window, sf::RenderStates::Default);
+    //uiCanvas.draw(window, sf::RenderStates::Default);
 
     window.display();
   }

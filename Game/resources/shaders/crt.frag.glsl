@@ -52,7 +52,7 @@ void main()
     color *= mix(0.5, 1.2, vig);
 
     // Faint mains flicker.
-    color *= 0.97 + 0.03 * sin(u_time * 50.0);
+    color *= 0.98 + 0.02 * sin(u_time * 10.0);
 
     gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }

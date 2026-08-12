@@ -11,7 +11,7 @@ uniform vec2  u_resolution;
 void main()
 {
     vec2  center = u_resolution * 0.5;
-    float scale  = 1.0 + 0.02 * (0.5 + 0.5 * sin(u_time * 2.5));
+    float scale  = 1.0 + 0.01 * (0.5 + 0.5 * sin(u_time * 1.0));
     vec2  pos    = center + (gl_Vertex.xy - center) * scale;
 
     gl_Position    = gl_ModelViewProjectionMatrix * vec4(pos, gl_Vertex.z, gl_Vertex.w);
