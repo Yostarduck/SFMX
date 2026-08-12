@@ -186,10 +186,7 @@ function GameManager.onUpdate(self, deltaTime)
   if spawnCooldown <= 0 then
     spawnEnemy(self)
     
-    enemySpawnRate = startSpawnRate / math.max(1, playerDamage)
-    if enemySpawnRate < 1 then
-      enemySpawnRate = 1
-    end
+    enemySpawnRate = startSpawnRate / (math.max(1, playerDamage) + 1)
 
     spawnCooldown = enemySpawnRate
   end
