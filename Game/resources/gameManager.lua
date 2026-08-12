@@ -18,7 +18,7 @@ local buyThunderMageButton
 local buyElderWizardButton
 local buyEliteWarlockButton
 
--- Owned units
+-- units
 local Enemies       = {}
 local CommonMages   = {}
 local FireMages     = {}
@@ -37,6 +37,11 @@ local EliteWarlockData = { cost = 100,  assetID = UUID.createFromName("CatSoldie
 local enemySpawnLocation = Vector2f(1280, 580)
 local unitSpawnLocation = Vector2f(50, 580)
 local money = 1
+
+local startSpawnRate = 30
+local enemySpawnRate = 0
+local spawnCooldown = 0
+local playerDamage = 0
 
 function GameManager.onCreated(self)
   self.targetEnemy = nil
@@ -167,7 +172,7 @@ function GameManager.onStart(self)
   
   updateMoney()
 
-  spawnEnemy(self)
+  enemySpawnRate = startSpawnRate
 end
 
 function GameManager.onUpdate(self, deltaTime)
@@ -176,6 +181,19 @@ function GameManager.onUpdate(self, deltaTime)
 
   --mouseInfo = string.format("Mouse World Position: %.2f, %.2f", mouseWorldPosition.x, mouseWorldPosition.y)
   --infoLabel:setText(mouseInfo)
+
+  spawnCooldown = spawnCooldown - deltaTime
+  if spawnCooldown <= 0 then
+    spawnEnemy(self)
+    
+    enemySpawnRate = startSpawnRate / math.max(1, playerDamage)
+    if enemySpawnRate < 1 then
+      enemySpawnRate = 1
+    end
+
+    spawnCooldown = enemySpawnRate
+  end
+
 end
 
 function GameManager.onDestroyed(self)
@@ -224,17 +242,26 @@ function spawnEnemy(self)
   enemyScriptComponent = enemy:addComponent(ScriptComponent, scriptID)
   enemyScript = enemyScriptComponent:instance()
   enemyScript.gameManager = self
+  
+  table.insert(Enemies, { transform = enemy:transform(), script = enemyScript })
 
-  self.targetEnemy = { transform = enemy:transform(), script = enemyScript }
+  if self.targetEnemy == nil then
+    self.targetEnemy = Enemies[1]
+  end
 end
 
 function GameManager.enemyDestroyed(self, enemy)
+  table.remove(Enemies, 1)
   self.targetEnemy = nil
   money = money + 1
 
   updateMoney()
-
-  spawnEnemy(self)
+  
+  if #Enemies > 0 then
+    self.targetEnemy = Enemies[1]
+  else
+    self.targetEnemy = nil
+  end
 end
 
 function onUnitBought(self, unitData)
@@ -261,6 +288,8 @@ function onUnitBought(self, unitData)
     unitScript.gameManager = self
     unitScript.spriteUUID = unitData.assetID
     unitScript.bulletDamage = unitData.damage
+
+    playerDamage = playerDamage + unitData.damage
   end
 end
 
