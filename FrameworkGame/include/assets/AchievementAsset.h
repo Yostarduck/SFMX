@@ -23,29 +23,15 @@ class SFMX_UTILITY_EXPORT AchievementAsset : public AssetT<AchievementAsset>
   decodeFrom(AssetFileReader& reader) override;
 
 
-  NODISCARD FORCEINLINE UUID getAchievementID() const { 
-    return UUID::createFromName(m_name);
+  NODISCARD FORCEINLINE UUID getAchievementID(uint32 index) const { 
+    return UUID::createFromName(m_ids[index].data());
   }
 
-  NODISCARD FORCEINLINE String getAchievementName() const {
-    return m_name;
+  NODISCARD FORCEINLINE UUID getIconID(uint32 index) const {
+    return UUID::createFromName(String(m_ids[index].data()) + "_icon");
   }
-
-  NODISCARD FORCEINLINE String getAchievementDescription() const {
-    return m_description;
-  }
-
-  NODISCARD FORCEINLINE UUID getIconID() const {
-    return m_iconID;
-  }
-
-
   private:
-
-  String m_name;
-  String m_description;
-  UUID m_iconID;
-
+  Vector<StringView> m_ids;
 };
 
 } // namespace sfmx
