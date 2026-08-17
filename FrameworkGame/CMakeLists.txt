@@ -64,6 +64,8 @@ add_library(FrameworkGame STATIC
     source/assets/MusicCodec.cpp
     source/assets/LuaAsset.cpp
     source/assets/LuaCodec.cpp
+    source/assets/LocalizationAsset.cpp
+    source/assets/LocalizationCodec.cpp
     source/assets/AssetManager.cpp
 
     source/input/InputTypes.cpp

@@ -44,30 +44,26 @@ LocalizationAsset::decodeFrom(AssetFileReader& reader) {
     }
   }
 
-  Vector<String> languages;
-  int row = 0;
+  // Each row after the header is a language version: the first cell is the
+  // language code, the remaining cells are the values for each id in header order.
   String languageCode;
-  while(std::getline(strStr, segment, '\n'))
+  while (std::getline(strStr, segment, '\n'))
   {
-    languageCode = "";
-    if (!segment.empty()) {
-      rowStr = std::stringstream(segment);
-      int column = 0;
-      while(std::getline(rowStr, celldata, '\t')) {
-        String currentId = ids[column];
-        if (!celldata.empty()) {
-          if (0 == 1) {
-            languages.push_back(celldata);
-            languageCode = celldata;
-          }
-          else {
-            m_localizations[currentId][languageCode] = celldata;
-          }
-        }
-        ++column;
-      }
+    if (segment.empty()) {
+      continue;
     }
-    ++row;
+    rowStr = std::stringstream(segment);
+    std::getline(rowStr, languageCode, '\t');
+    int column = 0;
+    while (std::getline(rowStr, celldata, '\t')) {
+      if (column >= static_cast<int>(ids.size())) {
+        break;  // row has more columns than the header; ignore the extras
+      }
+      if (!celldata.empty()) {
+        m_localizations[ids[column]][languageCode] = celldata;
+      }
+      ++column;
+    }
   }
 
   setState(AssetState::kLoaded);
