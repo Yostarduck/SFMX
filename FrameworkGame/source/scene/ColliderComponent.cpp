@@ -5,6 +5,7 @@
 #include <SFML/Graphics/VertexArray.hpp>
 #include <cmath>
 
+#include "utils/FrameScratch.h"
 #include "core/DataStream.h"
 
 namespace sfmx
@@ -80,7 +81,12 @@ ColliderComponent::onDraw(sf::RenderTarget& target, sf::RenderStates states) con
   if (!m_collider) return;
 
   const sf::Transform& wt = m_owner->transform().getWorldTransform();
-  sf::VertexArray va(sf::PrimitiveType::LineStrip, 0);
+
+  // Debug geometry is transient (drawn and thrown away every frame): back it
+  // with the inline stack / frame arena instead of allocating sf::VertexArrays
+  // on the heap each draw. Worst case is the circle (33 vertices).
+  FrameScratch<sf::Vertex, 64> va(64);
+  size_t vertexCount = 0;
 
   switch (m_collider->getType()) {
     case ColliderType::kCircle: {
@@ -91,12 +97,12 @@ ColliderComponent::onDraw(sf::RenderTarget& target, sf::RenderStates states) con
       const sf::Vector2f center = wt.transformPoint(c->getCenter());
       const float radius = c->getRadius() * (sx + sy) * 0.5f;
       constexpr int segs = 32;
-      va.resize(segs + 1);
       for (int i = 0; i <= segs; ++i) {
         const float a = 6.2831855f * i / segs;
         va[i].position = center + sf::Vector2f{std::cos(a) * radius, std::sin(a) * radius};
         va[i].color    = m_debugColor;
       }
+      vertexCount = static_cast<size_t>(segs + 1);
       break;
     }
     case ColliderType::kAABB: {
@@ -108,9 +114,9 @@ ColliderComponent::onDraw(sf::RenderTarget& target, sf::RenderStates states) con
         wt.transformPoint(a->getCenter() + sf::Vector2f{ hs.x,  hs.y}),
         wt.transformPoint(a->getCenter() + sf::Vector2f{-hs.x,  hs.y})
       };
-      va.resize(5);
       for (int i = 0; i < 4; ++i) { va[i].position = c[i]; va[i].color = m_debugColor; }
       va[4] = va[0];
+      vertexCount = 5;
       break;
     }
     case ColliderType::kOBB: {
@@ -126,38 +132,37 @@ ColliderComponent::onDraw(sf::RenderTarget& target, sf::RenderStates states) con
       const sf::Vector2f cr[4] = {
         center - ex - ey, center + ex - ey, center + ex + ey, center - ex + ey
       };
-      va.resize(5);
       for (int i = 0; i < 4; ++i) { va[i].position = cr[i]; va[i].color = m_debugColor; }
       va[4] = va[0];
+      vertexCount = 5;
       break;
     }
     case ColliderType::kPoint: {
       const auto* p  = static_cast<PointCollider*>(m_collider.get());
       const sf::Vector2f pt = wt.transformPoint(p->getPoint());
-      va.resize(2);
       va[0].position = pt + sf::Vector2f{-3.f, -3.f}; va[0].color = m_debugColor;
       va[1].position = pt + sf::Vector2f{ 3.f,  3.f}; va[1].color = m_debugColor;
-      sf::VertexArray va2(sf::PrimitiveType::LineStrip, 2);
+      FrameScratch<sf::Vertex, 2> va2(2);
       va2[0].position = pt + sf::Vector2f{-3.f,  3.f}; va2[0].color = m_debugColor;
       va2[1].position = pt + sf::Vector2f{ 3.f, -3.f}; va2[1].color = m_debugColor;
       sf::RenderStates id = states;
       id.transform = sf::Transform::Identity;
-      target.draw(va, id);
-      target.draw(va2, id);
+      target.draw(va.data(), 2, sf::PrimitiveType::LineStrip, id);
+      target.draw(va2.data(), 2, sf::PrimitiveType::LineStrip, id);
       return;
     }
     case ColliderType::kLine: {
       const auto* l  = static_cast<LineCollider*>(m_collider.get());
-      va.resize(2);
       va[0].position = wt.transformPoint(l->getStart()); va[0].color = m_debugColor;
       va[1].position = wt.transformPoint(l->getEnd());   va[1].color = m_debugColor;
+      vertexCount = 2;
       break;
     }
   }
 
   sf::RenderStates id = states;
   id.transform = sf::Transform::Identity;
-  target.draw(va, id);
+  target.draw(va.data(), vertexCount, sf::PrimitiveType::LineStrip, id);
 }
 
 // -----------------------------------------------------------------------------

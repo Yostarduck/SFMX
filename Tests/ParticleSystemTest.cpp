@@ -3,7 +3,11 @@
 #include "utils/UnitTest.h"
 #include "scene/Scene.h"
 #include "scene/ParticleSystemComponent.h"
+#include "utils/FrameMemory.h"
 #include "utils/MemoryPoolHandler.h"
+
+#include <chrono>
+#include <vector>
 
 using namespace sfmx;
 
@@ -206,4 +210,161 @@ TEST_CASE("ParticleSystemComponent - stress: create/destroy loop") {
       scene.destroyNode(node);
     }
   });
+}
+
+// -------------------------------------------------------------------------
+// Frame-rate scaling benchmark.
+//
+// Emits up to whatever the shared particle pool (see PoolFixture) actually has
+// free and measures the per-frame cost of onUpdate() -- including the
+// kBackToFront FrameScratch sort -- at each particle count. Reports both the
+// current FrameMemory-backed path and a std::vector heap baseline so the
+// frame-rate cost of going to more particles is visible.
+// -------------------------------------------------------------------------
+
+namespace {
+struct BenchmarkFrameScope {
+  BenchmarkFrameScope() {
+    if (!FrameMemory::isStarted()) {
+      FrameMemory::startUp(4u * 1024u * 1024u);
+    }
+  }
+  ~BenchmarkFrameScope() {
+    if (FrameMemory::isStarted()) {
+      FrameMemory::shutDown();
+    }
+  }
+};
+
+// Fill an emitter's particles with varied Y so the BackToFront sort does work.
+void
+disperseParticles(ParticleSystemComponent& ps, size_t count) {
+  ps.clear();  // setConfig doesn't reset count; release the previous sweep first
+  EmitterConfig cfg;
+  cfg.maxParticles  = count;
+  cfg.lifetime      = 1e6f;       // effectively immortal for the measurement
+  cfg.emissionRate  = 0.f;        // manual emit only, no steady-state spawning
+  cfg.positionVariance = 512.f;   // spread positions so Y ordering is mixed
+  cfg.speed         = 0.f;        // keep positions static across frames
+  cfg.gravity       = {0.f, 0.f};
+  ps.setConfig(cfg);
+  ps.emit(count);
+}
+
+// Proxy for the old (pre-FrameMemory) kBackToFront pass: sorts `count` pointers
+// with a heap std::vector exactly like the historical engine code did. Uses
+// dummy particles so the workload (allocation volume + sort cost) is comparable
+// to the arena path without reaching into the component's private list.
+void
+heapBackToFront(std::vector<Particle>& storage, size_t count) {
+  storage.resize(count);
+  for (size_t i = 0; i < count; ++i) {
+    storage[i].position.y = static_cast<float>(count - i);  // reverse order
+  }
+  std::vector<Particle*> sorted;
+  sorted.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    sorted.push_back(&storage[i]);
+  }
+  std::sort(sorted.begin(), sorted.end(),
+            [](const Particle* a, const Particle* b) {
+              return a->position.y < b->position.y;
+            });
+  DONOTOPTIMIZE(sorted.front());
+}
+
+// The current engine path: the component's own kBackToFront sort, which is
+// backed by the inline stack / FrameMemory arena (FrameScratch).
+void
+arenaBackToFront(ParticleSystemComponent& ps) {
+  ps.onUpdate(0.f);
+}
+
+}  // namespace
+
+TEST_CASE("ParticleSystemComponent - framerate scaling to pool ceiling") {
+  BenchmarkFrameScope frameScope;
+  Scene scene("Framerate");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+  ps->setSortMode(ParticleSortMode::kBackToFront);
+
+  const size_t poolCapacity = MemoryPoolHandler::instance().getCapacity<Particle>();
+  const size_t poolInUse    = MemoryPoolHandler::instance().getAllocatedCount<Particle>();
+  const size_t maxAvailable = poolCapacity - poolInUse;
+
+  // Size tiers from the smallest useful sweep up to whatever is actually free
+  // in the shared particle pool (earlier test cases may hold some slots).
+  std::vector<size_t> counts = {128u, 512u, 1024u, 2048u, 4096u};
+  if (maxAvailable > 4096u) {
+    counts.push_back(maxAvailable);
+  }
+
+  MESSAGE(std::string(80, '='));
+  MESSAGE("Particle framerate scaling (shared pool ceiling ", poolCapacity,
+          ", available ", maxAvailable, ")");
+  MESSAGE("  OnUpdate mode is the kBackToFront sort; \"sort-only\" subtracts the");
+  MESSAGE("  simulation-only pass (kNone) so the arena vs heap comparison is even.");
+  MESSAGE(std::string(80, '='));
+  MESSAGE("  count | full-frame fps | arena sort µs/frame | heap sort µs/frame");
+  MESSAGE(std::string(80, '='));
+
+  using Clock = std::chrono::steady_clock;
+  std::vector<Particle> heapStorage;
+
+  for (size_t count : counts) {
+    disperseParticles(*ps, count);
+    REQUIRE(ps->getParticleCount() == count);
+
+    // Warm up so allocations, caches and the sort path are representative.
+    for (size_t i = 0; i < 8; ++i) {
+      arenaBackToFront(*ps);
+      FrameMemory::instance().endFrame();
+    }
+
+    const size_t iterations = 4000u;  // simulated frames per measurement
+
+    // Simulation-only pass: sort disabled, so onUpdate cost is particle updates.
+    ps->setSortMode(ParticleSortMode::kNone);
+    auto simStart = Clock::now();
+    for (size_t i = 0; i < iterations; ++i) {
+      ps->onUpdate(0.f);
+    }
+    auto simEnd = Clock::now();
+    const double simUs =
+      std::chrono::duration<double, std::micro>(simEnd - simStart).count() / iterations;
+
+    // Full frame through the real (FrameMemory-backed) sort path.
+    ps->setSortMode(ParticleSortMode::kBackToFront);
+    auto arenaStart = Clock::now();
+    for (size_t i = 0; i < iterations; ++i) {
+      arenaBackToFront(*ps);
+      FrameMemory::instance().endFrame();
+    }
+    auto arenaEnd = Clock::now();
+    const double arenaUs =
+      std::chrono::duration<double, std::micro>(arenaEnd - arenaStart).count() / iterations;
+
+    // Old-school heap sort of the same workload (allocation + sort included).
+    auto heapStart = Clock::now();
+    for (size_t i = 0; i < iterations; ++i) {
+      heapBackToFront(heapStorage, count);
+    }
+    auto heapEnd = Clock::now();
+    const double heapUs =
+      std::chrono::duration<double, std::micro>(heapEnd - heapStart).count() / iterations;
+
+    const double arenaSortUs = std::max(0.0, arenaUs - simUs);
+    const double fullFps     = 1e6 / arenaUs;
+
+    MESSAGE(std::to_string(count),
+            " | ", std::to_string(fullFps), " FPS | ", std::to_string(arenaSortUs),
+            " µs | ", std::to_string(heapUs), " µs");
+
+    CHECK(arenaUs > 0.0);
+    CHECK(fullFps > 0.0);
+  }
+
+  MESSAGE(std::string(80, '='));
 }

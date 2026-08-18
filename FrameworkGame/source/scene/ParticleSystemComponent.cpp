@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "scene/MaterialComponent.h"
+#include "utils/FrameScratch.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
@@ -237,20 +238,22 @@ ParticleSystemComponent::onUpdate(float deltaTime) {
     }
   }
 
-  // Sort BackToFront
+  // Sort BackToFront.
+  // The sorted order is transient (relinked into the pool-owned linked list
+  // below), so back it with the inline stack or the frame arena — never the heap.
   if (m_sortMode == ParticleSortMode::kBackToFront && m_count > 1) {
-    Vector<Particle*> sorted;
-    sorted.reserve(m_count);
+    FrameScratch<Particle*, 64> sorted(m_count);
+    size_t s = 0;
     for (Particle* p = m_firstParticle; p; p = p->next)
-      sorted.push_back(p);
+      sorted[s++] = p;
 
     std::sort(sorted.begin(), sorted.end(),
               [](const Particle* a, const Particle* b) {
                   return a->position.y < b->position.y;
               });
 
-    m_firstParticle = sorted.front();
-    m_lastParticle  = sorted.back();
+    m_firstParticle = sorted[0];
+    m_lastParticle  = sorted[m_count - 1];
     for (size_t i = 0; i < sorted.size(); ++i) {
       sorted[i]->prev = (i > 0) ? sorted[i - 1] : nullptr;
       sorted[i]->next = (i + 1 < sorted.size()) ? sorted[i + 1] : nullptr;

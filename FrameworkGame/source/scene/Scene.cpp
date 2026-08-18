@@ -1,5 +1,6 @@
 #include "scene/Scene.h"
 
+#include "utils/FrameScratch.h"
 #include "utils/MemoryPoolHandler.h"
 
 #include <algorithm>
@@ -182,8 +183,10 @@ Scene::flushDestroyQueue() {
 
   // Swap the queue out so re-entrant destroyNode calls (from onDestroyed hooks
   // fired during teardown) accumulate into a fresh queue for the next frame.
-  Vector<NodeId> pending;
-  pending.swap(m_pendingDestroy);
+  // Bounded transient: stack for small batches, frame arena for larger ones.
+  FrameScratch<NodeId, 32> pending(m_pendingDestroy.size());
+  std::copy(m_pendingDestroy.begin(), m_pendingDestroy.end(), pending.begin());
+  m_pendingDestroy.clear();
 
   for (NodeId id : pending) {
     SceneNode* node = findNode(id);
@@ -240,8 +243,11 @@ Scene::draw(sf::RenderTarget& target) const {
     return;
   }
 
-  // Sort by draw order so lower values render first
-  auto sorted = m_cameras;
+  // Sort by draw order so lower values render first.
+  // Small scene: inline stack buffer, zero allocations. Larger scenes fall
+  // back to the frame arena; the sorted copy never survives the frame.
+  FrameScratch<CameraComponent*, 16> sorted(m_cameras.size());
+  std::copy(m_cameras.begin(), m_cameras.end(), sorted.begin());
   std::sort(sorted.begin(), sorted.end(),
     [](CameraComponent* a, CameraComponent* b) {
       return a->getDrawOrder() < b->getDrawOrder();
