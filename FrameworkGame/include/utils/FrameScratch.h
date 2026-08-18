@@ -79,8 +79,8 @@ class FrameScratch
  private:
   // Only indices < m_count are ever read, and every caller writes them before
   // reading, so the stack array is deliberately left uninitialized.
-  std::array<T, StackCapacity> m_stack;
-  std::vector<T>               m_heap;
+  Array<T, StackCapacity> m_stack;
+  Vector<T>               m_heap;
   T*     m_data = nullptr;
   size_t m_count = 0;
 };

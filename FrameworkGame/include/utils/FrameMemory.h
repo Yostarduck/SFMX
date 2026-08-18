@@ -130,9 +130,9 @@ class SFMX_UTILITY_EXPORT FrameMemory : public Module<FrameMemory>
   size_t m_capacity = 0;
   size_t m_offset   = 0;
   /** @brief Frames elapsed since startUp; incremented by endFrame. */
-  uint64_t m_frameCounter = 0;
+  uint64 m_frameCounter = 0;
   /** @brief Last frame that logged an exhaustion warning (once per frame). */
-  uint64_t m_exhaustedReportedFrame = 0;
+  uint64 m_exhaustedReportedFrame = 0;
 };
 
 } // namespace sfmx
