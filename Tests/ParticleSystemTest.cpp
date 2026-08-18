@@ -270,6 +270,12 @@ heapBackToFront(std::vector<Particle>& storage, size_t count) {
             [](const Particle* a, const Particle* b) {
               return a->position.y < b->position.y;
             });
+  // Mirror the sort pass's relink loop (prev/next writes) so the heap baseline
+  // pays the same cost the arena path does after std::sort.
+  for (size_t i = 0; i < count; ++i) {
+    sorted[i]->prev = (i > 0) ? sorted[i - 1] : nullptr;
+    sorted[i]->next = (i + 1 < count) ? sorted[i + 1] : nullptr;
+  }
   DONOTOPTIMIZE(sorted.front());
 }
 
@@ -323,7 +329,8 @@ TEST_CASE("ParticleSystemComponent - framerate scaling to pool ceiling") {
       FrameMemory::instance().endFrame();
     }
 
-    const size_t iterations = 4000u;  // simulated frames per measurement
+    const size_t iterations =
+      USING(SFMX_DEBUG_MODE) ? 200u : 4000u;  // simulated frames per measurement
 
     // Simulation-only pass: sort disabled, so onUpdate cost is particle updates.
     ps->setSortMode(ParticleSortMode::kNone);
