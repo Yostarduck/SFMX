@@ -49,6 +49,8 @@
 #include "core/FileSystem.h"
 #include "core/Window.h"
 
+#include "gfx/GfxRenderer.h"
+
 #include "utils/MemoryPoolHandler.h"
 #include "utils/EventSystem.h"
 #include "utils/Random.h"
@@ -138,6 +140,10 @@ int main(int argc, char** argv)
 
   sf::RenderWindow& window = Window::instance().getRenderWindow();
   window.setVerticalSyncEnabled(enableVSync);
+
+  // Right after the window, so the shared shader program it owns is created and
+  // destroyed strictly inside the lifetime of the window's GL context.
+  GfxRenderer::startUp();
 
   // Engine modules. Order matters: SceneManager clears its scenes at shutDown
   // (returning pooled nodes/components), so it is torn down before the pools,
@@ -510,6 +516,10 @@ int main(int argc, char** argv)
   PhysicsSystem::shutDown();
   InputSystem::shutDown();
   MemoryPoolHandler::shutDown();
+
+  // Before the window, for the same reason its start-up came after: the shader
+  // program it owns has to be released while the GL context still exists.
+  GfxRenderer::shutDown();
 
   // Shut the window down last: keep its GL context alive until every sf::Texture
   // owned by the (now torn-down) AssetManager has been released.

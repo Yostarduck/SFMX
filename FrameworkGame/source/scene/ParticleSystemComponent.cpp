@@ -11,10 +11,12 @@
 #include "assets/TextureAsset.h"
 #include "core/DataStream.h"
 #include "core/DataStreamTypes.h"
+#include "gfx/GfxRenderer.h"
 
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/Graphics/Transform.hpp>
+#include <SFML/Graphics/View.hpp>
 
 namespace sfmx
 {
@@ -48,9 +50,12 @@ ParticleSystemComponent::setConfig(const EmitterConfig& config) {
   SFMX_ASSERT(MemoryPoolHandler::instance().pool<Particle>().getCapacity() >= m_capacity &&
     "Shared particle pool too small. Call registerPool<Particle>(budget) with a larger budget.");
 
-  // Vertex buffer created lazily in rebuildVertices() to avoid OpenGL context
+  // Vertex buffer created lazily at first draw to avoid an OpenGL context
   // dependency during construction / configuration (needed for headless CI).
+  // The path is re-resolved too, since the two paths need different buffer sizes.
   m_vertexBuffer.reset();
+  m_drawPathResolved = false;
+  m_useInstancing = false;
 
   m_elapsed = 0.f;
   m_running = true;
@@ -260,10 +265,52 @@ ParticleSystemComponent::onUpdate(float deltaTime) {
 }
 
 void
+ParticleSystemComponent::resolveDrawPath() const {
+  if (m_drawPathResolved) {
+    return;
+  }
+
+  m_drawPathResolved = true;
+  m_useInstancing    = GfxRenderer::hasQuadRenderer();
+}
+
+void
 ParticleSystemComponent::onDraw(sf::RenderTarget& target,
                                 sf::RenderStates states) const {
   if (m_count == 0) {
     return;
+  }
+
+  resolveDrawPath();
+
+  if (m_worldSpace) {
+    states.transform = sf::Transform::Identity;
+  }
+
+  if (m_useInstancing) {
+    rebuildInstances();
+
+    if (m_vertexBuffer) {
+      gfx::QuadBatch batch;
+      batch.instances     = m_vertexBuffer.get();
+      batch.instanceCount = m_count;
+      batch.mvp           = target.getView().getTransform() * states.transform;
+      batch.texture       = m_config.texture;
+      batch.blendMode     = m_config.blendMode;
+      batch.sizeAtBlend0  = m_config.startSize;
+      batch.sizeAtBlend1  = m_config.endSize;
+
+      if (GfxRenderer::instance().quadRenderer()->draw(target, batch)) {
+        return;
+      }
+    }
+
+    // The driver turned out not to support instancing (only knowable once a
+    // context was current). Drop to the legacy path for good, discarding the
+    // buffer so it is recreated with the vertex layout that path expects.
+    m_useInstancing = false;
+    m_vertexBuffer.reset();
+    m_verticesDirty = true;
   }
 
   rebuildVertices();
@@ -272,14 +319,61 @@ ParticleSystemComponent::onDraw(sf::RenderTarget& target,
     return;
   }
 
-  if (m_worldSpace) {
-    states.transform = sf::Transform::Identity;
-  }
-
   states.blendMode = m_config.blendMode;
   states.texture   = m_config.texture;
 
   target.draw(*m_vertexBuffer, 0, m_count * 6, states);
+}
+
+void
+ParticleSystemComponent::rebuildInstances() const {
+  if (!m_verticesDirty) {
+    return;
+  }
+
+  // Lazy buffer creation, same reasoning as rebuildVertices(): no OpenGL context
+  // is touched until the component actually draws.
+  if (!m_vertexBuffer) {
+    if (m_capacity == 0) {
+      return;
+    }
+
+    m_vertexBuffer = MakeUnique<sf::VertexBuffer>();
+    if (!m_vertexBuffer->create(m_capacity)) {
+      m_vertexBuffer.reset();
+      return;
+    }
+    m_vertexBuffer->setUsage(sf::VertexBuffer::Usage::Stream);
+    m_vertexBuffer->setPrimitiveType(sf::PrimitiveType::Points);
+  }
+
+  // Fixed-size stack buffer for instance data, uploaded in batches. Six times as
+  // many particles fit per batch as on the legacy path, since a particle is one
+  // 20-byte instance here rather than six vertices.
+  static constexpr size_t kBatchInstances = 1024;
+  gfx::QuadInstance batch[kBatchInstances];
+
+  size_t batchFilled  = 0;
+  size_t uploadOffset = 0;
+
+  // No trigonometry, no corner expansion, no size interpolation: the vertex
+  // shader derives all of that from these four fields.
+  for (Particle* p = m_firstParticle; p; p = p->next) {
+    batch[batchFilled] = gfx::makeQuadInstance(p->position, p->color,
+                                               p->rotation, p->progress);
+    ++batchFilled;
+
+    if (batchFilled == kBatchInstances || p == m_lastParticle) {
+      if (!m_vertexBuffer->update(batch, batchFilled,
+                                  static_cast<unsigned int>(uploadOffset))) {
+        return;
+      }
+      uploadOffset += batchFilled;
+      batchFilled = 0;
+    }
+  }
+
+  m_verticesDirty = false;
 }
 
 void

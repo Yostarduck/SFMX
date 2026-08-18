@@ -78,6 +78,8 @@ add_library(FrameworkGame STATIC
 
     source/resource/SpriteAtlas.cpp
 
+    source/gfx/GfxRenderer.cpp
+
     source/ui/UIWidget.cpp
     source/ui/Canvas.cpp
     source/ui/UIEventSystem.cpp

@@ -180,8 +180,22 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   void spawnParticle();
   /** @brief Remove @p particle from the active list and return it to the pool. */
   void kill(Particle* particle);
-  /** @brief Fill the vertex buffer from the active linked list. */
+  /** @brief Fill the vertex buffer from the active linked list (legacy path). */
   void rebuildVertices() const;
+  /**
+   * @brief Fill the buffer with one instance per particle (instanced path).
+   *
+   * Streams 20 bytes per particle instead of the legacy path's six vertices, and
+   * leaves the corner rotation and size interpolation to the vertex shader.
+   */
+  void rebuildInstances() const;
+  /**
+   * @brief Choose between the instanced and legacy draw paths, once.
+   *
+   * Deferred to the first draw: the buffer's element count differs per path, and
+   * the decision depends on state that only exists once there is a live context.
+   */
+  void resolveDrawPath() const;
 
   /** @brief Current emitter configuration. */
   EmitterConfig       m_config;
@@ -208,11 +222,16 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   /** @brief Tail of the intrusive doubly-linked list of active particles. */
   Particle*    m_lastParticle  = nullptr;
 
-  /** @brief Pre-allocated vertex buffer (capacity * 6 vertices, two triangles per particle).
-   *         Lazily created in setConfig() to avoid OpenGL context dependency at construction. */
+  /** @brief Pre-allocated GPU buffer holding the particle stream. Sized to capacity
+   *         instances on the instanced path, capacity * 6 vertices on the legacy one.
+   *         Lazily created at first draw to avoid an OpenGL context dependency. */
   mutable UniquePtr<sf::VertexBuffer> m_vertexBuffer;
   /** @brief Set to true whenever the active list changes, triggers a rebuild before draw. */
   mutable bool m_verticesDirty = true;
+  /** @brief True once @ref resolveDrawPath has picked a path for this component. */
+  mutable bool m_drawPathResolved = false;
+  /** @brief True while drawing through the instanced path; false = legacy vertices. */
+  mutable bool m_useInstancing = false;
 
 };
 
