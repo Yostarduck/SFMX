@@ -1,5 +1,6 @@
 #include "gfx/InstancedQuadRenderer.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 
@@ -8,6 +9,7 @@
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/Graphics/View.hpp>
+#include <SFML/Window/Context.hpp>
 
 namespace sfmx::gfx
 {
@@ -90,6 +92,13 @@ constexpr std::uintptr_t kRotBlendOffset = 12;
 /** @brief Number of corners the strip draws per instance. */
 constexpr GLsizei kVerticesPerQuad = 4;
 
+/** @brief Binding point the custom-data block and its buffer are joined on. */
+constexpr GLuint kCustomDataBinding = 0;
+
+/** @brief Byte size of the shared custom-data uniform buffer. */
+constexpr std::size_t kCustomDataBytes =
+    kMaxCustomDataInstances * sizeof(QuadCustomData);
+
 /** @brief Turns a byte offset into the pointer @c glVertexAttribPointer wants. */
 [[nodiscard]] const void*
 bufferOffset(std::uintptr_t offset) {
@@ -129,6 +138,16 @@ toGlEquation(sf::BlendMode::Equation equation) {
 
 } // namespace
 
+InstancedQuadRenderer::~InstancedQuadRenderer() {
+  // Deleting a buffer needs a current context. The owning module is shut down
+  // before the window, so one normally is; if not, skip the delete and let the
+  // driver reclaim the buffer when the context dies -- leaking at process exit is
+  // harmless, calling into GL without a context is not.
+  if (0 != m_customDataUbo && 0 != sf::Context::getActiveContextId()) {
+    m_gl.deleteBuffers(1, &m_customDataUbo);
+  }
+}
+
 bool
 InstancedQuadRenderer::initialize() {
   if (m_initialized) {
@@ -158,10 +177,40 @@ InstancedQuadRenderer::initialize() {
   // which is where we bind the batch texture.
   m_shader.setUniform("u_texture", sf::Shader::CurrentTexture);
 
+  // Shared custom-data buffer, allocated once and re-uploaded per draw. Sized to
+  // the block GL 3.3 guarantees, so a conforming driver can always bind it whole.
+  GLint maxBlockSize = 0;
+  m_gl.getIntegerv(kGlMaxUniformBlockSize, &maxBlockSize);
+  if (maxBlockSize < static_cast<GLint>(kCustomDataBytes)) {
+    std::cerr << "InstancedQuadRenderer: GL_MAX_UNIFORM_BLOCK_SIZE is "
+              << maxBlockSize << ", below the " << kCustomDataBytes
+              << " bytes GL 3.3 guarantees; per-instance custom data disabled"
+              << std::endl;
+  }
+  else {
+    m_gl.genBuffers(1, &m_customDataUbo);
+    m_gl.bindBuffer(kGlUniformBuffer, m_customDataUbo);
+    m_gl.bufferData(kGlUniformBuffer,
+                    static_cast<GLsizeiptr>(kCustomDataBytes),
+                    nullptr,
+                    kGlStreamDraw);
+    m_gl.bindBuffer(kGlUniformBuffer, 0);
+  }
+
   m_supported = true;
   std::cout << "InstancedQuadRenderer: instanced quad drawing enabled"
             << std::endl;
   return true;
+}
+
+GLuint
+InstancedQuadRenderer::customDataBlockIndex(GLuint program) {
+  if (program != m_cachedProgram) {
+    m_cachedProgram    = program;
+    m_cachedBlockIndex = m_gl.getUniformBlockIndex(program,
+                                                   kCustomDataBlockName);
+  }
+  return m_cachedBlockIndex;
 }
 
 void
@@ -203,11 +252,14 @@ InstancedQuadRenderer::draw(sf::RenderTarget& target, const QuadBatch& batch) {
 
   applyViewport(target);
 
-  m_shader.setUniform("u_mvp", sf::Glsl::Mat4(batch.mvp));
-  m_shader.setUniform("u_sizeBegin", batch.sizeAtBlend0);
-  m_shader.setUniform("u_sizeEnd", batch.sizeAtBlend1);
-  m_shader.setUniform("u_useTexture", nullptr != batch.texture);
-  sf::Shader::bind(&m_shader);
+  // A batch may override the built-in program; the standard uniforms go to
+  // whichever one ends up bound.
+  sf::Shader& program = (nullptr != batch.shader) ? *batch.shader : m_shader;
+  program.setUniform("u_mvp", sf::Glsl::Mat4(batch.mvp));
+  program.setUniform("u_sizeBegin", batch.sizeAtBlend0);
+  program.setUniform("u_sizeEnd", batch.sizeAtBlend1);
+  program.setUniform("u_useTexture", nullptr != batch.texture);
+  sf::Shader::bind(&program);
 
   applyBlendMode(batch.blendMode);
 
@@ -215,16 +267,23 @@ InstancedQuadRenderer::draw(sf::RenderTarget& target, const QuadBatch& batch) {
     sf::Texture::bind(batch.texture);
   }
 
+  // Custom data only travels if there is a buffer to put it in and the bound
+  // shader actually declares the block -- the built-in one does not.
+  GLuint blockIndex = kGlInvalidIndex;
+  if (nullptr != batch.customData && 0 != m_customDataUbo) {
+    blockIndex = customDataBlockIndex(program.getNativeHandle());
+    if (kGlInvalidIndex != blockIndex) {
+      m_gl.uniformBlockBinding(program.getNativeHandle(), blockIndex,
+                               kCustomDataBinding);
+      m_gl.bindBufferBase(kGlUniformBuffer, kCustomDataBinding,
+                          m_customDataUbo);
+    }
+  }
+  const bool uploadCustomData = (kGlInvalidIndex != blockIndex);
+
   sf::VertexBuffer::bind(batch.instances);
 
   const GLsizei stride = static_cast<GLsizei>(sizeof(QuadInstance));
-
-  m_gl.vertexAttribPointer(kCenterLocation, 2, kGlFloat, kGlFalse,
-                           stride, bufferOffset(kCenterOffset));
-  m_gl.vertexAttribPointer(kColorLocation, 4, kGlUnsignedByte, kGlTrue,
-                           stride, bufferOffset(kColorOffset));
-  m_gl.vertexAttribPointer(kRotBlendLocation, 2, kGlFloat, kGlFalse,
-                           stride, bufferOffset(kRotBlendOffset));
 
   m_gl.vertexAttribDivisor(kCenterLocation, 1);
   m_gl.vertexAttribDivisor(kColorLocation, 1);
@@ -234,8 +293,42 @@ InstancedQuadRenderer::draw(sf::RenderTarget& target, const QuadBatch& batch) {
   m_gl.enableVertexAttribArray(kColorLocation);
   m_gl.enableVertexAttribArray(kRotBlendLocation);
 
-  m_gl.drawArraysInstanced(kGlTriangleStrip, 0, kVerticesPerQuad,
-                           static_cast<GLsizei>(batch.instanceCount));
+  // One pass unless custom data is in play, in which case the batch is cut into
+  // uniform-block-sized slices. gl_InstanceID restarts at zero every draw, so a
+  // slice uploaded at offset zero is addressed by exactly the same index.
+  const std::size_t chunkMax =
+      uploadCustomData ? kMaxCustomDataInstances : batch.instanceCount;
+
+  for (std::size_t start = 0; start < batch.instanceCount; start += chunkMax) {
+    const std::size_t count = std::min(chunkMax, batch.instanceCount - start);
+
+    if (uploadCustomData) {
+      const std::size_t available =
+          (start < batch.customDataCount) ? batch.customDataCount - start : 0;
+      const std::size_t uploaded = std::min(count, available);
+      if (0 != uploaded) {
+        m_gl.bindBuffer(kGlUniformBuffer, m_customDataUbo);
+        m_gl.bufferSubData(
+            kGlUniformBuffer, 0,
+            static_cast<GLsizeiptr>(uploaded * sizeof(QuadCustomData)),
+            batch.customData + start);
+        m_gl.bindBuffer(kGlUniformBuffer, 0);
+      }
+    }
+
+    // Walk the instance attributes forward instead of the base instance, which
+    // would need glDrawArraysInstancedBaseInstance (GL 4.2).
+    const std::uintptr_t base = start * sizeof(QuadInstance);
+    m_gl.vertexAttribPointer(kCenterLocation, 2, kGlFloat, kGlFalse,
+                             stride, bufferOffset(base + kCenterOffset));
+    m_gl.vertexAttribPointer(kColorLocation, 4, kGlUnsignedByte, kGlTrue,
+                             stride, bufferOffset(base + kColorOffset));
+    m_gl.vertexAttribPointer(kRotBlendLocation, 2, kGlFloat, kGlFalse,
+                             stride, bufferOffset(base + kRotBlendOffset));
+
+    m_gl.drawArraysInstanced(kGlTriangleStrip, 0, kVerticesPerQuad,
+                             static_cast<GLsizei>(count));
+  }
 
   // Divisors are global while no vertex array object is bound, so put them back.
   m_gl.disableVertexAttribArray(kCenterLocation);
@@ -244,6 +337,12 @@ InstancedQuadRenderer::draw(sf::RenderTarget& target, const QuadBatch& batch) {
   m_gl.vertexAttribDivisor(kCenterLocation, 0);
   m_gl.vertexAttribDivisor(kColorLocation, 0);
   m_gl.vertexAttribDivisor(kRotBlendLocation, 0);
+
+  // resetGLStates knows nothing about uniform buffers, so release the binding
+  // point ourselves rather than leaving our buffer attached to it.
+  if (uploadCustomData) {
+    m_gl.bindBufferBase(kGlUniformBuffer, kCustomDataBinding, 0);
+  }
 
   // Mandatory: the target caches the blend mode, texture, shader and view it
   // believes are current. Without this the next target.draw would skip

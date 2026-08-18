@@ -7,6 +7,8 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/System/Angle.hpp>
 
+#include "gfx/InstancedQuadRenderer.h"
+
 #include "core/platform/Prerequisites.h"
 #include "scene/Component.h"
 #include "scene/SceneNode.h"
@@ -31,6 +33,15 @@ enum class ParticleSortMode : int32
 };
 
 /**
+ * @brief Caller-defined payload carried by one particle all the way to the shader.
+ *
+ * Opaque to the simulation: nothing here is read or written by the emitter, it is
+ * only copied through to the GPU. See @ref gfx::QuadCustomData for why it is
+ * exactly one int and three floats.
+ */
+using ParticleCustomData = gfx::QuadCustomData;
+
+/**
  * @brief A single particle: position, velocity, colour, rotation, and lifetime
  *        together with intrusive linked-list hooks for the active set.
  */
@@ -45,6 +56,8 @@ struct Particle
   float         maxLifetime;
   /** @brief Normalised age, 0 = just spawned, 1 = about to die. */
   float         progress;
+  /** @brief Payload handed to this particle at emit time; see @ref emit. */
+  ParticleCustomData customData;
   Particle*     prev = nullptr;
   Particle*     next = nullptr;
 };
@@ -84,6 +97,11 @@ struct EmitterConfig
   float         duration                = 0.f;    // 0 = infinite
 
   bool          loop                    = false;
+
+  /** @brief Payload given to particles spawned by @ref emissionRate, and the
+   *         default for @ref ParticleSystemComponent::emit(size_t). Transient:
+   *         not serialized, since it is caller-defined gameplay data. */
+  ParticleCustomData customData;
 };
 
 /**
@@ -132,8 +150,20 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   NODISCARD FORCEINLINE float 
   getEmissionRate() const { return m_config.emissionRate; }
 
-  /** @brief Spawn @p count particles immediately from the current config. */
+  /** @brief Spawn @p count particles immediately from the current config, each
+   *         carrying @c EmitterConfig::customData. */
   void emit(size_t count);
+
+  /**
+   * @brief Spawn @p count particles carrying @p customData instead of the
+   *        config's default.
+   *
+   * Reaches the shader as @c u_customData[gl_InstanceID]; emit one particle with
+   * its own payload via @c emit(1, payload). Requires a material whose shader
+   * declares the block -- see @ref setMaterial. Ignored by the non-instanced
+   * fallback path, which warns once.
+   */
+  void emit(size_t count, const ParticleCustomData& customData);
   /** @brief Kill all active particles immediately. */
   void clear();
   /** @brief (Re)start the emission timer. */
@@ -153,11 +183,20 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   NODISCARD FORCEINLINE MaterialComponent* getMaterial() const { return m_material; }
 
   /** @brief Returns the number of particles currently alive. */
-  NODISCARD FORCEINLINE size_t 
+  NODISCARD FORCEINLINE size_t
   getParticleCount() const { return m_count; }
+  /** @brief Head of the active list, for a read-only walk via @c Particle::next.
+   *         The emitter owns the list; the pointer dies with the next update. */
+  NODISCARD FORCEINLINE const Particle*
+  getFirstParticle() const { return m_firstParticle; }
   /** @brief Returns the maximum number of particles allowed. */
   NODISCARD FORCEINLINE size_t 
   getMaxParticles()  const { return m_capacity; }
+
+  /**
+   * @brief Resolves an asset-backed texture once the component is on its node.
+   */
+  void onAttached() override;
 
   /**
    * @brief Advances the simulation by @p deltaTime seconds.
@@ -183,8 +222,17 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   void onDeserialize(DataStream& stream) override;
 
  private:
-  /** @brief Allocate a new particle and initialise it from the current config. */
-  void spawnParticle();
+  /**
+   * @brief Loads @c m_config.textureAssetId into @ref m_textureAsset and points
+   *        @c m_config.texture at it.
+   *
+   * No-op when the config already carries a raw texture (the caller owns that
+   * one), when there is no asset id, or when the AssetManager is not running.
+   */
+  void resolveTextureAsset();
+  /** @brief Allocate a new particle, initialised from the current config and
+   *         carrying @p customData. */
+  void spawnParticle(const ParticleCustomData& customData);
   /** @brief Remove @p particle from the active list and return it to the pool. */
   void kill(Particle* particle);
   /** @brief Fill the vertex buffer from the active linked list (legacy path). */
@@ -241,6 +289,15 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   mutable bool m_drawPathResolved = false;
   /** @brief True while drawing through the instanced path; false = legacy vertices. */
   mutable bool m_useInstancing = false;
+
+  /** @brief Custom payloads, in the same order as the instance stream. Rebuilt
+   *         alongside it so index i of one matches index i of the other. */
+  mutable Vector<ParticleCustomData> m_customData;
+  /** @brief Whether any live particle was emitted with a non-default payload;
+   *         gates the one-shot "fallback drops custom data" warning. */
+  bool         m_hasCustomData = false;
+  /** @brief Whether that warning has already been printed. */
+  mutable bool m_customDataWarned = false;
 
 };
 

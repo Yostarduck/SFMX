@@ -19,11 +19,13 @@ namespace sfmx::gfx
 #endif
 
 // OpenGL scalar types, mirrored here so this header pulls in no GL SDK at all.
-using GLenum    = std::uint32_t;
-using GLboolean = std::uint8_t;
-using GLint     = std::int32_t;
-using GLsizei   = std::int32_t;
-using GLuint    = std::uint32_t;
+using GLenum     = std::uint32_t;
+using GLboolean  = std::uint8_t;
+using GLint      = std::int32_t;
+using GLsizei    = std::int32_t;
+using GLuint     = std::uint32_t;
+using GLintptr   = std::intptr_t;
+using GLsizeiptr = std::intptr_t;
 
 // Data types.
 constexpr GLenum kGlUnsignedByte = 0x1401;
@@ -34,6 +36,16 @@ constexpr GLenum kGlTriangleStrip = 0x0005;
 
 // Capabilities.
 constexpr GLenum kGlBlend = 0x0BE2;
+
+// Buffer objects.
+constexpr GLenum kGlUniformBuffer = 0x8A11;
+constexpr GLenum kGlStreamDraw    = 0x88E0;
+
+// Queries.
+constexpr GLenum kGlMaxUniformBlockSize = 0x8A30;
+
+/** @brief Returned by glGetUniformBlockIndex for a block the shader lacks. */
+constexpr GLuint kGlInvalidIndex = 0xFFFFFFFFu;
 
 // Blend factors.
 constexpr GLenum kGlZero             = 0x0000;
@@ -80,6 +92,21 @@ struct GLFunctions
   void (SFMX_GLAPI *vertexAttribDivisor)(GLuint, GLuint)       = nullptr;
   void (SFMX_GLAPI *drawArraysInstanced)(GLenum, GLint,
                                          GLsizei, GLsizei)     = nullptr;
+
+  // Uniform buffer objects: the per-instance custom-data channel.
+  void   (SFMX_GLAPI *genBuffers)(GLsizei, GLuint*)            = nullptr;
+  void   (SFMX_GLAPI *deleteBuffers)(GLsizei, const GLuint*)   = nullptr;
+  void   (SFMX_GLAPI *bindBuffer)(GLenum, GLuint)              = nullptr;
+  void   (SFMX_GLAPI *bufferData)(GLenum, GLsizeiptr,
+                                  const void*, GLenum)         = nullptr;
+  void   (SFMX_GLAPI *bufferSubData)(GLenum, GLintptr,
+                                     GLsizeiptr, const void*)  = nullptr;
+  void   (SFMX_GLAPI *bindBufferBase)(GLenum, GLuint, GLuint)  = nullptr;
+  GLuint (SFMX_GLAPI *getUniformBlockIndex)(GLuint,
+                                            const char*)       = nullptr;
+  void   (SFMX_GLAPI *uniformBlockBinding)(GLuint, GLuint,
+                                           GLuint)             = nullptr;
+  void   (SFMX_GLAPI *getIntegerv)(GLenum, GLint*)             = nullptr;
 };
 
 /**

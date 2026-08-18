@@ -190,6 +190,98 @@ TEST_CASE("ParticleSystemComponent - start resets elapsed timer") {
 }
 
 // -------------------------------------------------------------------------
+// Construction from a config, and per-particle custom data
+// -------------------------------------------------------------------------
+
+// Regression: the two-argument constructor used to store the config without
+// seeding m_capacity, so spawnParticle's `m_count >= m_capacity` check was true
+// from the start and the emitter silently never produced a single particle.
+TEST_CASE("ParticleSystemComponent - constructing with a config sets capacity") {
+  Scene scene("TestParticle");
+  SceneNode* node = scene.createNode("emitter");
+
+  EmitterConfig cfg;
+  cfg.maxParticles = 64;
+  auto* ps = node->addComponent<ParticleSystemComponent>(cfg);
+  REQUIRE(ps != nullptr);
+
+  CHECK(ps->getMaxParticles() == 64);
+
+  ps->emit(5);
+  CHECK(ps->getParticleCount() == 5);
+}
+
+TEST_CASE("ParticleSystemComponent - emit stamps custom data on each particle") {
+  Scene scene("TestParticle");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+
+  EmitterConfig cfg;
+  cfg.maxParticles = 16;
+  ps->setConfig(cfg);
+
+  ParticleCustomData payload;
+  payload.id = 42;
+  payload.x  = 1.5f;
+  payload.y  = -2.5f;
+  payload.z  = 0.25f;
+
+  ps->emit(1, payload);
+  REQUIRE(ps->getParticleCount() == 1);
+
+  const Particle* p = ps->getFirstParticle();
+  REQUIRE(p != nullptr);
+  CHECK(p->customData.id == 42);
+  CHECK(p->customData.x == doctest::Approx(1.5f));
+  CHECK(p->customData.y == doctest::Approx(-2.5f));
+  CHECK(p->customData.z == doctest::Approx(0.25f));
+}
+
+TEST_CASE("ParticleSystemComponent - rate-spawned particles take the config payload") {
+  Scene scene("TestParticle");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+
+  EmitterConfig cfg;
+  cfg.maxParticles   = 16;
+  cfg.emissionRate   = 10.0f;
+  cfg.lifetime       = 100.0f;  // long enough that nothing is culled mid-test
+  cfg.customData.id  = 7;
+  ps->setConfig(cfg);
+
+  ps->onUpdate(0.5f);  // 10/s for half a second == 5 particles
+  REQUIRE(ps->getParticleCount() == 5);
+
+  size_t seen = 0;
+  for (const Particle* p = ps->getFirstParticle(); nullptr != p; p = p->next) {
+    CHECK(p->customData.id == 7);
+    ++seen;
+  }
+  CHECK(seen == 5);
+}
+
+// The plain emit() overload must fall back to the config payload, not to zero.
+TEST_CASE("ParticleSystemComponent - emit without a payload uses the config one") {
+  Scene scene("TestParticle");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+
+  EmitterConfig cfg;
+  cfg.maxParticles  = 8;
+  cfg.customData.id = 3;
+  ps->setConfig(cfg);
+
+  ps->emit(2);
+  REQUIRE(ps->getParticleCount() == 2);
+  for (const Particle* p = ps->getFirstParticle(); nullptr != p; p = p->next) {
+    CHECK(p->customData.id == 3);
+  }
+}
+
+// -------------------------------------------------------------------------
 // Stress benchmark — create / destroy nodes with components repeatedly
 // to exercise the pool allocators and verify no unbounded growth.
 // -------------------------------------------------------------------------

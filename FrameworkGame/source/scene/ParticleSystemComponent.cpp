@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include "scene/MaterialComponent.h"
 #include "utils/MemoryPoolHandler.h"
@@ -9,6 +10,7 @@
 #include "utils/Arithmetic.h"
 
 #include "assets/AssetManager.h"
+#include "assets/ShaderAsset.h"
 #include "assets/TextureAsset.h"
 #include "core/DataStream.h"
 #include "core/DataStreamTypes.h"
@@ -31,10 +33,14 @@ ParticleSystemComponent::ParticleSystemComponent(SceneNode* owner)
   : ComponentT<ParticleSystemComponent>(owner) {}
 
 
+// m_capacity has to be seeded here as well as in setConfig(): spawnParticle()
+// bails on `m_count >= m_capacity`, so a component built straight from a config
+// would silently never emit a single particle.
 ParticleSystemComponent::ParticleSystemComponent(SceneNode* owner,
                                                  const EmitterConfig& config)
   : ComponentT<ParticleSystemComponent>(owner),
-    m_config(config) {}
+    m_config(config),
+    m_capacity(config.maxParticles) {}
 
 
 ParticleSystemComponent::~ParticleSystemComponent() {
@@ -42,8 +48,33 @@ ParticleSystemComponent::~ParticleSystemComponent() {
 }
 
 void
+ParticleSystemComponent::onAttached() {
+  resolveTextureAsset();
+}
+
+void
+ParticleSystemComponent::resolveTextureAsset() {
+  if (nullptr != m_config.texture ||
+      m_config.textureAssetId == UUID::null() ||
+      !AssetManager::isStarted()) {
+    return;
+  }
+
+  SPtr<TextureAsset> asset =
+      AssetManager::instance().load<TextureAsset>(m_config.textureAssetId);
+  if (nullptr != asset && asset->isLoaded()) {
+    m_textureAsset   = asset;
+    m_config.texture = &asset->texture();
+  }
+}
+
+void
 ParticleSystemComponent::setConfig(const EmitterConfig& config) {
   m_config = config;
+  // Drop the previous keep-alive before re-resolving: the new config may point at
+  // a different asset, a caller-owned raw texture, or none at all.
+  m_textureAsset.reset();
+  resolveTextureAsset();
   m_capacity = config.maxParticles;
   m_firstParticle = nullptr;
   m_lastParticle = nullptr;
@@ -58,6 +89,10 @@ ParticleSystemComponent::setConfig(const EmitterConfig& config) {
   m_drawPathResolved = false;
   m_useInstancing = false;
 
+  // Sized once here so the per-frame rebuild never allocates.
+  m_customData.assign(m_capacity, ParticleCustomData{});
+  m_hasCustomData = false;
+
   m_elapsed = 0.f;
   m_running = true;
   m_verticesDirty = true;
@@ -65,9 +100,19 @@ ParticleSystemComponent::setConfig(const EmitterConfig& config) {
 
 void
 ParticleSystemComponent::emit(size_t count) {
+  emit(count, m_config.customData);
+}
+
+void
+ParticleSystemComponent::emit(size_t count,
+                              const ParticleCustomData& customData) {
+  if (m_count >= m_capacity) {
+    return;
+  }
+
   const size_t clamped = std::min(count, m_capacity - m_count);
   for (size_t i = 0; i < clamped; ++i) {
-    spawnParticle();
+    spawnParticle(customData);
   }
 }
 
@@ -107,7 +152,7 @@ ParticleSystemComponent::getProgress() const {
 }
 
 void
-ParticleSystemComponent::spawnParticle() {
+ParticleSystemComponent::spawnParticle(const ParticleCustomData& customData) {
   auto& pool = MemoryPoolHandler::instance().pool<Particle>();
   if (m_count >= m_capacity || pool.isFull()) {
     return;
@@ -146,6 +191,12 @@ ParticleSystemComponent::spawnParticle() {
   p->lifetime        = lifetime;
   p->maxLifetime     = lifetime;
   p->progress        = 0.f;
+  p->customData      = customData;
+
+  if (0 != customData.id || 0.f != customData.x ||
+      0.f != customData.y || 0.f != customData.z) {
+    m_hasCustomData = true;
+  }
 
   if (m_worldSpace) {
     const sf::Transform& world = m_owner->getWorldTransform();
@@ -237,7 +288,7 @@ ParticleSystemComponent::onUpdate(float deltaTime) {
   if (m_running && m_config.emissionRate > 0.f) {
     m_accumulator += m_config.emissionRate * deltaTime;
     while (m_accumulator >= 1.f && m_count < m_capacity) {
-      spawnParticle();
+      spawnParticle(m_config.customData);
       m_accumulator -= 1.f;
     }
   }
@@ -301,6 +352,22 @@ ParticleSystemComponent::onDraw(sf::RenderTarget& target,
       batch.sizeAtBlend0  = m_config.startSize;
       batch.sizeAtBlend1  = m_config.endSize;
 
+      // The material's shader replaces the built-in program, which is the only
+      // way custom data becomes observable: the built-in one declares no block.
+      if (nullptr != m_material) {
+        const SPtr<ShaderAsset>& shaderAsset = m_material->getShader();
+        if (nullptr != shaderAsset && shaderAsset->isLoaded()) {
+          // apply() uploads the material's own uniforms as a side effect; the
+          // scratch states it writes back into are not used on this path.
+          sf::RenderStates materialStates;
+          m_material->apply(materialStates);
+          batch.shader = &shaderAsset->shader();
+        }
+      }
+
+      batch.customData      = m_customData.data();
+      batch.customDataCount = std::min(m_count, m_customData.size());
+
       if (GfxRenderer::instance().quadRenderer()->draw(target, batch)) {
         return;
       }
@@ -312,6 +379,13 @@ ParticleSystemComponent::onDraw(sf::RenderTarget& target,
     m_useInstancing = false;
     m_vertexBuffer.reset();
     m_verticesDirty = true;
+  }
+
+  if (m_hasCustomData && !m_customDataWarned) {
+    m_customDataWarned = true;
+    std::cerr << "ParticleSystemComponent: per-particle custom data needs the "
+                 "instanced draw path; this emitter fell back to the plain "
+                 "vertex path and will render without it" << std::endl;
   }
 
   rebuildVertices();
@@ -352,6 +426,13 @@ ParticleSystemComponent::rebuildInstances() const {
     m_vertexBuffer->setPrimitiveType(sf::PrimitiveType::Points);
   }
 
+  // Sized here rather than only in setConfig, because a component built straight
+  // from a config through the constructor never goes through setConfig. Steady
+  // state is a single comparison; it only allocates when the capacity changes.
+  if (m_customData.size() != m_capacity) {
+    m_customData.assign(m_capacity, ParticleCustomData{});
+  }
+
   // Fixed-size stack buffer for instance data, uploaded in batches. Six times as
   // many particles fit per batch as on the legacy path, since a particle is one
   // 20-byte instance here rather than six vertices.
@@ -366,6 +447,11 @@ ParticleSystemComponent::rebuildInstances() const {
   for (Particle* p = m_firstParticle; p; p = p->next) {
     batch[batchFilled] = gfx::makeQuadInstance(p->position, p->color,
                                                p->rotation, p->progress);
+    // Written in the same walk so custom index i belongs to instance i. The
+    // upload offset is the running total, not batchFilled, which resets.
+    if (uploadOffset + batchFilled < m_customData.size()) {
+      m_customData[uploadOffset + batchFilled] = p->customData;
+    }
     ++batchFilled;
 
     if (batchFilled == kBatchInstances || p == m_lastParticle) {
@@ -573,16 +659,8 @@ ParticleSystemComponent::onDeserialize(DataStream& stream) {
   uint8 worldSpace = 0;
   stream >> worldSpace;
 
-  // Re-resolve the texture by asset UUID (kept alive so cfg.texture stays valid).
-  if (cfg.textureAssetId != UUID::null() && AssetManager::isStarted()) {
-    SPtr<TextureAsset> asset =
-        AssetManager::instance().load<TextureAsset>(cfg.textureAssetId);
-    if (nullptr != asset && asset->isLoaded()) {
-      m_textureAsset = asset;
-      cfg.texture    = &asset->texture();
-    }
-  }
-
+  // setConfig re-resolves the texture from cfg.textureAssetId and keeps the asset
+  // alive, so nothing extra is needed here.
   setConfig(cfg);
   setSortMode(static_cast<ParticleSortMode>(sortMode));
   setWorldSpace(worldSpace != 0);

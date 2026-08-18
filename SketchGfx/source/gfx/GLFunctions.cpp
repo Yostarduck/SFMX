@@ -41,6 +41,18 @@ loadGLFunctions(GLFunctions& functions) {
   resolve(functions.vertexAttribDivisor, "glVertexAttribDivisor", ok);
   resolve(functions.drawArraysInstanced, "glDrawArraysInstanced", ok);
 
+  // Uniform buffer objects: GL 3.1 core / ARB_uniform_buffer_object. Anything
+  // that can do instanced arrays has these too, so they share the one ok flag.
+  resolve(functions.genBuffers, "glGenBuffers", ok);
+  resolve(functions.deleteBuffers, "glDeleteBuffers", ok);
+  resolve(functions.bindBuffer, "glBindBuffer", ok);
+  resolve(functions.bufferData, "glBufferData", ok);
+  resolve(functions.bufferSubData, "glBufferSubData", ok);
+  resolve(functions.bindBufferBase, "glBindBufferBase", ok);
+  resolve(functions.getUniformBlockIndex, "glGetUniformBlockIndex", ok);
+  resolve(functions.uniformBlockBinding, "glUniformBlockBinding", ok);
+  resolve(functions.getIntegerv, "glGetIntegerv", ok);
+
   return ok;
 }
 

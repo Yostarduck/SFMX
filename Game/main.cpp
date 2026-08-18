@@ -19,6 +19,9 @@
 #include "scene/SceneSerializer.h"
 #include "scene/ComponentRegistry.h"
 #include "scene/CanvasComponent.h"
+#include "scene/CameraComponent.h"
+#include "scene/MaterialComponent.h"
+#include "scene/ParticleSystemComponent.h"
 
 #include "ui/Canvas.h"
 #include "ui/UIEventSystem.h"
@@ -474,6 +477,71 @@ int main(int argc, char** argv)
   SceneNode* gameManager = scene.createNode("GameManager");
   gameManager->addComponent<ScriptComponent>(sfmx::UUID::createFromName("gameManager.lua"));
 
+  sfmx::UUID texID = sfmx::UUID::createFromName(String("NumbersMonospace.png"));
+
+  EmitterConfig sampleConfig;
+  sampleConfig.maxParticles    = 1024 * 5;
+  sampleConfig.positionOffset  = {0.0f, 0.0f};
+  // +Y points down in SFML, so a positive-Y gravity brakes the upward launch.
+  sampleConfig.gravity         = {0.f, 200.f};
+  sampleConfig.startSize       = {100.f, 100.f};
+  sampleConfig.endSize         = {0.f, 0.f};
+  // Left null on purpose: the component resolves it from textureAssetId and
+  // holds the asset alive for as long as the emitter needs it.
+  sampleConfig.texture         = nullptr;
+  sampleConfig.textureAssetId  = texID;
+  sampleConfig.blendMode       = sf::BlendAlpha;
+  sampleConfig.emissionRate            = 0.0f;
+  sampleConfig.positionVariance        = 12.0f;
+  // -90 degrees is straight up; the variance fans the jet out a little.
+  sampleConfig.direction               = sf::degrees(-90.0f);
+  sampleConfig.directionVariance       = sf::degrees(90.0f);
+  sampleConfig.speed                   = 600.0f;
+  sampleConfig.speedVariance           = 40.0f;
+  sampleConfig.startRotation           = sf::Angle::Zero;
+  sampleConfig.startRotationVariance   = sf::Angle::Zero;
+  // Radians per second: a lazy tumble so the stars do not look stamped on.
+  sampleConfig.angularVelocity         = 0.0f;
+  sampleConfig.angularVelocityVariance = 0.0f;
+  sampleConfig.startColor              = sf::Color::White;
+  // Ending on alpha 0 is what makes them disappear rather than pop out.
+  sampleConfig.endColor                = sf::Color(255, 255, 255, 0);
+  // Roughly the time it takes gravity to cancel the launch speed, so they fade
+  // out around the top of their arc instead of raining back down.
+  sampleConfig.lifetime                = 10.0f;
+  sampleConfig.lifetimeVariance        = 0.25f;
+  sampleConfig.duration                = 0.f;
+  sampleConfig.loop                    = true;
+  // Payload every rate-spawned particle carries. Distinct from the ids the game
+  // loop emits by hand, so the two are told apart by colour in the debug shader.
+  sampleConfig.customData.id           = 3;
+
+  // Sit the emitter near the bottom of whatever the active camera is looking at,
+  // so it stays on screen wherever the serialized camera happens to be placed.
+  sf::Vector2f emitterPos{static_cast<float>(windowWidth) * 0.5f,
+                          static_cast<float>(windowHeight) * 0.5f};
+
+  SceneNode* particlesNode = scene.createNode("NumberParticles");
+  particlesNode->transform().setPosition(emitterPos);
+
+  auto* particleSystem = particlesNode->addComponent<ParticleSystemComponent>(sampleConfig);
+  particleSystem->start();
+
+  // Per-particle custom data is only observable through a material: the built-in
+  // quad program declares no custom-data block, so the renderer skips the upload
+  // for it. This debug shader hues each particle by its payload id.
+  if (SPtr<ShaderAsset> particleShader =
+          AssetManager::instance().load<ShaderAsset>(
+              sfmx::UUID::createFromName("shaders/particleCustom.shader"))) {
+    auto* particleMaterial = particlesNode->addComponent<MaterialComponent>();
+    particleMaterial->setShader(std::move(particleShader));
+    particleSystem->setMaterial(particleMaterial);
+  }
+  else {
+    std::cerr << "[Particles] shaders/particleCustom.shader missing; particles "
+                 "will draw with the built-in program and no custom data\n";
+  }
+
   sf::Clock clock;
 
   constexpr size_t deltasSize = 100;
@@ -549,6 +617,12 @@ int main(int argc, char** argv)
     AssetManager::instance().finalize();
 
     UIEventSystem::instance().update(window, deltaTime);
+    
+    ParticleCustomData payload;
+    payload.id = sfmx::Random::range(0, 1999);
+    payload.x  = 1.0f;
+    particleSystem->emit(1, payload);
+
     SceneManager::instance().update(deltaTime);
 
     totalTime += deltaTime;
