@@ -54,7 +54,7 @@ namespace ChunkFormat
 enum class ChunkCompression : uint16 {
   kNone = 0,
   kZstd = 1,
-  kLZ4  = 2,
+  kLz4  = 2,
 };
 
 constexpr size_t kAssetTypeNameLength   = 32;

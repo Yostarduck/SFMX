@@ -6,7 +6,7 @@ function Enemy.onCreated(self)
   self.gameManager = nil
   
   self.life = 10
-  self.speed = 10
+  self.speed = 20
 end
 
 function Enemy.onStart(self)

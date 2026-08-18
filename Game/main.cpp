@@ -38,6 +38,9 @@
 #include "assets/AssetCooker.h"
 #include "assets/AssetImporterRegistry.h"
 #include "assets/TextureCodec.h"
+#include "assets/ShaderCodec.h"
+#include "assets/ShaderAsset.h"
+#include "render/PostProcessPipeline.h"
 #include "assets/LuaCodec.h"
 #include "assets/SoundCodec.h"
 #include "assets/MusicCodec.h"
@@ -162,6 +165,7 @@ int main(int argc, char** argv)
   // by UUID through the AssetManager; audio stays mp3-by-path (streams).
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
+  AssetManager::instance().registerCodec(MakeShared<ShaderCodec>());
   AssetManager::instance().registerCodec(MakeShared<LuaCodec>());
   AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
   AssetManager::instance().registerCodec(MakeShared<MusicCodec>());
@@ -194,6 +198,20 @@ int main(int argc, char** argv)
                          static_cast<float>(windowHeight));
   }
   Scene& scene = *scenePtr;
+
+  // Full-screen post-processing: the scene is rendered offscreen and run through the
+  // cooked post shaders. Held in an Optional so its GL render targets (and the shader
+  // they keep alive) are released before the window's context is torn down.
+  Optional<PostProcessPipeline> postFx;
+  postFx.emplace();
+  if (postFx->init(window.getSize())) {
+    // CRT pass authored as a .shader manifest: a custom vertex stage + fragment stage,
+    // cooked into one multi-chunk asset (exercises the vertex-shader path end to end).
+    if (SPtr<ShaderAsset> crt = AssetManager::instance().load<ShaderAsset>(
+            sfmx::UUID::createFromName("shaders/crt.shader"))) {
+      postFx->addPass(std::move(crt));
+    }
+  }
 
   // Wire the behavior the serialized scene does not carry (active camera,
   // music/animation playback, the refs the game loop drives).
@@ -254,6 +272,9 @@ int main(int argc, char** argv)
   UIEventSystem::instance().setCancelAction(uiCancel);
 
   UILabel* debugLabel;
+  // Kept alive for the whole loop so the toggle button stays subscribed.
+  HEvent   toggleShaderHandle;
+  UILabel* shaderLabel = nullptr;
   {
     // Load fonts
     SPtr<FontAsset> fontAsset;
@@ -337,14 +358,24 @@ int main(int argc, char** argv)
         list->addChild(hbox);
         
         // Upgrade name label
-        auto* ln = canvasNode->createChild(String(name) + " Label");
-        auto* lbl = ln->addComponent<UILabel>(sf::Vector2f{200.f, 30.f});
-        lbl->setPosition({0.f, 0.f});
-        lbl->setFontAsset(fontAsset);
-        lbl->setText(name);
-        lbl->setCharacterSize(13);
-        lbl->setTextColor(sf::Color::White);
-        hbox->addChild(lbl);
+        auto* nameLn = canvasNode->createChild(String(name) + " Label");
+        auto* nameLbl = nameLn->addComponent<UILabel>(sf::Vector2f{150.f, 30.f});
+        nameLbl->setPosition({0.f, 0.f});
+        nameLbl->setFontAsset(fontAsset);
+        nameLbl->setText(name);
+        nameLbl->setCharacterSize(13);
+        nameLbl->setTextColor(sf::Color::White);
+        hbox->addChild(nameLbl);
+        
+        // Upgrade cost label
+        auto* costLn = canvasNode->createChild(String(name) + " Cost Label");
+        auto* costLbl = costLn->addComponent<UILabel>(sf::Vector2f{40.f, 30.f});
+        costLbl->setPosition({0.f, 0.f});
+        costLbl->setFontAsset(fontAsset);
+        costLbl->setText("$");
+        costLbl->setCharacterSize(13);
+        costLbl->setTextColor(sf::Color::White);
+        hbox->addChild(costLbl);
 
         // Upgrade button
         auto* n = canvasNode->createChild(String(name) + " Button");
@@ -402,6 +433,38 @@ int main(int argc, char** argv)
     btnExit->syncColliderToRect();
     btnExit->setNormalColor(sf::Color(180, 80, 80));
     uiCanvas.addWidget(btnExit);
+
+    // Toggle post-processing shader on/off, to eyeball the effect.
+    auto* toggleNode = canvasNode->createChild("ToggleShaderBtn");
+    UIButton* toggleShaderBtn = toggleNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    toggleShaderBtn->setPosition({windowWidth - 225.0f, windowHeight - 140.0f});
+    toggleShaderBtn->syncColliderToRect();
+    toggleShaderBtn->setNormalColor(sf::Color(80, 140, 180));
+    uiCanvas.addWidget(toggleShaderBtn);
+
+    if (fontLoaded) {
+      auto* shaderLabelNode = canvasNode->createChild("ShaderLabel");
+      shaderLabel = shaderLabelNode->addComponent<UILabel>(sf::Vector2f{200.f, 50.f});
+      shaderLabel->setPosition({windowWidth - 215.0f, windowHeight - 128.0f});
+      shaderLabel->setFontAsset(fontAsset);
+      shaderLabel->setText("Shader: ON");
+      shaderLabel->setCharacterSize(18);
+      shaderLabel->setTextColor(sf::Color::White);
+      uiCanvas.addWidget(shaderLabel);
+    }
+
+    PostProcessPipeline* fx = postFx ? &*postFx : nullptr;
+    toggleShaderHandle = toggleShaderBtn->onPointerClick(
+      [fx, label = shaderLabel](sf::Vector2f) {
+        if (nullptr == fx) {
+          return;
+        }
+        const bool on = !fx->isEnabled();
+        fx->setEnabled(on);
+        if (nullptr != label) {
+          label->setText(on ? "Shader: ON" : "Shader: OFF");
+        }
+      });
   }
 
   /*                                                                          */
@@ -416,6 +479,7 @@ int main(int argc, char** argv)
   constexpr size_t deltasSize = 100;
   std::array<float, deltasSize> deltas;
   uint32 index = 0;
+  float totalTime = 0.0f;
 
   while (window.isOpen())
   {
@@ -487,13 +551,15 @@ int main(int argc, char** argv)
     UIEventSystem::instance().update(window, deltaTime);
     SceneManager::instance().update(deltaTime);
 
+    totalTime += deltaTime;
     window.clear(sf::Color(24, 24, 28));
 
-    scenes.draw(window);
+    // Scene through the post chain (or straight to the window when no passes).
+    postFx->render(scenes, window, totalTime);
 
     // Screen-space canvas: reset the view so coordinates match window pixels.
     window.setView(window.getDefaultView());
-    uiCanvas.draw(window, sf::RenderStates::Default);
+    //uiCanvas.draw(window, sf::RenderStates::Default);
 
     window.display();
   }
@@ -516,13 +582,9 @@ int main(int argc, char** argv)
   PhysicsSystem::shutDown();
   InputSystem::shutDown();
   MemoryPoolHandler::shutDown();
-
-  // Before the window, for the same reason its start-up came after: the shader
-  // program it owns has to be released while the GL context still exists.
+  
+  postFx.reset();
   GfxRenderer::shutDown();
-
-  // Shut the window down last: keep its GL context alive until every sf::Texture
-  // owned by the (now torn-down) AssetManager has been released.
   Window::shutDown();
 
   return 0;

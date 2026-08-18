@@ -18,7 +18,7 @@ local buyThunderMageButton
 local buyElderWizardButton
 local buyEliteWarlockButton
 
--- Owned units
+-- units
 local Enemies       = {}
 local CommonMages   = {}
 local FireMages     = {}
@@ -27,16 +27,21 @@ local ElderWizards  = {}
 local EliteWarlocks = {}
 
 -- Units
-local CommonMageData   = { cost = 1,    assetID = UUID.createFromName("CatDrooling.png"),  yOffset = 0   }
-local FireMageData     = { cost = 3,    assetID = UUID.createFromName("CatHappy.png"),     yOffset = 100 }
-local ThunderMageData  = { cost = 50,   assetID = UUID.createFromName("CatPop.png"),       yOffset = 200 }
-local ElderWizardData  = { cost = 1000, assetID = UUID.createFromName("CatTongue.png"),    yOffset = 300 }
-local EliteWarlockData = { cost = 5000, assetID = UUID.createFromName("CatSoldier.png"),   yOffset = 400 }
+local CommonMageData   = { cost = 1,    assetID = UUID.createFromName("CatDrooling.png"),  yOffset = 0,   damage = 1    }
+local FireMageData     = { cost = 3,    assetID = UUID.createFromName("CatHappy.png"),     yOffset = 100, damage = 5    }
+local ThunderMageData  = { cost = 10,   assetID = UUID.createFromName("CatPop.png"),       yOffset = 200, damage = 15   }
+local ElderWizardData  = { cost = 25,   assetID = UUID.createFromName("CatTongue.png"),    yOffset = 300, damage = 30   }
+local EliteWarlockData = { cost = 100,  assetID = UUID.createFromName("CatSoldier.png"),   yOffset = 400, damage = 150  }
 
 -- Game Settings
 local enemySpawnLocation = Vector2f(1280, 580)
 local unitSpawnLocation = Vector2f(50, 580)
 local money = 1
+
+local startSpawnRate = 30
+local enemySpawnRate = 0
+local spawnCooldown = 0
+local playerDamage = 0
 
 function GameManager.onCreated(self)
   self.targetEnemy = nil
@@ -80,6 +85,13 @@ function GameManager.onStart(self)
     print("BuySlider not found")
   end
   
+  commonMageCostNode = scene:findNode("Common Mage Cost Label")
+  if commonMageCostNode ~= nil then
+    commonMageCostLabel = commonMageCostNode:getComponent(UILabel)
+
+    commonMageCostLabel:setText("$" .. CommonMageData.cost)
+  end
+  
   buyCommonMageNode = scene:findNode("Common Mage Button")
   if buyCommonMageNode ~= nil then
     buyCommonMageButton = buyCommonMageNode:getComponent(UIButton)
@@ -87,6 +99,13 @@ function GameManager.onStart(self)
     buyCommonMageButton:onPointerClick(myScript, "buyCommonMage")
   else
     print("Common Mage Button not found")
+  end
+  
+  fireMageCostNode = scene:findNode("Fire Mage Cost Label")
+  if fireMageCostNode ~= nil then
+    fireMageCostLabel = fireMageCostNode:getComponent(UILabel)
+
+    fireMageCostLabel:setText("$" .. FireMageData.cost)
   end
   
   buyFireMageNode = scene:findNode("Fire Mage Button")
@@ -98,6 +117,13 @@ function GameManager.onStart(self)
     print("Fire Mage Button not found")
   end
   
+  thunderMageCostNode = scene:findNode("Thunder Mage Cost Label")
+  if thunderMageCostNode ~= nil then
+    thunderMageCostLabel = thunderMageCostNode:getComponent(UILabel)
+
+    thunderMageCostLabel:setText("$" .. ThunderMageData.cost)
+  end
+  
   buyThunderMageNode = scene:findNode("Thunder Mage Button")
   if buyThunderMageNode ~= nil then
     buyThunderMageButton = buyThunderMageNode:getComponent(UIButton)
@@ -107,6 +133,13 @@ function GameManager.onStart(self)
     print("Thunder Mage Button not found")
   end
   
+  elderWizardCostNode = scene:findNode("Elder Wizard Cost Label")
+  if elderWizardCostNode ~= nil then
+    elderWizardCostLabel = elderWizardCostNode:getComponent(UILabel)
+
+    elderWizardCostLabel:setText("$" .. ElderWizardData.cost)
+  end
+  
   buyElderWizardNode = scene:findNode("Elder Wizard Button")
   if buyElderWizardNode ~= nil then
     buyElderWizardButton = buyElderWizardNode:getComponent(UIButton)
@@ -114,6 +147,13 @@ function GameManager.onStart(self)
     buyElderWizardButton:onPointerClick(myScript, "buyElderWizard")
   else
     print("Elder Wizard Button not found")
+  end
+  
+  eliteWarlockCostNode = scene:findNode("Elite Warlock Cost Label")
+  if eliteWarlockCostNode ~= nil then
+    eliteWarlockCostLabel = eliteWarlockCostNode:getComponent(UILabel)
+
+    eliteWarlockCostLabel:setText("$" .. EliteWarlockData.cost)
   end
   
   buyEliteWarlockNode = scene:findNode("Elite Warlock Button")
@@ -132,7 +172,7 @@ function GameManager.onStart(self)
   
   updateMoney()
 
-  spawnEnemy(self)
+  enemySpawnRate = startSpawnRate
 end
 
 function GameManager.onUpdate(self, deltaTime)
@@ -141,6 +181,16 @@ function GameManager.onUpdate(self, deltaTime)
 
   --mouseInfo = string.format("Mouse World Position: %.2f, %.2f", mouseWorldPosition.x, mouseWorldPosition.y)
   --infoLabel:setText(mouseInfo)
+
+  spawnCooldown = spawnCooldown - deltaTime
+  if spawnCooldown <= 0 then
+    spawnEnemy(self)
+    
+    enemySpawnRate = startSpawnRate / (math.max(1, playerDamage) + 1)
+
+    spawnCooldown = enemySpawnRate
+  end
+
 end
 
 function GameManager.onDestroyed(self)
@@ -189,17 +239,26 @@ function spawnEnemy(self)
   enemyScriptComponent = enemy:addComponent(ScriptComponent, scriptID)
   enemyScript = enemyScriptComponent:instance()
   enemyScript.gameManager = self
+  
+  table.insert(Enemies, { transform = enemy:transform(), script = enemyScript })
 
-  self.targetEnemy = { transform = enemy:transform(), script = enemyScript }
+  if self.targetEnemy == nil then
+    self.targetEnemy = Enemies[1]
+  end
 end
 
 function GameManager.enemyDestroyed(self, enemy)
+  table.remove(Enemies, 1)
   self.targetEnemy = nil
   money = money + 1
 
   updateMoney()
-
-  spawnEnemy(self)
+  
+  if #Enemies > 0 then
+    self.targetEnemy = Enemies[1]
+  else
+    self.targetEnemy = nil
+  end
 end
 
 function onUnitBought(self, unitData)
@@ -225,6 +284,9 @@ function onUnitBought(self, unitData)
     
     unitScript.gameManager = self
     unitScript.spriteUUID = unitData.assetID
+    unitScript.bulletDamage = unitData.damage
+
+    playerDamage = playerDamage + unitData.damage
   end
 end
 

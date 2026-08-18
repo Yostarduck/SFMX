@@ -21,6 +21,7 @@ namespace sfmx
 
 class DataStream;
 class TextureAsset;
+class MaterialComponent;
 
 /** @brief Controls how active particles are ordered before rendering. */
 enum class ParticleSortMode : int32 
@@ -145,6 +146,12 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   /** @brief Returns the normalised progress of this emitter (0 = just started, 1 = finished). */
   NODISCARD float getProgress() const;
 
+  /** @brief Bind a material (shader) applied to this emitter's particles only.
+   *         Non-owning; the material component outlives the draw. Null clears it. */
+  FORCEINLINE void setMaterial(MaterialComponent* material) { m_material = material; }
+  /** @brief The bound material, or nullptr if the particles draw unshaded. */
+  NODISCARD FORCEINLINE MaterialComponent* getMaterial() const { return m_material; }
+
   /** @brief Returns the number of particles currently alive. */
   NODISCARD FORCEINLINE size_t 
   getParticleCount() const { return m_count; }
@@ -201,6 +208,8 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   EmitterConfig       m_config;
   /** @brief Keep-alive for an asset-backed texture; @ref m_config.texture points into it. */
   SPtr<TextureAsset>  m_textureAsset;
+  /** @brief Non-owning optional shader applied to this emitter's particles. */
+  MaterialComponent*  m_material    = nullptr;
   /** @brief Current sort mode for active particles. */
   ParticleSortMode    m_sortMode    = ParticleSortMode::kNone;
   /** @brief If true, particles are emitted in world space (default: local). */

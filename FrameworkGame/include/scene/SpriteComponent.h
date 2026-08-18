@@ -10,6 +10,7 @@
 namespace sfmx {
 class Frame;
 class TextureAsset;
+class MaterialComponent;
 
 class SpriteComponent : public ComponentT<SpriteComponent> {
 
@@ -77,6 +78,12 @@ public:
   NODISCARD bool isFlippedX() const;
   NODISCARD bool isFlippedY() const;
 
+  /** @brief Bind a material (shader) applied to this sprite only. Non-owning; the
+   *         material component lives on a node and outlives the draw. Null clears it. */
+  void setMaterial(MaterialComponent* material);
+  /** @brief The bound material, or nullptr if the sprite draws unshaded. */
+  NODISCARD MaterialComponent* getMaterial() const;
+
   /** @brief Drives auto position from the node's world transform when m_followNode is true */
   void onUpdate(float deltaTime) override;
 
@@ -97,6 +104,7 @@ private:
   SPtr<sf::Texture>    m_texture;
   SPtr<TextureAsset>   m_textureAsset;            //!< keep-alive for an asset-backed texture
   UUID                 m_textureAssetId = UUID::null();
+  MaterialComponent*   m_material   = nullptr;    //!< non-owning; optional per-sprite shader
   bool                 m_flipX      = false;
   bool                 m_flipY      = false;
 };
