@@ -121,9 +121,18 @@ class SFMX_UTILITY_EXPORT FrameMemory : public Module<FrameMemory>
     return (value + alignment - 1) & ~(alignment - 1);
   }
 
+  /** @brief Pointer returned by @c operator new; owned and deleted directly. */
+  uint8* m_allocationBase = nullptr;
+  /** @brief Byte count passed to @c operator new for @ref m_allocationBase. */
+  size_t m_allocationSize = 0;
+  /** @brief Aligned interior pointer handed out as slices (>= m_allocationBase). */
   uint8* m_memory   = nullptr;
   size_t m_capacity = 0;
   size_t m_offset   = 0;
+  /** @brief Frames elapsed since startUp; incremented by endFrame. */
+  uint64_t m_frameCounter = 0;
+  /** @brief Last frame that logged an exhaustion warning (once per frame). */
+  uint64_t m_exhaustedReportedFrame = 0;
 };
 
 } // namespace sfmx

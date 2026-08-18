@@ -56,6 +56,28 @@ TEST_CASE("FrameScratch falls back to the frame arena past stack capacity") {
   CHECK(big[kCount - 1] == kCount);
 }
 
+TEST_CASE("FrameScratch falls back to the heap when the arena is exhausted") {
+  // Tiny arena: an 8-slot stack overflow of 256 bytes can never be satisfied,
+  // so the scratch must fall back to the heap instead of the inline stack.
+  FrameScope scope(32);
+
+  constexpr size_t kStackCapacity = 8;
+  constexpr size_t kCount         = 64;
+  FrameScratch<uint32, kStackCapacity> big(kCount);
+
+  REQUIRE(big.data() != nullptr);
+  for (size_t i = 0; i < kCount; ++i) {
+    big[i] = static_cast<uint32>(kCount - i);  // reverse order
+  }
+  std::sort(big.begin(), big.end());
+  CHECK(big[0] == 1);
+  CHECK(big[kCount - 1] == kCount);
+
+  // The arena never handed out the request: the scratch must be heap-backed,
+  // not silently truncating to the 8-slot stack array.
+  CHECK(FrameMemory::instance().getUsedBytes() == 0);
+}
+
 TEST_CASE("FrameScratch data never survives endFrame") {
   FrameScope scope;
 

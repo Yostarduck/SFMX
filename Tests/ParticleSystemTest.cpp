@@ -46,6 +46,20 @@ struct PoolFixture {
   }
 };
 
+// RAII — starts the frame arena for tests that exercise the arena-backed sort.
+struct FrameMemoryScope {
+  FrameMemoryScope() {
+    if (!FrameMemory::isStarted()) {
+      FrameMemory::startUp(4u * 1024u * 1024u);
+    }
+  }
+  ~FrameMemoryScope() {
+    if (FrameMemory::isStarted()) {
+      FrameMemory::shutDown();
+    }
+  }
+};
+
 PoolFixture g_poolFixture;
 
 }  // namespace
@@ -193,6 +207,86 @@ TEST_CASE("ParticleSystemComponent - start resets elapsed timer") {
   CHECK(ps->getProgress() == doctest::Approx(0.0f));
 }
 
+TEST_CASE("ParticleSystemComponent - back-to-front sort is sorted and lossless") {
+  FrameMemoryScope frameScope;
+  Scene scene("Sort");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+
+  EmitterConfig cfg;
+  cfg.maxParticles     = 200;
+  cfg.lifetime         = 1e6f;       // immortal for the measurement
+  cfg.emissionRate     = 0.f;        // manual emit only
+  cfg.positionVariance = 512.f;      // spread Y so ordering matters
+  cfg.speed            = 0.f;        // keep positions static across frames
+  cfg.gravity          = {0.f, 0.f};
+  ps->setConfig(cfg);
+  ps->setSortMode(ParticleSortMode::kBackToFront);
+  ps->emit(200);
+  REQUIRE(ps->getParticleCount() == 200);
+
+  std::vector<const Particle*> before;
+  for (const Particle* p = ps->getFirstParticle(); p; p = p->next) {
+    before.push_back(p);
+  }
+  REQUIRE(before.size() == 200);
+
+  ps->onUpdate(0.f);
+
+  std::vector<const Particle*> after;
+  const Particle* prev = nullptr;
+  for (const Particle* p = ps->getFirstParticle(); p; p = p->next) {
+    if (prev != nullptr) {
+      CHECK(prev->position.y <= p->position.y);
+      CHECK(p->prev == prev);
+    }
+    prev = p;
+    after.push_back(p);
+  }
+  CHECK(after.size() == 200);
+  REQUIRE(prev != nullptr);
+  CHECK(prev->next == nullptr);
+
+  // Exact same particle set, no losses or duplicates, only the order changed.
+  std::sort(before.begin(), before.end(), std::less<const Particle*>());
+  std::sort(after.begin(), after.end(), std::less<const Particle*>());
+  CHECK(after == before);
+}
+
+TEST_CASE("ParticleSystemComponent - radix sort keeps ties in emit order") {
+  FrameMemoryScope frameScope;
+  Scene scene("StableSort");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+
+  EmitterConfig cfg;
+  cfg.maxParticles     = 100;
+  cfg.lifetime         = 1e6f;
+  cfg.emissionRate     = 0.f;
+  cfg.positionVariance = 0.f;        // every particle spawns at the same spot
+  cfg.speed            = 0.f;
+  cfg.gravity          = {0.f, 0.f};
+  ps->setConfig(cfg);
+  ps->setSortMode(ParticleSortMode::kBackToFront);
+  ps->emit(100);
+
+  std::vector<const Particle*> before;
+  for (const Particle* p = ps->getFirstParticle(); p; p = p->next) {
+    before.push_back(p);
+  }
+
+  ps->onUpdate(0.f);
+
+  // All keys identical -> single bin -> exact emit order must be preserved.
+  std::vector<const Particle*> after;
+  for (const Particle* p = ps->getFirstParticle(); p; p = p->next) {
+    after.push_back(p);
+  }
+  CHECK(after == before);
+}
+
 // -------------------------------------------------------------------------
 // Stress benchmark — create / destroy nodes with components repeatedly
 // to exercise the pool allocators and verify no unbounded growth.
@@ -217,8 +311,8 @@ TEST_CASE("ParticleSystemComponent - stress: create/destroy loop") {
 //
 // Emits up to whatever the shared particle pool (see PoolFixture) actually has
 // free and measures the per-frame cost of onUpdate() -- including the
-// kBackToFront FrameScratch sort -- at each particle count. Reports both the
-// current FrameMemory-backed path and a std::vector heap baseline so the
+// kBackToFront radix sort -- at each particle count. Reports both the
+// current radix-sort path and a std::vector heap std::sort baseline so the
 // frame-rate cost of going to more particles is visible.
 // -------------------------------------------------------------------------
 
@@ -279,8 +373,8 @@ heapBackToFront(std::vector<Particle>& storage, size_t count) {
   DONOTOPTIMIZE(sorted.front());
 }
 
-// The current engine path: the component's own kBackToFront sort, which is
-// backed by the inline stack / FrameMemory arena (FrameScratch).
+// The current engine path: the component's own kBackToFront sort, which is a
+// stable LSD radix sort (no heap or arena allocation for the sort itself).
 void
 arenaBackToFront(ParticleSystemComponent& ps) {
   ps.onUpdate(0.f);
@@ -311,9 +405,9 @@ TEST_CASE("ParticleSystemComponent - framerate scaling to pool ceiling") {
   MESSAGE("Particle framerate scaling (shared pool ceiling ", poolCapacity,
           ", available ", maxAvailable, ")");
   MESSAGE("  OnUpdate mode is the kBackToFront sort; \"sort-only\" subtracts the");
-  MESSAGE("  simulation-only pass (kNone) so the arena vs heap comparison is even.");
+  MESSAGE("  simulation-only pass (kNone) so the radix vs heap comparison is even.");
   MESSAGE(std::string(80, '='));
-  MESSAGE("  count | full-frame fps | arena sort µs/frame | heap sort µs/frame");
+  MESSAGE("  count | full-frame fps | radix sort µs/frame | heap std::sort µs/frame");
   MESSAGE(std::string(80, '='));
 
   using Clock = std::chrono::steady_clock;
@@ -342,18 +436,18 @@ TEST_CASE("ParticleSystemComponent - framerate scaling to pool ceiling") {
     const double simUs =
       std::chrono::duration<double, std::micro>(simEnd - simStart).count() / iterations;
 
-    // Full frame through the real (FrameMemory-backed) sort path.
+    // Full frame through the real bucket-sort path.
     ps->setSortMode(ParticleSortMode::kBackToFront);
-    auto arenaStart = Clock::now();
+    auto engineStart = Clock::now();
     for (size_t i = 0; i < iterations; ++i) {
       arenaBackToFront(*ps);
       FrameMemory::instance().endFrame();
     }
-    auto arenaEnd = Clock::now();
-    const double arenaUs =
-      std::chrono::duration<double, std::micro>(arenaEnd - arenaStart).count() / iterations;
+    auto engineEnd = Clock::now();
+    const double engineUs =
+      std::chrono::duration<double, std::micro>(engineEnd - engineStart).count() / iterations;
 
-    // Old-school heap sort of the same workload (allocation + sort included).
+    // Old-school heap std::sort of the same workload (allocation + sort included).
     auto heapStart = Clock::now();
     for (size_t i = 0; i < iterations; ++i) {
       heapBackToFront(heapStorage, count);
@@ -362,14 +456,14 @@ TEST_CASE("ParticleSystemComponent - framerate scaling to pool ceiling") {
     const double heapUs =
       std::chrono::duration<double, std::micro>(heapEnd - heapStart).count() / iterations;
 
-    const double arenaSortUs = std::max(0.0, arenaUs - simUs);
-    const double fullFps     = 1e6 / arenaUs;
+    const double bucketSortUs = std::max(0.0, engineUs - simUs);
+    const double fullFps      = 1e6 / engineUs;
 
     MESSAGE(std::to_string(count),
-            " | ", std::to_string(fullFps), " FPS | ", std::to_string(arenaSortUs),
+            " | ", std::to_string(fullFps), " FPS | ", std::to_string(bucketSortUs),
             " µs | ", std::to_string(heapUs), " µs");
 
-    CHECK(arenaUs > 0.0);
+    CHECK(engineUs > 0.0);
     CHECK(fullFps > 0.0);
   }
 

@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <type_traits>
+#include <vector>
 
 #include "core/platform/Prerequisites.h"
 #include "utils/FrameMemory.h"
@@ -31,12 +32,18 @@ class FrameScratch
   /**
    * @brief Reserve room for @p count elements.
    * @note Requires @ref FrameMemory to be started once @p count exceeds
-   *       @p StackCapacity.
+   *       @p StackCapacity. If the arena is exhausted the scratch falls back
+   *       to a heap vector so callers never write past the inline stack array.
    */
   explicit FrameScratch(size_t count) {
     m_count = count;
     if (count > StackCapacity) {
       m_data = FrameMemory::instance().alloc<T>(count);
+      if (nullptr == m_data) {
+        // Arena exhausted (recoverable): heap fallback keeps the buffer valid.
+        m_heap.resize(count);
+        m_data = m_heap.data();
+      }
     }
   }
 
@@ -70,7 +77,10 @@ class FrameScratch
   }
 
  private:
-  std::array<T, StackCapacity> m_stack{};
+  // Only indices < m_count are ever read, and every caller writes them before
+  // reading, so the stack array is deliberately left uninitialized.
+  std::array<T, StackCapacity> m_stack;
+  std::vector<T>               m_heap;
   T*     m_data = nullptr;
   size_t m_count = 0;
 };

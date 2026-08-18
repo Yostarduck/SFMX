@@ -24,21 +24,25 @@ FrameMemory::onStartUp() {
   uint8* raw = static_cast<uint8*>(
       ::operator new(m_capacity + kMaxAlignment - 1,
                      std::align_val_t{kMaxAlignment}));
-  m_memory = reinterpret_cast<uint8*>(
+  m_allocationBase  = raw;
+  m_allocationSize  = m_capacity + kMaxAlignment - 1;
+  m_memory          = reinterpret_cast<uint8*>(
       alignUp(reinterpret_cast<uintptr_t>(raw), kMaxAlignment));
   m_offset = 0;
 }
 
 void
 FrameMemory::onShutDown() {
-  if (nullptr != m_memory) {
-    // Deleting the aligned interior pointer is well-defined: operator delete
-    // receives the pointer, the size and the alignment and releases the block.
-    ::operator delete(static_cast<void*>(m_memory), m_capacity + kMaxAlignment - 1,
+  if (nullptr != m_allocationBase) {
+    // Delete the exact pointer new returned (m_memory may sit past the base if
+    // a future alignment scheme ever bumps it), with the size it was created with.
+    ::operator delete(static_cast<void*>(m_allocationBase), m_allocationSize,
                       std::align_val_t{kMaxAlignment});
-    m_memory = nullptr;
+    m_allocationBase = nullptr;
   }
-  m_offset = 0;
+  m_memory         = nullptr;
+  m_allocationSize = 0;
+  m_offset         = 0;
 }
 
 void
@@ -46,6 +50,7 @@ FrameMemory::endFrame() {
   // No destructors, no zeroing: the watermark returns to the start of the block
   // and the next frame reuses the same storage.
   m_offset = 0;
+  ++m_frameCounter;
 }
 
 void*
@@ -64,9 +69,14 @@ FrameMemory::allocate(size_t size, size_t align) {
   if (newOffset > m_capacity) {
     // Exhaustion is a recoverable runtime condition (a frame just needs a bigger
     // arena), so log rather than abort; callers fall back to the heap or skip.
-    std::cerr << "[FrameMemory] allocation of " << size
-              << " bytes exceeds the " << m_capacity
-              << "-byte arena; returning nullptr\n";
+    // Report at most once per frame so a burst of failures doesn't spam the log.
+    if (m_exhaustedReportedFrame != m_frameCounter) {
+      std::cerr << "[FrameMemory] allocation of " << size
+                << " bytes exceeds the " << m_capacity
+                << "-byte arena (watermark " << m_offset
+                << "); returning nullptr\n";
+      m_exhaustedReportedFrame = m_frameCounter;
+    }
     return nullptr;
   }
 
