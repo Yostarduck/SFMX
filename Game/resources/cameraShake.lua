@@ -13,4 +13,26 @@ end
 function CameraShake.onStart(self)
   self.shakeTimer = 0.0
   self.originalPosition = self.transform:getPosition()
+  self.camera = SceneManager:getActiveScene():getCamera()
 end
+
+function CameraShake.onUpdate(self, deltaTime)
+  if self.shakeTimer > 0 then
+    self.shakeTimer = self.shakeTimer - deltaTime
+
+    local offsetX = (math.random() * 2 - 1) * self.shakeMagnitude
+    local offsetY = (math.random() * 2 - 1) * self.shakeMagnitude
+
+    self.camera:setPosition(self.originalPosition + Vector2f(offsetX, offsetY))
+  else
+    self.camera:setPosition(self.originalPosition)
+  end
+end
+
+function CameraShake.startShake(self, duration, magnitude)
+  self.shakeDuration = duration or self.shakeDuration
+  self.shakeMagnitude = magnitude or self.shakeMagnitude
+  self.shakeTimer = self.shakeDuration
+end
+
+return CameraShake
