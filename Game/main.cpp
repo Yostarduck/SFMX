@@ -53,6 +53,7 @@
 #include "core/Window.h"
 
 #include "utils/MemoryPoolHandler.h"
+#include "utils/FrameMemory.h"
 #include "utils/EventSystem.h"
 #include "utils/Random.h"
 
@@ -64,6 +65,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -146,6 +148,7 @@ int main(int argc, char** argv)
   // (returning pooled nodes/components), so it is torn down before the pools,
   // and the AssetManager whose sf::Textures they reference is torn down last.
   MemoryPoolHandler::startUp(4096);
+  FrameMemory::startUp(4u * 1024u * 1024u);  // 4 MB arena, rewound each frame
   InputSystem::startUp();
   PhysicsSystem::startUp();
   ComponentRegistry::startUp();
@@ -510,7 +513,15 @@ int main(int argc, char** argv)
     for (uint32 i = 0; i < deltasSize; ++i) avg += deltas[index];
     avg /= static_cast<float>(deltasSize);
 
-    debugLabel->setText(std::format("FPS: {0}\nNodes: {1}", std::round(1.0f / avg), scene.getNodeCount()));
+    // The HUD label is written every frame; build the transient text in the
+    // frame arena instead of std::format's heap string. setText copies the data,
+    // so the buffer only needs to live until the call returns.
+    char* textBuffer = static_cast<char*>(FrameMemory::instance().allocate(128));
+    if (nullptr != textBuffer) {
+      std::snprintf(textBuffer, 128, "FPS: %.0f\nNodes: %zu",
+                    std::round(1.0f / avg), scene.getNodeCount());
+      debugLabel->setText(StringView(textBuffer));
+    }
     
     
     InputSystem::instance().update(deltaTime, window);
@@ -556,6 +567,9 @@ int main(int argc, char** argv)
     //uiCanvas.draw(window, sf::RenderStates::Default);
 
     window.display();
+
+    // End of frame: reclaim every FrameMemory allocation made this frame.
+    FrameMemory::instance().endFrame();
   }
 
   // Release any pending async-load callbacks (they may hold Lua closures) and tear down
@@ -575,6 +589,7 @@ int main(int argc, char** argv)
 
   PhysicsSystem::shutDown();
   InputSystem::shutDown();
+  FrameMemory::shutDown();
   MemoryPoolHandler::shutDown();
 
   // Release the post-processing GL targets (and the shader asset they keep alive)

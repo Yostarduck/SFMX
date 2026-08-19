@@ -116,6 +116,7 @@ add_library(FrameworkGame STATIC
     source/render/PostProcessPipeline.cpp
 
     source/utils/MemoryPoolHandler.cpp
+    source/utils/FrameMemory.cpp
     source/utils/Random.cpp
     source/utils/UUID.cpp
 
