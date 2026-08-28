@@ -247,7 +247,7 @@ int main(int argc, char** argv)
   uiCancel->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kEscape), -1, false});
   uiCancel->setInteraction(Interaction{InteractionType::kPress, 0.f});
 
-  //InputSystem::instance().setActiveMapping(controls);
+  InputSystem::instance().setActiveMapping(controls);
 
   UIEventSystem::startUp();
 
@@ -467,6 +467,9 @@ int main(int argc, char** argv)
   
   SceneNode* gameManager = scene.createNode("GameManager");
   gameManager->addComponent<ScriptComponent>(sfmx::UUID::createFromName("gameManager.lua"));
+
+  SceneNode* inputDemo = scene.createNode("InputDemo");
+  inputDemo->addComponent<ScriptComponent>(sfmx::UUID::createFromName("inputDemo.lua"));
 
   sf::Clock clock;
 

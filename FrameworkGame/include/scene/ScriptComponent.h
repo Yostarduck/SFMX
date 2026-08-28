@@ -52,8 +52,17 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   void
   registerEvent(HEvent&& event);
 
+  /** @brief Register an event handle under a token so it can be removed on its own;
+   *         returns the token (0 is never handed out, so it means "invalid"). */
+  uint32
+  registerEventKeyed(HEvent&& event);
+
+  /** @brief Drop the keyed subscription for @p token; its handle unsubscribes as it dies. */
+  void
+  unregisterEvent(uint32 token);
+
   /** @brief Unregister all events, causing them to be destroyed. */
-  FORCEINLINE void unregisterAllEvents() { m_events.clear(); }
+  FORCEINLINE void unregisterAllEvents() { m_events.clear(); m_keyedEvents.clear(); }
 
   /** @brief Bind to a @ref LuaAsset, keeping it alive and recording its UUID; the
    *         script re-binds through the ScriptEngine when both are running. */
@@ -126,6 +135,9 @@ class ScriptComponent : public ComponentT<ScriptComponent>
   UnorderedMap<UUID, sol::protected_function> m_exportedFunctions;
 
   Vector<HEvent> m_events;
+
+  UnorderedMap<uint32, HEvent> m_keyedEvents;   // individually removable subscriptions
+  uint32 m_nextEventToken = 1;                  // 0 reserved for "invalid"
 };
 
 template<typename... Args>

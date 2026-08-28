@@ -66,6 +66,18 @@ ScriptComponent::registerEvent(HEvent&& event) {
   m_events.push_back(std::move(event));
 }
 
+uint32
+ScriptComponent::registerEventKeyed(HEvent&& event) {
+  const uint32 token = m_nextEventToken++;
+  m_keyedEvents.emplace(token, std::move(event));
+  return token;
+}
+
+void
+ScriptComponent::unregisterEvent(uint32 token) {
+  m_keyedEvents.erase(token);
+}
+
 void
 ScriptComponent::triggerOnCreated() {
   if (m_initialized && m_linked && !m_created) {
