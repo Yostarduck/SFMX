@@ -1,5 +1,7 @@
 #include "assets/LocalizationAsset.h"
 
+#include <sstream>
+
 #include "assets/AssetFile.h"
 #include "assets/AssetManager.h"
 #include "core/FileSystem.h"

@@ -16,6 +16,8 @@
  */
 /************************************************************************/
 #include <type_traits>
+#include <utility>
+#include <memory>
 
 /************************************************************************/
 /*
@@ -24,9 +26,7 @@
 /************************************************************************/
 #include <array>
 #include <vector>
-#include <queue>
-
-#include <ranges>
+#include <deque>
 
 /************************************************************************/
 /**
@@ -40,44 +40,26 @@
 
  /************************************************************************/
  /*
-  * C++ Stream Stuff
+  * Strings
   */
  /************************************************************************/
-#include <fstream>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
 #include <string>
-#include <cstring>
+#include <string_view>
 
 #include <functional>
 
-#include <locale>
-#include <codecvt>
-
-#include <filesystem>
-
 /************************************************************************/
 /*
- * Threading
+ * Utility
  */
 /************************************************************************/
-#include <mutex>
-#include <thread>
-
 #include <optional>
 #include <variant>
 #include <bitset>
 
 #include <algorithm>
-#include <chrono>
-#include <atomic>
-
-
-#include <any>
 
 #include <initializer_list>
-#include <string_view>
 
 
 #include "PlatformDefines.h"
@@ -106,10 +88,8 @@ namespace sfmx
 {
 using std::char_traits;
 using std::basic_string;
-using std::basic_stringstream;
 using std::min;
 using std::forward;
-using std::ios;
 
 /**
  *   Std alias allocator.
@@ -183,12 +163,6 @@ template<typename K,
 using Map = std::map<K, T, Compare, A>;
 
 /**
- *   Queue wrapper.
- **/
-template< typename T, class Container = std::deque<T>>
-using Queue =  std::queue<T, Container>;
-
-/**
  *    Deque wrapper.
  **/
 template<typename T, class A = Alloc<T>>
@@ -249,22 +223,10 @@ UniquePtr<T> MakeUnique(Args&&... args) {
  */
 /************************************************************************/
 /**
- * @brief Wide string stream used for primarily for constructing strings
- *        consisting of ASCII text.
- */
-using StringStream = std::stringstream;
-
-/**
  * @brief Basic string that uses geEngine memory allocators.
  */
 template<typename T>
 using BasicString = basic_string<T, char_traits<T>, std::allocator<T>>;
-
-/**
- * @brief Basic string stream that uses geEngine memory allocators.
- */
-template<typename T>
-using BasicStringStream = basic_stringstream<T, char_traits<T>, std::allocator<T>>;
 
 /**
  * @brief Wide string used primarily for handling Unicode text.
@@ -290,19 +252,9 @@ using U32String = BasicString<char32_t>;
 
 /************************************************************************/
 /*
- * Threading
+ * Utility
  */
  /************************************************************************/
-
-/**
- * @brief Wrapper for the C++ std::recursive_mutex.
- */
-using RecursiveMutex = std::recursive_mutex;
-
-/**
- * @brief Wrapper for the C++ std::unique_lock<std::recursive_mutex>.
- */
-using RecursiveLock = std::unique_lock<RecursiveMutex>;
 
 template<typename T>
 using Optional = std::optional<T>;
@@ -322,69 +274,10 @@ template<size_t N>
 using BitSet = std::bitset<N>;
 
 /**
- * @brief Wrapper for the C++ mutex.
- */
-using Mutex = std::mutex;
-
-/**
- * @brief Wrapper for lock_guard.
- */
-template<typename Mutex>
-using LockGuard = std::lock_guard<Mutex>;
-
-/**
- * @brief Wrapper for the C++ std::atomic.
- */
-template<typename T>
-using Atomic = std::atomic<T>;
-
-/**
- * @brief Wrapper for the C++ std::thread.
- */
-using Thread = std::thread;
-
-/**
  * @brief Wrapper for the C++ std::pair
 */
 template<typename T1, typename T2>
 using Pair = std::pair<T1, T2>;
-
-/************************************************************************/
-/*
- * C++ std::any
- */
-/************************************************************************/
-
-#if USING(SFMX_CPP20_OR_LATER)
-/**
- * @brief Wrapper for the C++ std::any.
- */
-using Any = std::any;
-
-namespace AnyUtils {
-  template<typename T>
-  concept AnyCompatible = requires(const Any& any) { std::any_cast<T>(any); };
-  
-  template<AnyCompatible T>
-  FORCEINLINE bool
-  hasType(const Any& any) noexcept { return any.type() == typeid(T); }
-  
-  template <AnyCompatible T>
-  FORCEINLINE bool
-  tryGetValue(const Any& any, T& output) noexcept {
-    if (!hasType<T>(any)) {
-      return false;
-    }
-  
-    try {
-      output = std::any_cast<T>(any);
-      return true;
-    } catch (const std::bad_any_cast&) {
-      return false;
-    }
-  }
-} // namespace AnyUtils
-#endif // #ifdef USING(SFMX_CPP20_OR_LATER)
 
 
 /******************************************************************************************* */
@@ -402,8 +295,4 @@ using Function = std::function<Signature>;
 template <typename T>
 using InitializerList = std::initializer_list<T>;
 
-using FileSystemPath = std::filesystem::path;
-// NOTE: std::filesystem is wrapped by the sfmx::FileSystem class (core/FileSystem.h);
-// do not re-add a `namespace FileSystem = std::filesystem` alias here (name clash).
-
-} // namespace chEngineSDK
+} // namespace sfmx
