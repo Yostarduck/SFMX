@@ -4,6 +4,8 @@
 #include <typeindex>
 
 #include "core/platform/Prerequisites.h"
+#include "utils/ThreadingTypes.h"
+#include "core/Path.h"
 #include "assets/Asset.h"
 #include "assets/AssetCodecRegistry.h"
 #include "assets/AssetMetadata.h"

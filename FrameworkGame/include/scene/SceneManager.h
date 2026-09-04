@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/Path.h"
 #include "utils/Module.h"
 
 namespace sf

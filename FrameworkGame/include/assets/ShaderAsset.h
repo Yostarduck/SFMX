@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Shader.hpp>
 
 #include "core/platform/Prerequisites.h"
+#include "core/Path.h"
 #include "assets/Asset.h"
 #include "assets/AssetMetadata.h"  // chunkFormatId
 

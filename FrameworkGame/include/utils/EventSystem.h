@@ -6,6 +6,7 @@
  */
 /************************************************************************/
 #include "core/platform/Prerequisites.h"
+#include "utils/ThreadingTypes.h"
 
 namespace sfmx
 {
