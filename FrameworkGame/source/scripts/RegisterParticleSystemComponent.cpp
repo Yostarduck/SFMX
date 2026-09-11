@@ -1,8 +1,7 @@
 #include "scripts/RegisterParticleSystemComponent.h"
 
-#include <functional>
-
 #include <SFML/Graphics/BlendMode.hpp>
+#include <functional>
 
 #include "core/platform/Prerequisites.h"
 #include "scene/ParticleSystemComponent.h"
@@ -23,37 +22,41 @@ namespace
  */
 void
 registerBlendMode(sol::state_view lua) {
-  lua.new_enum<sf::BlendMode::Factor>("BlendFactor", {
-    { "Zero",             sf::BlendMode::Factor::Zero },
-    { "One",              sf::BlendMode::Factor::One },
-    { "SrcColor",         sf::BlendMode::Factor::SrcColor },
-    { "OneMinusSrcColor", sf::BlendMode::Factor::OneMinusSrcColor },
-    { "DstColor",         sf::BlendMode::Factor::DstColor },
-    { "OneMinusDstColor", sf::BlendMode::Factor::OneMinusDstColor },
-    { "SrcAlpha",         sf::BlendMode::Factor::SrcAlpha },
-    { "OneMinusSrcAlpha", sf::BlendMode::Factor::OneMinusSrcAlpha },
-    { "DstAlpha",         sf::BlendMode::Factor::DstAlpha },
-    { "OneMinusDstAlpha", sf::BlendMode::Factor::OneMinusDstAlpha }
-  });
+  lua.new_enum<sf::BlendMode::Factor>(
+    "BlendFactor", {
+      { "Zero",              sf::BlendMode::Factor::Zero },
+      { "One",               sf::BlendMode::Factor::One },
+      { "SrcColor",          sf::BlendMode::Factor::SrcColor },
+      { "OneMinusSrcColor",  sf::BlendMode::Factor::OneMinusSrcColor },
+      { "DstColor",          sf::BlendMode::Factor::DstColor },
+      { "OneMinusDstColor",  sf::BlendMode::Factor::OneMinusDstColor },
+      { "SrcAlpha",          sf::BlendMode::Factor::SrcAlpha },
+      { "OneMinusSrcAlpha",  sf::BlendMode::Factor::OneMinusSrcAlpha },
+      { "DstAlpha",          sf::BlendMode::Factor::DstAlpha },
+      { "OneMinusDstAlpha",  sf::BlendMode::Factor::OneMinusDstAlpha }
+    }
+  );
 
-  lua.new_enum<sf::BlendMode::Equation>("BlendEquation", {
-    { "Add",             sf::BlendMode::Equation::Add },
-    { "Subtract",        sf::BlendMode::Equation::Subtract },
-    { "ReverseSubtract", sf::BlendMode::Equation::ReverseSubtract },
-    { "Min",             sf::BlendMode::Equation::Min },
-    { "Max",             sf::BlendMode::Equation::Max }
-  });
+  lua.new_enum<sf::BlendMode::Equation>(
+    "BlendEquation", {
+      { "Add",              sf::BlendMode::Equation::Add },
+      { "Subtract",         sf::BlendMode::Equation::Subtract },
+      { "ReverseSubtract",  sf::BlendMode::Equation::ReverseSubtract },
+      { "Min",              sf::BlendMode::Equation::Min },
+      { "Max",              sf::BlendMode::Equation::Max }
+    }
+  );
 
   using Factor = sf::BlendMode::Factor;
   using Equation = sf::BlendMode::Equation;
-  lua.new_usertype<sf::BlendMode>("BlendMode",
+
+  lua.new_usertype<sf::BlendMode>(
+    "BlendMode",
     sol::call_constructor,
-    sol::constructors<
-      sf::BlendMode(),
-      sf::BlendMode(Factor, Factor),
-      sf::BlendMode(Factor, Factor, Equation),
-      sf::BlendMode(Factor, Factor, Equation, Factor, Factor, Equation)
-    >(),
+    sol::constructors<sf::BlendMode(),
+                      sf::BlendMode(Factor, Factor),
+                      sf::BlendMode(Factor, Factor, Equation),
+                      sf::BlendMode(Factor, Factor, Equation, Factor, Factor, Equation)>(),
 
     "colorSrcFactor", &sf::BlendMode::colorSrcFactor,
     "colorDstFactor", &sf::BlendMode::colorDstFactor,
@@ -62,8 +65,7 @@ registerBlendMode(sol::state_view lua) {
     "alphaDstFactor", &sf::BlendMode::alphaDstFactor,
     "alphaEquation",  &sf::BlendMode::alphaEquation,
 
-    sol::meta_function::equal_to,
-    [](const sf::BlendMode& left, const sf::BlendMode& right) {
+    sol::meta_function::equal_to, [](const sf::BlendMode& left, const sf::BlendMode& right) {
       return left == right;
     },
 
@@ -73,28 +75,39 @@ registerBlendMode(sol::state_view lua) {
     "Multiply", sol::var(std::cref(sf::BlendMultiply)),
     "Min",      sol::var(std::cref(sf::BlendMin)),
     "Max",      sol::var(std::cref(sf::BlendMax)),
-    "None",     sol::var(std::cref(sf::BlendNone))
-  );
+    "None",     sol::var(std::cref(sf::BlendNone)));
 }
 
-}  // namespace
+} // namespace
 
 void
 registerParticleSystemComponent(sol::state_view lua) {
   registerBlendMode(lua);
 
   lua.new_enum<ParticleSortMode>("ParticleSortMode", {
-    { "None",         ParticleSortMode::kNone },
-    { "BackToFront",  ParticleSortMode::kBackToFront }
-  });
+      { "None", ParticleSortMode::kNone },
+      { "BackToFront", ParticleSortMode::kBackToFront }
+    }
+  );
 
-  lua.new_usertype<EmitterConfig>("EmitterConfig",
+  lua.new_usertype<ParticleCustomData>(
+    "ParticleCustomData",
+    "id", &ParticleCustomData::id,
+    "x",  &ParticleCustomData::x,
+    "y",  &ParticleCustomData::y,
+    "z",  &ParticleCustomData::z
+  );
+
+  lua.new_usertype<EmitterConfig>(
+    "EmitterConfig",
     "maxParticles",   &EmitterConfig::maxParticles,
     "positionOffset", &EmitterConfig::positionOffset,
     "gravity",        &EmitterConfig::gravity,
     "startSize",      &EmitterConfig::startSize,
     "endSize",        &EmitterConfig::endSize,
     "texture",        &EmitterConfig::texture, // Not exposed yet
+    "textureAssetId", &EmitterConfig::textureAssetId, // Not exposed yet
+
     "blendMode",      &EmitterConfig::blendMode,
 
     "emissionRate",             &EmitterConfig::emissionRate,
@@ -113,20 +126,24 @@ registerParticleSystemComponent(sol::state_view lua) {
     "lifetimeVariance",         &EmitterConfig::lifetimeVariance,
     "duration",                 &EmitterConfig::duration,
 
-    "loop", &EmitterConfig::loop
+    "loop", &EmitterConfig::loop,
+    
+    "customData", &EmitterConfig::customData
   );
 
-  lua.new_usertype<ParticleSystemComponent>("ParticleSystemComponent",
+  lua.new_usertype<ParticleSystemComponent>(
+    "ParticleSystemComponent",
     sol::no_constructor,
-    sol::base_classes, sol::bases<Component>(),
+    sol::base_classes,
+    sol::bases<Component>(),
 
     "typeId", sol::var(componentTypeId<ParticleSystemComponent>()),
 
-    "setConfig", &ParticleSystemComponent::setConfig, // Not implemented yet
-    "getConfig", &ParticleSystemComponent::getConfig, // Not implemented yet
+    "setConfig", &ParticleSystemComponent::setConfig,
+    "getConfig", &ParticleSystemComponent::getConfig,
 
-    "setWorldSpace", &ParticleSystemComponent::setWorldSpace,
-    "isWorldSpace", &ParticleSystemComponent::isWorldSpace,
+    "setWorldSpace",  &ParticleSystemComponent::setWorldSpace,
+    "isWorldSpace",   &ParticleSystemComponent::isWorldSpace,
 
     "setSortMode", &ParticleSystemComponent::setSortMode,
     "getSortMode", &ParticleSystemComponent::getSortMode,
@@ -134,19 +151,18 @@ registerParticleSystemComponent(sol::state_view lua) {
     "setEmissionRate", &ParticleSystemComponent::setEmissionRate,
     "getEmissionRate", &ParticleSystemComponent::getEmissionRate,
 
-    "emit", &ParticleSystemComponent::emit,
-    "clear", &ParticleSystemComponent::clear,
-    "start", &ParticleSystemComponent::start,
-    "stop", &ParticleSystemComponent::stop,
+    "emit",   &ParticleSystemComponent::emit,
+    "clear",  &ParticleSystemComponent::clear,
+    "start",  &ParticleSystemComponent::start,
+    "stop",   &ParticleSystemComponent::stop,
 
-    "isRunning", &ParticleSystemComponent::isRunning,
-    "getProgress", &ParticleSystemComponent::getProgress,
+    "isRunning",    &ParticleSystemComponent::isRunning,
+    "getProgress",  &ParticleSystemComponent::getProgress,
 
     "getParticleCount", &ParticleSystemComponent::getParticleCount,
-    "getMaxParticles", &ParticleSystemComponent::getMaxParticles
-  );
+    "getMaxParticles",  &ParticleSystemComponent::getMaxParticles);
 }
 
-}  // namespace script
+} // namespace script
 
-}  // namespace sfmx
+} // namespace sfmx

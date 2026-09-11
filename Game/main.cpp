@@ -540,11 +540,11 @@ int main(int argc, char **argv) {
   sampleConfig.texture = nullptr;
   sampleConfig.textureAssetId = texID;
   sampleConfig.blendMode = sf::BlendAlpha;
-  sampleConfig.emissionRate = 50000.0f;
-  sampleConfig.positionVariance = 12.0f;
+  sampleConfig.emissionRate = 0.0f;
+  sampleConfig.positionVariance = 0.0f;
   // -90 degrees is straight up; the variance fans the jet out a little.
   sampleConfig.direction = sf::degrees(-90.0f);
-  sampleConfig.directionVariance = sf::degrees(90.0f);
+  sampleConfig.directionVariance = sf::degrees(45.0f);
   sampleConfig.speed = 400.0f;
   sampleConfig.speedVariance = 40.0f;
   sampleConfig.startRotation = sf::Angle::Zero;
@@ -564,7 +564,7 @@ int main(int argc, char **argv) {
   // Payload every rate-spawned particle carries. Distinct from the ids the game
   // loop emits by hand, so the two are told apart by colour in the debug
   // shader.
-  sampleConfig.customData.id = 3;
+  sampleConfig.customData.id = 67;
 
   // Sit the emitter near the bottom of whatever the active camera is looking
   // at, so it stays on screen wherever the serialized camera happens to be
@@ -575,9 +575,10 @@ int main(int argc, char **argv) {
   SceneNode *particlesNode = scene.createNode("NumberParticles");
   particlesNode->transform().setPosition(emitterPos);
 
-  auto *particleSystem =
-      particlesNode->addComponent<ParticleSystemComponent>(sampleConfig);
+  auto *particleSystem = particlesNode->addComponent<ParticleSystemComponent>(sampleConfig);
   particleSystem->start();
+
+  EmitterConfig customConfig = particleSystem->getConfig();
 
   // Per-particle custom data is only observable through a material: the
   // built-in quad program declares no custom-data block, so the renderer skips
@@ -672,11 +673,12 @@ int main(int argc, char **argv) {
     AssetManager::instance().finalize();
 
     UIEventSystem::instance().update(window, deltaTime);
-
-    ParticleCustomData payload;
-    payload.id = sfmx::Random::range(0, 1999);
-    payload.x = 1.0f;
-    particleSystem->emit(1, payload);
+    
+    customConfig.positionOffset = {
+      Random::range(-500.0f, 500.0f),
+      Random::range(0.0f, 100.0f)
+    };
+    particleSystem->emit(1, customConfig);
 
     SceneManager::instance().update(deltaTime);
 
