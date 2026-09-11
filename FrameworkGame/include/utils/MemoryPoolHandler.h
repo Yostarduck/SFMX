@@ -2,6 +2,7 @@
 
 #include "core/MemoryPool.h"
 #include "core/platform/Prerequisites.h"
+#include <iostream>
 #include "scene/Component.h"
 #include "utils/Module.h"
 #include "utils/TypeTraits.h"
