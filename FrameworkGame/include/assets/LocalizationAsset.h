@@ -9,7 +9,7 @@ class AssetFileReader;
 
 class SFMX_UTILITY_EXPORT LocalizationAsset : public AssetT<LocalizationAsset>
 {
-public:
+ public:
 
   NODISCARD FORCEINLINE const UnorderedMap<String, UnorderedMap<String, String>>&
   localizations() const { return m_localizations; }
@@ -18,7 +18,7 @@ public:
   bool 
   decodeFrom(AssetFileReader& reader);
 
-private:
+ private:
 
   UnorderedMap<String, UnorderedMap<String, String>> m_localizations;
 

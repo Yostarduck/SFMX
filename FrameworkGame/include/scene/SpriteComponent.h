@@ -14,7 +14,7 @@ class MaterialComponent;
 
 class SpriteComponent : public ComponentT<SpriteComponent> {
 
-public:
+ public:
   explicit SpriteComponent(SceneNode* owner);
 
   void setTexture(const sf::Texture& txt);
@@ -98,7 +98,7 @@ public:
   NODISCARD sf::Sprite& activeSprite();
   NODISCARD const sf::Sprite& activeSprite() const;
 
-private:
+ private:
 
   SPtr<sf::Sprite>     m_sprite;
   SPtr<sf::Texture>    m_texture;
