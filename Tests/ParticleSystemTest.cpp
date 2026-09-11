@@ -29,7 +29,7 @@ struct PoolFixture {
     if (!MemoryPoolHandler::isStarted()) {
       MemoryPoolHandler::startUp(4096);
     }
-    auto &p = MemoryPoolHandler::instance();
+    auto& p = MemoryPoolHandler::instance();
     p.registerPool<Particle>(8192);
     p.registerPool<SceneNode>(4096);
     p.registerPool<ParticleSystemComponent>(256);

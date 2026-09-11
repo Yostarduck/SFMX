@@ -23,27 +23,25 @@ namespace
 void
 registerBlendMode(sol::state_view lua) {
   lua.new_enum<sf::BlendMode::Factor>("BlendFactor", {
-      { "Zero",              sf::BlendMode::Factor::Zero },
-      { "One",               sf::BlendMode::Factor::One },
-      { "SrcColor",          sf::BlendMode::Factor::SrcColor },
-      { "OneMinusSrcColor",  sf::BlendMode::Factor::OneMinusSrcColor },
-      { "DstColor",          sf::BlendMode::Factor::DstColor },
-      { "OneMinusDstColor",  sf::BlendMode::Factor::OneMinusDstColor },
-      { "SrcAlpha",          sf::BlendMode::Factor::SrcAlpha },
-      { "OneMinusSrcAlpha",  sf::BlendMode::Factor::OneMinusSrcAlpha },
-      { "DstAlpha",          sf::BlendMode::Factor::DstAlpha },
-      { "OneMinusDstAlpha",  sf::BlendMode::Factor::OneMinusDstAlpha }
-    }
-  );
+    { "Zero",              sf::BlendMode::Factor::Zero },
+    { "One",               sf::BlendMode::Factor::One },
+    { "SrcColor",          sf::BlendMode::Factor::SrcColor },
+    { "OneMinusSrcColor",  sf::BlendMode::Factor::OneMinusSrcColor },
+    { "DstColor",          sf::BlendMode::Factor::DstColor },
+    { "OneMinusDstColor",  sf::BlendMode::Factor::OneMinusDstColor },
+    { "SrcAlpha",          sf::BlendMode::Factor::SrcAlpha },
+    { "OneMinusSrcAlpha",  sf::BlendMode::Factor::OneMinusSrcAlpha },
+    { "DstAlpha",          sf::BlendMode::Factor::DstAlpha },
+    { "OneMinusDstAlpha",  sf::BlendMode::Factor::OneMinusDstAlpha }
+  });
 
   lua.new_enum<sf::BlendMode::Equation>("BlendEquation", {
-      { "Add",              sf::BlendMode::Equation::Add },
-      { "Subtract",         sf::BlendMode::Equation::Subtract },
-      { "ReverseSubtract",  sf::BlendMode::Equation::ReverseSubtract },
-      { "Min",              sf::BlendMode::Equation::Min },
-      { "Max",              sf::BlendMode::Equation::Max }
-    }
-  );
+    { "Add",              sf::BlendMode::Equation::Add },
+    { "Subtract",         sf::BlendMode::Equation::Subtract },
+    { "ReverseSubtract",  sf::BlendMode::Equation::ReverseSubtract },
+    { "Min",              sf::BlendMode::Equation::Min },
+    { "Max",              sf::BlendMode::Equation::Max }
+  });
 
   using Factor = sf::BlendMode::Factor;
   using Equation = sf::BlendMode::Equation;
@@ -72,7 +70,8 @@ registerBlendMode(sol::state_view lua) {
     "Multiply", sol::var(std::cref(sf::BlendMultiply)),
     "Min",      sol::var(std::cref(sf::BlendMin)),
     "Max",      sol::var(std::cref(sf::BlendMax)),
-    "None",     sol::var(std::cref(sf::BlendNone)));
+    "None",     sol::var(std::cref(sf::BlendNone))
+  );
 }
 
 } // namespace
@@ -82,10 +81,9 @@ registerParticleSystemComponent(sol::state_view lua) {
   registerBlendMode(lua);
 
   lua.new_enum<ParticleSortMode>("ParticleSortMode", {
-      { "None",         ParticleSortMode::kNone },
-      { "BackToFront",  ParticleSortMode::kBackToFront }
-    }
-  );
+    { "None",         ParticleSortMode::kNone },
+    { "BackToFront",  ParticleSortMode::kBackToFront }
+  });
 
   lua.new_usertype<ParticleCustomData>(
     "ParticleCustomData",
