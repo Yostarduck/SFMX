@@ -31,7 +31,10 @@ class MaterialComponent;
 /**
  * @brief Controls how active particles are ordered before rendering.
  */
-enum class ParticleSortMode : int32 { kNone, kBackToFront };
+enum class ParticleSortMode : int32 {
+  kNone,
+  kBackToFront
+};
 
 /**
  * @brief Caller-defined payload carried by one particle all the way to the
@@ -48,23 +51,23 @@ using ParticleCustomData = gfx::QuadCustomData;
  *        together with intrusive linked-list hooks for the active set.
  */
 struct Particle {
-  sf::Vector2f position;
-  sf::Vector2f velocity;
-  sf::Color color;
-  float rotation;
-  float angularVelocity;
-  float lifetime;
-  float maxLifetime;
+  sf::Vector2f        position;
+  sf::Vector2f        velocity;
+  sf::Color           color;
+  float               rotation;
+  float               angularVelocity;
+  float               lifetime;
+  float               maxLifetime;
   /**
    * @brief Normalised age, 0 = just spawned, 1 = about to die.
    */
-  float progress;
+  float               progress;
   /**
    * @brief Payload handed to this particle at emit time; see @ref emit.
    */
-  ParticleCustomData customData;
-  Particle *prev = nullptr;
-  Particle *next = nullptr;
+  ParticleCustomData  customData;
+  Particle*           prev = nullptr;
+  Particle*           next = nullptr;
 };
 
 /**
@@ -72,42 +75,42 @@ struct Particle {
  *        how they behave, and how they are rendered.
  */
 struct EmitterConfig {
-  size_t maxParticles = 256;
-  sf::Vector2f positionOffset = {0.0f, 0.0f};
-  sf::Vector2f gravity = {0.f, 0.f};
-  sf::Vector2f startSize = {8.f, 8.f};
-  sf::Vector2f endSize = {0.f, 0.f};
-  const sf::Texture *texture = nullptr;
+  size_t              maxParticles    = 256;
+  sf::Vector2f        positionOffset  = {0.0f, 0.0f};
+  sf::Vector2f        gravity         = {0.f, 0.f};
+  sf::Vector2f        startSize       = {8.f, 8.f};
+  sf::Vector2f        endSize         = {0.f, 0.f};
+  const sf::Texture*  texture         = nullptr;
   //!< Serializable handle to the texture's asset (null for a raw/no texture).
-  UUID textureAssetId = UUID::null();
+  UUID                textureAssetId  = UUID::null();
 
-  sf::BlendMode blendMode = sf::BlendAlpha;
+  sf::BlendMode       blendMode       = sf::BlendAlpha;
 
   /**
    * @brief Particles emitted per second (0 = manual @ref emit only).
    */
-  float emissionRate = 0.0f;
-  float positionVariance = 0.0f;
-  sf::Angle direction = sf::Angle::Zero;
-  sf::Angle directionVariance = sf::Angle::Zero;
-  float speed = 100.0f;
-  float speedVariance = 0.0f;
-  sf::Angle startRotation = sf::Angle::Zero;
-  sf::Angle startRotationVariance = sf::Angle::Zero;
-  float angularVelocity = 0.f;
-  float angularVelocityVariance = 0.f;
-  sf::Color startColor = sf::Color::White;
-  sf::Color endColor = sf::Color(255, 255, 255, 0);
-  float lifetime = 1.f;
-  float lifetimeVariance = 0.f;
-  float duration = 0.f; // 0 = infinite
+  float               emissionRate            = 0.0f;
+  float               positionVariance        = 0.0f;
+  sf::Angle           direction               = sf::Angle::Zero;
+  sf::Angle           directionVariance       = sf::Angle::Zero;
+  float               speed                   = 100.0f;
+  float               speedVariance           = 0.0f;
+  sf::Angle           startRotation           = sf::Angle::Zero;
+  sf::Angle           startRotationVariance   = sf::Angle::Zero;
+  float               angularVelocity         = 0.f;
+  float               angularVelocityVariance = 0.f;
+  sf::Color           startColor              = sf::Color::White;
+  sf::Color           endColor                = sf::Color(255, 255, 255, 0);
+  float               lifetime                = 1.f;
+  float               lifetimeVariance        = 0.f;
+  float               duration                = 0.f; // 0 = infinite
 
-  bool loop = false;
+  bool                loop                    = false;
 
   /** @brief Payload given to particles spawned by @ref emissionRate, and the
    *         default for @ref ParticleSystemComponent::emit(size_t). Transient:
    *         not serialized, since it is caller-defined gameplay data. */
-  ParticleCustomData customData;
+  ParticleCustomData  customData;
 };
 
 /**
@@ -122,12 +125,12 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent> {
   /**
    * @brief Constructs a particle system on @p owner with default config.
    */
-  explicit ParticleSystemComponent(SceneNode *owner);
+  explicit ParticleSystemComponent(SceneNode* owner);
 
   /**
    * @brief Constructs a particle system on @p owner with the given @p config.
    */
-  ParticleSystemComponent(SceneNode *owner, const EmitterConfig &config);
+  ParticleSystemComponent(SceneNode* owner, const EmitterConfig& config);
 
   /**
    * @brief Destructor, kills all particles still in flight.
@@ -138,7 +141,7 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent> {
    * @brief Replace the full emitter configuration; particles are cleared.
    */
   void
-  setConfig(const EmitterConfig &config);
+  setConfig(const EmitterConfig& config);
 
   /**
    * @brief Returns the current emitter configuration.
@@ -226,7 +229,7 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent> {
    *        Null clears it.
    */
   FORCEINLINE void
-  setMaterial(MaterialComponent *material) { m_material = material; }
+  setMaterial(MaterialComponent* material) { m_material = material; }
 
   /**
    * @brief The bound material, or nullptr if the particles draw unshaded.
@@ -349,7 +352,7 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent> {
    * points into it. */
   SPtr<TextureAsset> m_textureAsset;
   /** @brief Non-owning optional shader applied to this emitter's particles. */
-  MaterialComponent *m_material = nullptr;
+  MaterialComponent* m_material = nullptr;
   /** @brief Current sort mode for active particles. */
   ParticleSortMode m_sortMode = ParticleSortMode::kNone;
   /** @brief If true, particles are emitted in world space (default: local). */
@@ -368,9 +371,9 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent> {
   bool m_running = true;
 
   /** @brief Head of the intrusive doubly-linked list of active particles. */
-  Particle *m_firstParticle = nullptr;
+  Particle* m_firstParticle = nullptr;
   /** @brief Tail of the intrusive doubly-linked list of active particles. */
-  Particle *m_lastParticle = nullptr;
+  Particle* m_lastParticle = nullptr;
 
   /** @brief Pre-allocated GPU buffer holding the particle stream. Sized to
    *         capacity instances on the instanced path, capacity * 6 vertices on the

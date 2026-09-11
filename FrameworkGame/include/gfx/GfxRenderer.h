@@ -27,7 +27,9 @@ class GfxRenderer : public Module<GfxRenderer>
   GfxRenderer() = default;
   ~GfxRenderer() override = default;
 
-  /** @brief The shared instanced quad renderer, or null if start-up failed. */
+  /**
+   * @brief The shared instanced quad renderer, or null if start-up failed.
+   */
   NODISCARD FORCEINLINE gfx::InstancedQuadRenderer*
   quadRenderer() const { return m_quadRenderer.get(); }
 

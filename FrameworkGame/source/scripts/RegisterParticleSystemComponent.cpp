@@ -22,8 +22,7 @@ namespace
  */
 void
 registerBlendMode(sol::state_view lua) {
-  lua.new_enum<sf::BlendMode::Factor>(
-    "BlendFactor", {
+  lua.new_enum<sf::BlendMode::Factor>("BlendFactor", {
       { "Zero",              sf::BlendMode::Factor::Zero },
       { "One",               sf::BlendMode::Factor::One },
       { "SrcColor",          sf::BlendMode::Factor::SrcColor },
@@ -37,8 +36,7 @@ registerBlendMode(sol::state_view lua) {
     }
   );
 
-  lua.new_enum<sf::BlendMode::Equation>(
-    "BlendEquation", {
+  lua.new_enum<sf::BlendMode::Equation>("BlendEquation", {
       { "Add",              sf::BlendMode::Equation::Add },
       { "Subtract",         sf::BlendMode::Equation::Subtract },
       { "ReverseSubtract",  sf::BlendMode::Equation::ReverseSubtract },
@@ -50,8 +48,7 @@ registerBlendMode(sol::state_view lua) {
   using Factor = sf::BlendMode::Factor;
   using Equation = sf::BlendMode::Equation;
 
-  lua.new_usertype<sf::BlendMode>(
-    "BlendMode",
+  lua.new_usertype<sf::BlendMode>("BlendMode",
     sol::call_constructor,
     sol::constructors<sf::BlendMode(),
                       sf::BlendMode(Factor, Factor),
@@ -85,8 +82,8 @@ registerParticleSystemComponent(sol::state_view lua) {
   registerBlendMode(lua);
 
   lua.new_enum<ParticleSortMode>("ParticleSortMode", {
-      { "None", ParticleSortMode::kNone },
-      { "BackToFront", ParticleSortMode::kBackToFront }
+      { "None",         ParticleSortMode::kNone },
+      { "BackToFront",  ParticleSortMode::kBackToFront }
     }
   );
 
@@ -139,25 +136,25 @@ registerParticleSystemComponent(sol::state_view lua) {
 
     "typeId", sol::var(componentTypeId<ParticleSystemComponent>()),
 
-    "setConfig", &ParticleSystemComponent::setConfig,
-    "getConfig", &ParticleSystemComponent::getConfig,
+    "setConfig",        &ParticleSystemComponent::setConfig,
+    "getConfig",        &ParticleSystemComponent::getConfig,
 
-    "setWorldSpace",  &ParticleSystemComponent::setWorldSpace,
-    "isWorldSpace",   &ParticleSystemComponent::isWorldSpace,
+    "setWorldSpace",    &ParticleSystemComponent::setWorldSpace,
+    "isWorldSpace",     &ParticleSystemComponent::isWorldSpace,
 
-    "setSortMode", &ParticleSystemComponent::setSortMode,
-    "getSortMode", &ParticleSystemComponent::getSortMode,
+    "setSortMode",      &ParticleSystemComponent::setSortMode,
+    "getSortMode",      &ParticleSystemComponent::getSortMode,
 
-    "setEmissionRate", &ParticleSystemComponent::setEmissionRate,
-    "getEmissionRate", &ParticleSystemComponent::getEmissionRate,
+    "setEmissionRate",  &ParticleSystemComponent::setEmissionRate,
+    "getEmissionRate",  &ParticleSystemComponent::getEmissionRate,
 
-    "emit",   &ParticleSystemComponent::emit,
-    "clear",  &ParticleSystemComponent::clear,
-    "start",  &ParticleSystemComponent::start,
-    "stop",   &ParticleSystemComponent::stop,
+    "emit",             &ParticleSystemComponent::emit,
+    "clear",            &ParticleSystemComponent::clear,
+    "start",            &ParticleSystemComponent::start,
+    "stop",             &ParticleSystemComponent::stop,
 
-    "isRunning",    &ParticleSystemComponent::isRunning,
-    "getProgress",  &ParticleSystemComponent::getProgress,
+    "isRunning",        &ParticleSystemComponent::isRunning,
+    "getProgress",      &ParticleSystemComponent::getProgress,
 
     "getParticleCount", &ParticleSystemComponent::getParticleCount,
     "getMaxParticles",  &ParticleSystemComponent::getMaxParticles);

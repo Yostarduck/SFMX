@@ -75,27 +75,24 @@
 
 using namespace sfmx;
 
-int main(int argc, char **argv) {
+int
+main(int argc, char **argv) {
   // Offline cooking entry points (exit without opening a window):
   //   --cook [src] [out]  wrap the media under src into .sfmxasset containers.
   //   --cook-scene        build the demo scene in code and serialize it.
   for (int i = 1; i < argc; ++i) {
     if (std::strcmp(argv[i], "--cook") == 0) {
-      const FileSystemPath srcDir =
-          (i + 1 < argc) ? argv[i + 1] : "Game/resources";
-      const FileSystemPath outDir =
-          (i + 2 < argc) ? argv[i + 2] : "Game/assets";
-      // The cooker consults the importer registry (extension -> asset type +
-      // chunk format). Seed the built-in engine formats; a format module would
-      // register its own extension here too (see the AssetImporterRegistry
-      // docs).
+      const FileSystemPath srcDir = (i + 1 < argc) ? argv[i + 1] : "Game/resources";
+      const FileSystemPath outDir = (i + 2 < argc) ? argv[i + 2] : "Game/assets";
+      // The cooker consults the importer registry (extension -> asset type + chunk
+      // format). Seed the built-in engine formats; a format module would register
+      // its own extension here too (see the AssetImporterRegistry docs).
       AssetImporterRegistry::startUp();
       AssetImporterRegistry::instance().registerBuiltins();
       // TODO: this probably needs to be loaded in runtime or something, for now
       // we are dependent and calling this here. We might want to use LoadPlugin
       // later in the game(?)
-      imagewebp::registerModule(); // adds the .webp import rule (decoder
-                                   // skipped: no AssetManager in cook)
+      imagewebp::registerModule(); // adds the .webp import rule (decoder skipped: no AssetManager in cook)
       AssetCooker::cookDirectory(srcDir, outDir);
       AssetImporterRegistry::shutDown();
       return 0;
@@ -105,10 +102,9 @@ int main(int argc, char **argv) {
     }
   }
 
-  // Optional content-root override, applied before any content loads: a
-  // launcher or installer can point the game at content that is not next to the
-  // exe. Precedence: --content-dir <path> (CLI) > SFMX_CONTENT_ROOT (env) > exe
-  // dir.
+  // Optional content-root override, applied before any content loads: a launcher
+  // or installer can point the game at content that is not next to the exe.
+  // Precedence: --content-dir <path> (CLI) > SFMX_CONTENT_ROOT (env) > exe dir.
   {
     FileSystemPath contentOverride;
     for (int i = 1; i + 1 < argc; ++i) {
@@ -118,7 +114,7 @@ int main(int argc, char **argv) {
       }
     }
     if (contentOverride.empty()) {
-      if (const char *env = std::getenv("SFMX_CONTENT_ROOT");
+      if (const char* env = std::getenv("SFMX_CONTENT_ROOT");
           nullptr != env && '\0' != env[0]) {
         contentOverride = env;
       }
@@ -133,19 +129,19 @@ int main(int argc, char **argv) {
   }
 
   IniFile config;
-  // Content paths are relative to the content root (defaults to the exe dir),
-  // so the game finds its content next to the exe regardless of the launch CWD.
+  // Content paths are relative to the content root (defaults to the exe dir), so
+  // the game finds its content next to the exe regardless of the launch CWD.
   config.loadAll({"config/Engine.ini", "config/Game.ini"});
 
-  const uint32 windowWidth = config.getUInt("Window", "Width", 800u);
+  const uint32 windowWidth  = config.getUInt("Window", "Width", 800u);
   const uint32 windowHeight = config.getUInt("Window", "Height", 600u);
-  const String windowTitle = config.getString("Window", "Title", "SFMX Game");
-  const bool enableVSync = config.getBool("Window", "VSync", true);
+  const String windowTitle  = config.getString("Window", "Title", "SFMX Game");
+  const bool enableVSync    = config.getBool("Window", "VSync", true);
 
   // The Window module owns the sf::RenderWindow and creates it on start-up.
   WindowCreateInfo windowInfo;
-  windowInfo.title = windowTitle;
-  windowInfo.width = windowWidth;
+  windowInfo.title  = windowTitle;
+  windowInfo.width  = windowWidth;
   windowInfo.height = windowHeight;
   Window::startUp(windowInfo);
 
@@ -169,9 +165,8 @@ int main(int argc, char **argv) {
   demo::registerDemoComponents();
 
   // Mount the cooked .sfmxasset directory (resolved under the content root; the
-  // build's POST_BUILD cooks and stages `assets/` next to the exe). Images
-  // resolve by UUID through the AssetManager; audio stays mp3-by-path
-  // (streams).
+  // build's POST_BUILD cooks and stages `assets/` next to the exe). Images resolve
+  // by UUID through the AssetManager; audio stays mp3-by-path (streams).
   AssetManager::startUp();
   AssetManager::instance().registerCodec(MakeShared<TextureCodec>());
   AssetManager::instance().registerCodec(MakeShared<ShaderCodec>());
@@ -179,15 +174,13 @@ int main(int argc, char **argv) {
   AssetManager::instance().registerCodec(MakeShared<SoundCodec>());
   AssetManager::instance().registerCodec(MakeShared<MusicCodec>());
   AssetManager::instance().registerCodec(MakeShared<FontCodec>());
-  // WebP support: the module registers an IDecoder<sf::Image> for kWebP
-  // (import-rule half is a no-op here — the AssetImporterRegistry isn't started
-  // in the runtime path).
+  // WebP support: the module registers an IDecoder<sf::Image> for kWebP (import-rule
+  // half is a no-op here — the AssetImporterRegistry isn't started in the runtime path).
   imagewebp::registerModule();
 #if USING(SFMX_DEBUG_MODE)
-  // Dev: load Lua scripts from their raw source (hot-reloadable via F5) instead
-  // of the cooked chunk. Debug-only — this block is compiled out of release, so
-  // the ini flag is a harmless no-op there. Set before mount/load so the first
-  // script load is raw.
+  // Dev: load Lua scripts from their raw source (hot-reloadable via F5) instead of the
+  // cooked chunk. Debug-only — this block is compiled out of release, so the ini flag
+  // is a harmless no-op there. Set before mount/load so the first script load is raw.
   AssetManager::instance().setRawScriptMode(
       config.getBool("Debug", "RawScripts", true),
       config.getString("Debug", "RawSourceDir", "resources"));
@@ -200,7 +193,7 @@ int main(int argc, char **argv) {
   // Load the cooked demo scene into a SceneManager-owned scene; fall back to
   // building it in code (dev convenience if `--cook-scene` has not run yet).
   SceneManager &scenes = SceneManager::instance();
-  Scene *scenePtr = scenes.loadScene("Main", demo::kSceneFile);
+  Scene* scenePtr = scenes.loadScene("Main", demo::kSceneFile);
   if (nullptr == scenePtr) {
     std::cerr << "[Scene] could not load " << demo::kSceneFile
               << " (run `Game --cook-scene`); building in code\n";
@@ -210,16 +203,14 @@ int main(int argc, char **argv) {
   }
   Scene &scene = *scenePtr;
 
-  // Full-screen post-processing: the scene is rendered offscreen and run
-  // through the cooked post shaders. Held in an Optional so its GL render
-  // targets (and the shader they keep alive) are released before the window's
-  // context is torn down.
+  // Full-screen post-processing: the scene is rendered offscreen and run through the
+  // cooked post shaders. Held in an Optional so its GL render targets (and the shader
+  // they keep alive) are released before the window's context is torn down.
   Optional<PostProcessPipeline> postFx;
   postFx.emplace();
   if (postFx->init(window.getSize())) {
-    // CRT pass authored as a .shader manifest: a custom vertex stage + fragment
-    // stage, cooked into one multi-chunk asset (exercises the vertex-shader
-    // path end to end).
+    // CRT pass authored as a .shader manifest: a custom vertex stage + fragment stage,
+    // cooked into one multi-chunk asset (exercises the vertex-shader path end to end).
     if (SPtr<ShaderAsset> crt = AssetManager::instance().load<ShaderAsset>(
             sfmx::UUID::createFromName("shaders/crt.shader"))) {
       postFx->addPass(std::move(crt));
@@ -230,74 +221,45 @@ int main(int argc, char **argv) {
   // music/animation playback, the refs the game loop drives).
   demo::DemoRuntime rt = demo::wireDemoRuntime(scene);
 
-  // InputSystem: "Mapping Mode" demo - a Mapping holds an ActionMap, which
-  // holds Actions, each with bindings + an Interaction (tap/hold) and
-  // Processors. Jump (tap), Crouch (hold), Move (normalized Vector2).
-  Mapping *controls = InputSystem::instance().createMapping("DefaultControls");
+  // InputSystem: "Mapping Mode" demo - a Mapping holds an ActionMap, which holds
+  // Actions, each with bindings + an Interaction (tap/hold) and Processors.
+  // Jump (tap), Crouch (hold), Move (normalized Vector2).
+  Mapping* controls = InputSystem::instance().createMapping("DefaultControls");
 
   // ── UI ActionMap: keyboard/gamepad navigation ──────────────────────────
-  ActionMap *uiActions = controls->addMap("UI");
+  ActionMap* uiActions = controls->addMap("UI");
 
-  InputAction *uiNavigate =
-      uiActions->addAction("Navigate", ActionValueType::kAxis2D);
-  CompositeBinding &navComposite =
-      uiNavigate->addComposite(CompositeType::kVector2D);
+  InputAction* uiNavigate = uiActions->addAction("Navigate", ActionValueType::kAxis2D);
+  CompositeBinding &navComposite = uiNavigate->addComposite(CompositeType::kVector2D);
+  navComposite.m_parts.push_back({
+    InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kUp), -1, false}, CompositeRole::kNegativeY, {}});
   navComposite.m_parts.push_back(
-      {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kUp), -1,
-                    false},
-       CompositeRole::kNegativeY,
-       {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kDown), -1, false}, CompositeRole::kPositiveY, {}});
   navComposite.m_parts.push_back(
-      {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kDown), -1,
-                    false},
-       CompositeRole::kPositiveY,
-       {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kLeft), -1, false}, CompositeRole::kNegativeX, {}});
   navComposite.m_parts.push_back(
-      {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kLeft), -1,
-                    false},
-       CompositeRole::kNegativeX,
-       {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kRight), -1, false}, CompositeRole::kPositiveX, {}});
   navComposite.m_parts.push_back(
-      {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kRight), -1,
-                    false},
-       CompositeRole::kPositiveX,
-       {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kW), -1, false}, CompositeRole::kNegativeY, {}});
   navComposite.m_parts.push_back(
-      {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kW), -1,
-                    false},
-       CompositeRole::kNegativeY,
-       {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kS), -1, false}, CompositeRole::kPositiveY, {}});
   navComposite.m_parts.push_back(
-      {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kS), -1,
-                    false},
-       CompositeRole::kPositiveY,
-       {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kA), -1, false}, CompositeRole::kNegativeX, {}});
   navComposite.m_parts.push_back(
-      {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kA), -1,
-                    false},
-       CompositeRole::kNegativeX,
-       {}});
-  navComposite.m_parts.push_back(
-      {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kD), -1,
-                    false},
-       CompositeRole::kPositiveX,
-       {}});
+    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kD), -1, false}, CompositeRole::kPositiveX, {}});
 
-  InputAction *uiSubmit =
-      uiActions->addAction("Submit", ActionValueType::kButton);
-  uiSubmit->addBinding(InputControl{
-      DeviceType::kKeyboard, static_cast<int32>(Key::kSpace), -1, false});
-  uiSubmit->addBinding(InputControl{
-      DeviceType::kKeyboard, static_cast<int32>(Key::kEnter), -1, false});
+  InputAction* uiSubmit = uiActions->addAction("Submit", ActionValueType::kButton);
+  uiSubmit->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kSpace), -1, false});
+  uiSubmit->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kEnter), -1, false});
   uiSubmit->setInteraction(Interaction{InteractionType::kPress, 0.f});
 
-  InputAction *uiCancel =
+  InputAction* uiCancel =
       uiActions->addAction("Cancel", ActionValueType::kButton);
   uiCancel->addBinding(InputControl{
       DeviceType::kKeyboard, static_cast<int32>(Key::kEscape), -1, false});
   uiCancel->setInteraction(Interaction{InteractionType::kPress, 0.f});
 
-  // InputSystem::instance().setActiveMapping(controls);
+  //InputSystem::instance().setActiveMapping(controls);
 
   UIEventSystem::startUp();
 
@@ -306,8 +268,8 @@ int main(int argc, char **argv) {
   /*                                                                          */
 
   // Create canvas
-  SceneNode *canvasNode = scene.createNode("HUDCanvas");
-  auto *canvaComp = canvasNode->addComponent<CanvasComponent>();
+  SceneNode* canvasNode = scene.createNode("HUDCanvas");
+  auto* canvaComp = canvasNode->addComponent<CanvasComponent>();
   Canvas &uiCanvas = canvaComp->getCanvas();
 
   // Wire up UI navigation actions
@@ -315,20 +277,20 @@ int main(int argc, char **argv) {
   UIEventSystem::instance().setSubmitAction(uiSubmit);
   UIEventSystem::instance().setCancelAction(uiCancel);
 
-  UILabel *debugLabel;
+  UILabel* debugLabel;
   // Kept alive for the whole loop so the toggle button stays subscribed.
   HEvent toggleShaderHandle;
-  UILabel *shaderLabel = nullptr;
+  UILabel* shaderLabel = nullptr;
   {
     // Load fonts
     SPtr<FontAsset> fontAsset;
-    constexpr const char *fontPaths[] = {
-        "PlayArea.otf",
+    constexpr const char* fontPaths[] = {
+      "PlayArea.otf",
     };
 
     bool fontLoaded = false;
 
-    for (const char *fp : fontPaths) {
+    for (const char* fp : fontPaths) {
       fontAsset = AssetManager::instance().load<FontAsset>(
           sfmx::UUID::createFromName(String(fp)));
       if (fontAsset && fontAsset->isLoaded()) {
@@ -339,9 +301,8 @@ int main(int argc, char **argv) {
 
     // Debug label
     if (fontLoaded) {
-      auto *debugNode = canvasNode->createChild("DebugLabel");
-      debugLabel = debugNode->addComponent<UILabel>(
-          sf::Vector2f{float(windowWidth), 50.f});
+      auto* debugNode = canvasNode->createChild("DebugLabel");
+      debugLabel = debugNode->addComponent<UILabel>(sf::Vector2f{float(windowWidth), 50.f});
       debugLabel->setPosition({25.0f, windowHeight - 50.0f});
       debugLabel->setFontAsset(fontAsset);
       debugLabel->setText("");
@@ -351,18 +312,16 @@ int main(int argc, char **argv) {
     }
 
     // Show upgrades menu button
-    auto *upgradesNode = canvasNode->createChild("UpgradesButton");
-    UIButton *upgradesBtn =
-        upgradesNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    auto* upgradesNode = canvasNode->createChild("UpgradesButton");
+    UIButton* upgradesBtn = upgradesNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
     upgradesBtn->setPosition({25.0f, 25.0f});
     upgradesBtn->syncColliderToRect();
     uiCanvas.addWidget(upgradesBtn);
 
     // Info label
     if (fontLoaded) {
-      auto *infoNode = canvasNode->createChild("InfoLabel");
-      auto *infoLabel =
-          infoNode->addComponent<UILabel>(sf::Vector2f{400.f, 50.f});
+      auto* infoNode = canvasNode->createChild("InfoLabel");
+      auto* infoLabel = infoNode->addComponent<UILabel>(sf::Vector2f{400.f, 50.f});
       infoLabel->setPosition({250.0f, 25.0f});
       infoLabel->setFontAsset(fontAsset);
       infoLabel->setText("");
@@ -374,29 +333,26 @@ int main(int argc, char **argv) {
     // Upgrades menu
     if (fontLoaded) {
       // Upgrades scroll view
-      auto *upgradesMenuNode = canvasNode->createChild("UpgradesMenu");
-      UIScrollView *scrollView = upgradesMenuNode->addComponent<UIScrollView>(
-          sf::Vector2f{310.0f, 250.f});
+      auto* upgradesMenuNode = canvasNode->createChild("UpgradesMenu");
+      UIScrollView* scrollView = upgradesMenuNode->addComponent<UIScrollView>(sf::Vector2f{310.0f, 250.f});
       scrollView->setPosition({25.0f, 100.0f});
       scrollView->syncColliderToRect();
       scrollView->setBackgroundColor(sf::Color(255, 101, 224, 128));
       uiCanvas.addWidget(scrollView);
 
       // Upgrades list container
-      auto *upgradesListNode = canvasNode->createChild("UpgradesList");
-      UIVerticalBox *list = upgradesListNode->addComponent<UIVerticalBox>(
-          sf::Vector2f{310.f, 60.f});
+      auto* upgradesListNode = canvasNode->createChild("UpgradesList");
+      UIVerticalBox* list = upgradesListNode->addComponent<UIVerticalBox>(sf::Vector2f{310.f, 60.f});
       list->setPadding({15.0f, 10.0f});
       list->setSpacing(5.0f);
       list->setBoxColor(sf::Color::Transparent);
       scrollView->addChild(list);
 
       // Helper local function to add upgrade entries
-      auto addBuyUnitButton = [&](const char *name) {
+      auto addBuyUnitButton = [&](const char* name) {
         // Upgrade container
-        auto *hboxNode = canvasNode->createChild(String(name) + " HBox");
-        UIHorizontalBox *hbox =
-            hboxNode->addComponent<UIHorizontalBox>(sf::Vector2f{280.f, 50.f});
+        auto* hboxNode = canvasNode->createChild(String(name) + " HBox");
+        UIHorizontalBox* hbox = hboxNode->addComponent<UIHorizontalBox>(sf::Vector2f{280.f, 50.f});
         hbox->setPosition({0.0f, 0.0f});
         hbox->setPadding({10.0f, 10.0f});
         hbox->setSpacing(10.f);
@@ -404,9 +360,8 @@ int main(int argc, char **argv) {
         list->addChild(hbox);
 
         // Upgrade name label
-        auto *nameLn = canvasNode->createChild(String(name) + " Label");
-        auto *nameLbl =
-            nameLn->addComponent<UILabel>(sf::Vector2f{150.f, 30.f});
+        auto* nameLn = canvasNode->createChild(String(name) + " Label");
+        auto* nameLbl = nameLn->addComponent<UILabel>(sf::Vector2f{150.f, 30.f});
         nameLbl->setPosition({0.f, 0.f});
         nameLbl->setFontAsset(fontAsset);
         nameLbl->setText(name);
@@ -415,8 +370,8 @@ int main(int argc, char **argv) {
         hbox->addChild(nameLbl);
 
         // Upgrade cost label
-        auto *costLn = canvasNode->createChild(String(name) + " Cost Label");
-        auto *costLbl = costLn->addComponent<UILabel>(sf::Vector2f{40.f, 30.f});
+        auto* costLn = canvasNode->createChild(String(name) + " Cost Label");
+        auto* costLbl = costLn->addComponent<UILabel>(sf::Vector2f{40.f, 30.f});
         costLbl->setPosition({0.f, 0.f});
         costLbl->setFontAsset(fontAsset);
         costLbl->setText("$");
@@ -425,8 +380,8 @@ int main(int argc, char **argv) {
         hbox->addChild(costLbl);
 
         // Upgrade button
-        auto *n = canvasNode->createChild(String(name) + " Button");
-        auto *btn = n->addComponent<UIButton>(sf::Vector2f{50.f, 30.f});
+        auto* n = canvasNode->createChild(String(name) + " Button");
+        auto* btn = n->addComponent<UIButton>(sf::Vector2f{50.f, 30.f});
         btn->setPosition({0.f, 0.f});
         hbox->addChild(btn);
 
@@ -436,9 +391,8 @@ int main(int argc, char **argv) {
       // Buy quantity slider
       {
         // Buy label
-        auto *buyLabelNode = canvasNode->createChild("BuyLabel");
-        auto *label =
-            buyLabelNode->addComponent<UILabel>(sf::Vector2f{180.f, 22.f});
+        auto* buyLabelNode = canvasNode->createChild("BuyLabel");
+        auto* label = buyLabelNode->addComponent<UILabel>(sf::Vector2f{180.f, 22.f});
         label->setPosition({0.f, 0.f});
         label->setFontAsset(fontAsset);
         label->setText("Amount of units to buy");
@@ -447,9 +401,8 @@ int main(int argc, char **argv) {
         list->addChild(label);
 
         // Buy slider
-        auto *buySliderNode = canvasNode->createChild("BuySlider");
-        UISlider *buySlider =
-            buySliderNode->addComponent<UISlider>(sf::Vector2f{180.f, 20.f});
+        auto* buySliderNode = canvasNode->createChild("BuySlider");
+        UISlider* buySlider = buySliderNode->addComponent<UISlider>(sf::Vector2f{180.f, 20.f});
         buySlider->setPosition({0.f, 0.f});
         buySlider->setRange(1.f, 10.f);
         buySlider->setValue(1.f);
@@ -467,7 +420,7 @@ int main(int argc, char **argv) {
 
       // Fit the box to content height, scroll view handles overflow
       float contentH = 8.f; // top padding
-      for (auto *child : list->getChildren()) {
+      for (auto* child : list->getChildren()) {
         contentH += child->getSize().y + 6.f;
       }
       list->setSize({list->getSize().x, contentH});
@@ -475,27 +428,24 @@ int main(int argc, char **argv) {
     }
 
     // Exit game button
-    auto *btnExitNode = canvasNode->createChild("ExitBtn");
-    UIButton *btnExit =
-        btnExitNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    auto* btnExitNode = canvasNode->createChild("ExitBtn");
+    UIButton* btnExit = btnExitNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
     btnExit->setPosition({windowWidth - 225.0f, windowHeight - 75.0f});
     btnExit->syncColliderToRect();
     btnExit->setNormalColor(sf::Color(180, 80, 80));
     uiCanvas.addWidget(btnExit);
 
     // Toggle post-processing shader on/off, to eyeball the effect.
-    auto *toggleNode = canvasNode->createChild("ToggleShaderBtn");
-    UIButton *toggleShaderBtn =
-        toggleNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    auto* toggleNode = canvasNode->createChild("ToggleShaderBtn");
+    UIButton* toggleShaderBtn = toggleNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
     toggleShaderBtn->setPosition({windowWidth - 225.0f, windowHeight - 140.0f});
     toggleShaderBtn->syncColliderToRect();
     toggleShaderBtn->setNormalColor(sf::Color(80, 140, 180));
     uiCanvas.addWidget(toggleShaderBtn);
 
     if (fontLoaded) {
-      auto *shaderLabelNode = canvasNode->createChild("ShaderLabel");
-      shaderLabel =
-          shaderLabelNode->addComponent<UILabel>(sf::Vector2f{200.f, 50.f});
+      auto* shaderLabelNode = canvasNode->createChild("ShaderLabel");
+      shaderLabel = shaderLabelNode->addComponent<UILabel>(sf::Vector2f{200.f, 50.f});
       shaderLabel->setPosition({windowWidth - 215.0f, windowHeight - 128.0f});
       shaderLabel->setFontAsset(fontAsset);
       shaderLabel->setText("Shader: ON");
@@ -504,27 +454,27 @@ int main(int argc, char **argv) {
       uiCanvas.addWidget(shaderLabel);
     }
 
-    PostProcessPipeline *fx = postFx ? &*postFx : nullptr;
+    PostProcessPipeline* fx = postFx ? &*postFx : nullptr;
     toggleShaderHandle = toggleShaderBtn->onPointerClick(
-        [fx, label = shaderLabel](sf::Vector2f) {
-          if (nullptr == fx) {
-            return;
-          }
-          const bool on = !fx->isEnabled();
-          fx->setEnabled(on);
-          if (nullptr != label) {
-            label->setText(on ? "Shader: ON" : "Shader: OFF");
-          }
-        });
+      [fx, label = shaderLabel](sf::Vector2f) {
+        if (nullptr == fx) {
+          return;
+        }
+        const bool on = !fx->isEnabled();
+        fx->setEnabled(on);
+        if (nullptr != label) {
+          label->setText(on ? "Shader: ON" : "Shader: OFF");
+        }
+      }
+    );
   }
 
   /*                                                                          */
   /*                                 UI Setup                                 */
   /****************************************************************************/
 
-  SceneNode *gameManager = scene.createNode("GameManager");
-  gameManager->addComponent<ScriptComponent>(
-      sfmx::UUID::createFromName("gameManager.lua"));
+  SceneNode* gameManager = scene.createNode("GameManager");
+  gameManager->addComponent<ScriptComponent>(sfmx::UUID::createFromName("gameManager.lua"));
 
   sfmx::UUID texID = sfmx::UUID::createFromName(String("NumbersMonospace.png"));
 
@@ -572,10 +522,10 @@ int main(int argc, char **argv) {
   sf::Vector2f emitterPos{static_cast<float>(windowWidth) * 0.5f,
                           static_cast<float>(windowHeight) * 0.6f};
 
-  SceneNode *particlesNode = scene.createNode("NumberParticles");
+  SceneNode* particlesNode = scene.createNode("NumberParticles");
   particlesNode->transform().setPosition(emitterPos);
 
-  auto *particleSystem = particlesNode->addComponent<ParticleSystemComponent>(sampleConfig);
+  auto* particleSystem = particlesNode->addComponent<ParticleSystemComponent>(sampleConfig);
   particleSystem->start();
 
   EmitterConfig customConfig = particleSystem->getConfig();
@@ -586,7 +536,7 @@ int main(int argc, char **argv) {
   if (SPtr<ShaderAsset> particleShader =
           AssetManager::instance().load<ShaderAsset>(
               sfmx::UUID::createFromName("shaders/particleCustom.shader"))) {
-    auto *particleMaterial = particlesNode->addComponent<MaterialComponent>();
+    auto* particleMaterial = particlesNode->addComponent<MaterialComponent>();
     particleMaterial->setShader(std::move(particleShader));
     particleSystem->setMaterial(particleMaterial);
   } else {
@@ -608,13 +558,14 @@ int main(int argc, char **argv) {
     while (const Optional<sf::Event> event = window.pollEvent()) {
       if (event->is<sf::Event::Closed>()) {
         window.close();
-      } else if (const auto *text = event->getIf<sf::Event::TextEntered>()) {
-        if (auto *textBox = dynamic_cast<UITextBox *>(
-                UIEventSystem::instance().getSelected())) {
+      }
+      else if (const auto* text = event->getIf<sf::Event::TextEntered>()) {
+        if (auto* textBox = dynamic_cast<UITextBox*>(UIEventSystem::instance().getSelected())) {
           const char32_t ch = text->unicode;
           if (ch == 8) {
             textBox->deleteCharacter();
-          } else if (ch >= 32) {
+          }
+          else if (ch >= 32) {
             textBox->insertCharacter(static_cast<uint32>(ch));
           }
         }
@@ -628,12 +579,12 @@ int main(int argc, char **argv) {
     deltas[index] = deltaTime;
     index = (index + 1) % deltasSize;
     float avg = 0.0f;
-    for (uint32 i = 0; i < deltasSize; ++i)
+    for (uint32 i = 0; i < deltasSize; ++i) {
       avg += deltas[index];
+    }
     avg /= static_cast<float>(deltasSize);
 
-    debugLabel->setText(std::format(
-        "FPS: {0}\nNodes: {1}", std::round(1.0f / avg), scene.getNodeCount()));
+    debugLabel->setText(std::format("FPS: {0}\nNodes: {1}", std::round(1.0f / avg), scene.getNodeCount()));
 
     InputSystem::instance().update(deltaTime, window);
 
@@ -642,7 +593,8 @@ int main(int argc, char **argv) {
     }
 
     if (Keyboard::instance().wasPressedThisFrame(Key::kI)) {
-      std::cout << "Current particles: " << particleSystem->getParticleCount()
+      std::cout << "Current particles: "
+                << particleSystem->getParticleCount()
                 << std::endl;
     }
 
@@ -652,8 +604,8 @@ int main(int argc, char **argv) {
     // restarting the game.
     if (AssetManager::instance().getRawScriptMode() &&
         Keyboard::instance().wasPressedThisFrame(Key::kF5)) {
-      scene.forEachNode([](SceneNode *n) {
-        if (auto *sc = n->getComponent<ScriptComponent>()) {
+      scene.forEachNode([](SceneNode* n) {
+        if (auto* sc = n->getComponent<ScriptComponent>()) {
           const sfmx::UUID id = sc->getScriptAssetId();
           if (id != sfmx::UUID::null()) {
             static_cast<void>(

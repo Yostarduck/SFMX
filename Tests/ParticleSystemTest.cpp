@@ -9,18 +9,17 @@ using namespace sfmx;
 
 namespace {
 
-// Minimal component for pool stress-testing (no dependencies on Game's
-// main.cpp).
+// Minimal component for pool stress-testing (no dependencies on Game's main.cpp).
 class TestComponent : public ComponentT<TestComponent> {
-public:
-  explicit TestComponent(SceneNode *owner) : ComponentT<TestComponent>(owner) {}
+ public:
+  explicit TestComponent(SceneNode* owner) : ComponentT<TestComponent>(owner) {}
 };
 
 // Second component to exercise the pool with a different type.
 class AudioStubComponent : public ComponentT<AudioStubComponent> {
-public:
-  explicit AudioStubComponent(SceneNode *owner)
-      : ComponentT<AudioStubComponent>(owner) {}
+ public:
+  explicit AudioStubComponent(SceneNode* owner)
+    : ComponentT<AudioStubComponent>(owner) {}
 };
 
 // RAII helper — starts MemoryPoolHandler and registers the pools needed by
@@ -56,8 +55,8 @@ DECLARE_TYPE_TRAITS(AudioStubComponent)
 
 TEST_CASE("ParticleSystemComponent - default config") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   CHECK(ps->getParticleCount() == 0);
@@ -68,8 +67,8 @@ TEST_CASE("ParticleSystemComponent - default config") {
 
 TEST_CASE("ParticleSystemComponent - setConfig syncs capacity") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -81,8 +80,8 @@ TEST_CASE("ParticleSystemComponent - setConfig syncs capacity") {
 
 TEST_CASE("ParticleSystemComponent - emit adds particles") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -98,8 +97,8 @@ TEST_CASE("ParticleSystemComponent - emit adds particles") {
 
 TEST_CASE("ParticleSystemComponent - emit clamps at capacity") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -112,8 +111,8 @@ TEST_CASE("ParticleSystemComponent - emit clamps at capacity") {
 
 TEST_CASE("ParticleSystemComponent - clear removes all particles") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -128,8 +127,8 @@ TEST_CASE("ParticleSystemComponent - clear removes all particles") {
 
 TEST_CASE("ParticleSystemComponent - onUpdate kills expired particles") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -147,8 +146,8 @@ TEST_CASE("ParticleSystemComponent - onUpdate kills expired particles") {
 
 TEST_CASE("ParticleSystemComponent - emission only when running") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -171,8 +170,8 @@ TEST_CASE("ParticleSystemComponent - emission only when running") {
 
 TEST_CASE("ParticleSystemComponent - start resets elapsed timer") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -200,11 +199,11 @@ TEST_CASE("ParticleSystemComponent - start resets elapsed timer") {
 TEST_CASE(
     "ParticleSystemComponent - constructing with a config sets capacity") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
+  SceneNode* node = scene.createNode("emitter");
 
   EmitterConfig cfg;
   cfg.maxParticles = 64;
-  auto *ps = node->addComponent<ParticleSystemComponent>(cfg);
+  auto* ps = node->addComponent<ParticleSystemComponent>(cfg);
   REQUIRE(ps != nullptr);
 
   CHECK(ps->getMaxParticles() == 64);
@@ -216,8 +215,8 @@ TEST_CASE(
 TEST_CASE(
     "ParticleSystemComponent - emit stamps custom data on each particle") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -227,7 +226,7 @@ TEST_CASE(
   ps->emit(1);
   REQUIRE(ps->getParticleCount() == 1);
 
-  const Particle *p = ps->getFirstParticle();
+  const Particle* p = ps->getFirstParticle();
   REQUIRE(p != nullptr);
   CHECK(p->customData.id == 42);
   CHECK(p->customData.x == doctest::Approx(1.5f));
@@ -238,8 +237,8 @@ TEST_CASE(
 TEST_CASE("ParticleSystemComponent - rate-spawned particles take the config "
           "payload") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -253,7 +252,7 @@ TEST_CASE("ParticleSystemComponent - rate-spawned particles take the config "
   REQUIRE(ps->getParticleCount() == 5);
 
   size_t seen = 0;
-  for (const Particle *p = ps->getFirstParticle(); nullptr != p; p = p->next) {
+  for (const Particle* p = ps->getFirstParticle(); nullptr != p; p = p->next) {
     CHECK(p->customData.id == 7);
     ++seen;
   }
@@ -264,8 +263,8 @@ TEST_CASE("ParticleSystemComponent - rate-spawned particles take the config "
 TEST_CASE(
     "ParticleSystemComponent - emit without a payload uses the config one") {
   Scene scene("TestParticle");
-  SceneNode *node = scene.createNode("emitter");
-  auto *ps = node->addComponent<ParticleSystemComponent>();
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
   REQUIRE(ps != nullptr);
 
   EmitterConfig cfg;
@@ -275,7 +274,7 @@ TEST_CASE(
 
   ps->emit(2);
   REQUIRE(ps->getParticleCount() == 2);
-  for (const Particle *p = ps->getFirstParticle(); nullptr != p; p = p->next) {
+  for (const Particle* p = ps->getFirstParticle(); nullptr != p; p = p->next) {
     CHECK(p->customData.id == 3);
   }
 }
@@ -290,7 +289,7 @@ TEST_CASE("ParticleSystemComponent - stress: create/destroy loop") {
 
   BENCHMARK("create/destroy 10000 nodes (3 components each)", [&]() {
     for (uint32 i = 0; i < 10'000; ++i) {
-      SceneNode *node = scene.createNode("stress");
+      SceneNode* node = scene.createNode("stress");
       node->addComponent<TestComponent>();
       node->addComponent<ParticleSystemComponent>();
       node->addComponent<AudioStubComponent>();
