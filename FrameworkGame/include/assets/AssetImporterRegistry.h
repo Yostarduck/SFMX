@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/Path.h"
 
 #include "assets/AssetMetadata.h"   // ChunkFormat
 #include "utils/Module.h"

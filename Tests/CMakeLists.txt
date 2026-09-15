@@ -26,6 +26,7 @@ add_executable(UnitTests
     ImageWebPModuleTest.cpp
     FrameMemoryTest.cpp
     FrameScratchTest.cpp
+    LocalizationAssetTest.cpp
     ScriptHotReloadTest.cpp
 )
 
