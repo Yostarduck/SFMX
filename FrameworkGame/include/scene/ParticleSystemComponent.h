@@ -159,6 +159,11 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent>
   NODISCARD FORCEINLINE size_t 
   getMaxParticles()  const { return m_capacity; }
 
+  /** @brief Read-only head of the active-particle list (inspection / tests). */
+  NODISCARD FORCEINLINE const Particle* getFirstParticle() const {
+    return m_firstParticle;
+  }
+
   /**
    * @brief Advances the simulation by @p deltaTime seconds.
    *

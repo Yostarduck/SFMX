@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "scene/MaterialComponent.h"
+#include "utils/FrameScratch.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Random.h"
 #include "utils/Arithmetic.h"
@@ -23,6 +24,23 @@ namespace sfmx
 namespace {
 /** @brief ParticleSystemComponent blob layout version; bump on format changes. */
 constexpr uint32 kParticleSystemComponentVersion = 1;
+
+// IEEE-754 float -> sortable uint32: ascending order of the key matches
+// ascending order of the float (negative zero and infinities included in the
+// middle/ends respectively).
+uint32
+sortableFloatKey(float value) {
+  uint32 bits;
+  std::memcpy(&bits, &value, sizeof(bits));
+  return (bits & 0x80000000u) ? ~bits : (bits | 0x80000000u);
+}
+
+// A particle plus the sortable key of its current Y. Gathered into a contiguous
+// array so the radix passes below only touch sequential memory.
+struct SortableParticle {
+  uint32    key;
+  Particle* ptr;
+};
 } // namespace
 
 ParticleSystemComponent::ParticleSystemComponent(SceneNode* owner)
@@ -237,23 +255,60 @@ ParticleSystemComponent::onUpdate(float deltaTime) {
     }
   }
 
-  // Sort BackToFront
+  // Sort BackToFront.
+  // LSD radix sort over a sortable-float key (position.y): stable, O(4*N), and
+  // completely comparison-free. Keys are gathered ONCE into a contiguous
+  // {key, particle} array, so all radix passes work over sequential memory, and
+  // the two buffers back onto the inline stack or the frame arena (FrameScratch)
+  // -- no heap allocation and no per-pass cache misses on pool-scattered
+  // particles (the single gather below is the only scattered read).
   if (m_sortMode == ParticleSortMode::kBackToFront && m_count > 1) {
-    Vector<Particle*> sorted;
-    sorted.reserve(m_count);
-    for (Particle* p = m_firstParticle; p; p = p->next)
-      sorted.push_back(p);
+    const size_t n = m_count;
 
-    std::sort(sorted.begin(), sorted.end(),
-              [](const Particle* a, const Particle* b) {
-                  return a->position.y < b->position.y;
-              });
+    FrameScratch<SortableParticle, 64> bufferA(n);
+    FrameScratch<SortableParticle, 64> bufferB(n);
+    SortableParticle* src = bufferA.data();
+    SortableParticle* dst = bufferB.data();
 
-    m_firstParticle = sorted.front();
-    m_lastParticle  = sorted.back();
-    for (size_t i = 0; i < sorted.size(); ++i) {
-      sorted[i]->prev = (i > 0) ? sorted[i - 1] : nullptr;
-      sorted[i]->next = (i + 1 < sorted.size()) ? sorted[i + 1] : nullptr;
+    // Gather keys once: this is the only pass that touches pool-scattered
+    // particles; everything below is sequential on the contiguous arrays.
+    size_t i = 0;
+    for (Particle* p = m_firstParticle; p; p = p->next) {
+      src[i].key = sortableFloatKey(p->position.y);
+      src[i].ptr = p;
+      ++i;
+    }
+
+    // Per-byte LSD radix: 4 passes x 256 buckets. Each pass scatters in the
+    // order of the previous one, so equal keys keep their relative order.
+    uint32 hist[256];
+    for (uint32 pass = 0; pass < 4; ++pass) {
+      const uint32 shift = pass * 8;
+      for (uint32 b = 0; b < 256; ++b) {
+        hist[b] = 0;
+      }
+      for (i = 0; i < n; ++i) {
+        ++hist[(src[i].key >> shift) & 0xFF];
+      }
+      uint32 start = 0;
+      for (uint32 b = 0; b < 256; ++b) {
+        const uint32 count = hist[b];
+        hist[b] = start;
+        start += count;
+      }
+      for (i = 0; i < n; ++i) {
+        const uint32 bin = (src[i].key >> shift) & 0xFF;
+        dst[hist[bin]++] = src[i];
+      }
+      std::swap(src, dst);
+    }
+
+    // Relink the doubly-linked list in sorted order.
+    m_firstParticle = src[0].ptr;
+    m_lastParticle  = src[n - 1].ptr;
+    for (i = 0; i < n; ++i) {
+      src[i].ptr->prev = (i > 0) ? src[i - 1].ptr : nullptr;
+      src[i].ptr->next = (i + 1 < n) ? src[i + 1].ptr : nullptr;
     }
   }
 
