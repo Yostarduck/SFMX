@@ -8,6 +8,7 @@ function CameraShake.onCreated(self)
   self.shakeMagnitude = 0.1
   self.shakeTimer = 0.0
   self.originalPosition = Vector2f(0, 0)
+  
 end
 
 function CameraShake.onStart(self)
