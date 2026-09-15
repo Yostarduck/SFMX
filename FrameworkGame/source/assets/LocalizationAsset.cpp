@@ -9,6 +9,9 @@
 namespace sfmx
 {
 
+String LocalizationSettings::kCurrentLocalizationLanguage = "en";
+Vector<String> LocalizationSettings::kAvailableLanguages = {"en", "fr", "es", "de", "cz"};
+
 bool 
 LocalizationAsset::decodeFrom(AssetFileReader& reader) {
   setMetadata(reader.metadata());
@@ -70,6 +73,30 @@ LocalizationAsset::decodeFrom(AssetFileReader& reader) {
 
   setState(AssetState::kLoaded);
   return true;  
+}
+
+StringView LocalizationAsset::get(StringView id) const {
+  
+  if (!idExists(id)) {
+    return StringView(); // Return empty if id not found
+  }
+
+  const auto& languageMap = m_localizations.at(LocalizationSettings::getCurrentLanguage());
+  return languageMap.at(id.data());
+}
+
+bool LocalizationAsset::idExists(StringView id) const {
+  if (m_localizations.empty()) {
+    return false;
+  }
+
+  if (m_localizations.count(LocalizationSettings::getCurrentLanguage()) == 0) {
+    // Language was never set, should also warn about it.
+
+    return false;
+  }
+
+  return m_localizations.at(LocalizationSettings::getCurrentLanguage()).count(id.data()) > 0;
 }
 
 } // namespace sfmx
