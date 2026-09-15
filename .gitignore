@@ -5,6 +5,9 @@
 *.userosscache
 *.sln.docstates
 *.env
+*.clang-format
+
+misc/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -490,4 +493,3 @@ CLAUDE.md
 agents/
 skills/
 hooks/
-misc/

@@ -3,64 +3,70 @@
 #include "config/IniFile.h"
 
 #include "core/platform/PlatformTypes.h"
-#include "input/Mapping.h"
 #include "input/ActionMap.h"
 #include "input/Gamepad.h"
 #include "input/InputAction.h"
 #include "input/InputControl.h"
 #include "input/InputSystem.h"
 #include "input/Keyboard.h"
+#include "input/Mapping.h"
 #include "input/Mouse.h"
 
+#include "scene/CameraComponent.h"
+#include "scene/CanvasComponent.h"
+#include "scene/ComponentRegistry.h"
+#include "scene/MaterialComponent.h"
+#include "scene/ParticleSystemComponent.h"
 #include "scene/Scene.h"
 #include "scene/SceneManager.h"
-#include "scene/SourceComponent.h"
-#include "scene/ScriptComponent.h"
 #include "scene/SceneSerializer.h"
-#include "scene/ComponentRegistry.h"
-#include "scene/CanvasComponent.h"
+#include "scene/ScriptComponent.h"
+#include "scene/SourceComponent.h"
 
 #include "ui/Canvas.h"
-#include "ui/UIEventSystem.h"
 #include "ui/UIButton.h"
-#include "ui/UILabel.h"
-#include "ui/UIImage.h"
-#include "ui/UISlider.h"
-#include "ui/UITextBox.h"
 #include "ui/UICheckbox.h"
 #include "ui/UICheckboxGroup.h"
-#include "ui/UIVerticalBox.h"
+#include "ui/UIEventSystem.h"
 #include "ui/UIHorizontalBox.h"
+#include "ui/UIImage.h"
+#include "ui/UILabel.h"
 #include "ui/UIScrollView.h"
+#include "ui/UISlider.h"
+#include "ui/UITextBox.h"
+#include "ui/UIVerticalBox.h"
 
-#include "assets/AssetManager.h"
-#include "assets/TextureAsset.h"
 #include "assets/AssetCooker.h"
 #include "assets/AssetImporterRegistry.h"
-#include "assets/TextureCodec.h"
-#include "assets/ShaderCodec.h"
-#include "assets/ShaderAsset.h"
-#include "render/PostProcessPipeline.h"
-#include "assets/LuaCodec.h"
-#include "assets/SoundCodec.h"
-#include "assets/MusicCodec.h"
-#include "assets/FontCodec.h"
+#include "assets/AssetManager.h"
 #include "assets/FontAsset.h"
+#include "assets/FontCodec.h"
+#include "assets/LuaCodec.h"
+#include "assets/MusicCodec.h"
+#include "assets/ShaderAsset.h"
+#include "assets/ShaderCodec.h"
+#include "assets/SoundCodec.h"
+#include "assets/TextureAsset.h"
+#include "assets/TextureCodec.h"
+#include "render/PostProcessPipeline.h"
 
-#include "ImageWebP.h"   // format module: self-registers WebP decoder + import rule
+#include "ImageWebP.h" // format module: self-registers WebP decoder + import rule
 
 #include "core/FileSystem.h"
 #include "core/Window.h"
 
+#include "gfx/GfxRenderer.h"
+
 #include "utils/MemoryPoolHandler.h"
 #include "utils/FrameMemory.h"
 #include "utils/EventSystem.h"
+#include "utils/MemoryPoolHandler.h"
 #include "utils/Random.h"
 
 #include "scripts/ScriptEngine.h"
 
-#include "DemoScene.h"
 #include "DemoCook.h"
+#include "DemoScene.h"
 
 #include <array>
 #include <cmath>
@@ -72,8 +78,8 @@
 
 using namespace sfmx;
 
-int main(int argc, char** argv)
-{
+int
+main(int argc, char **argv) {
   // Offline cooking entry points (exit without opening a window):
   //   --cook [src] [out]  wrap the media under src into .sfmxasset containers.
   //   --cook-scene        build the demo scene in code and serialize it.
@@ -86,9 +92,10 @@ int main(int argc, char** argv)
       // its own extension here too (see the AssetImporterRegistry docs).
       AssetImporterRegistry::startUp();
       AssetImporterRegistry::instance().registerBuiltins();
-      // TODO: this probably needs to be loaded in runtime or something, for now we are dependent and calling this here. 
-      // We might want to use LoadPlugin later in the game(?)
-      imagewebp::registerModule();  // adds the .webp import rule (decoder skipped: no AssetManager in cook)
+      // TODO: this probably needs to be loaded in runtime or something, for now
+      // we are dependent and calling this here. We might want to use LoadPlugin
+      // later in the game(?)
+      imagewebp::registerModule(); // adds the .webp import rule (decoder skipped: no AssetManager in cook)
       AssetCooker::cookDirectory(srcDir, outDir);
       AssetImporterRegistry::shutDown();
       return 0;
@@ -129,10 +136,10 @@ int main(int argc, char** argv)
   // the game finds its content next to the exe regardless of the launch CWD.
   config.loadAll({"config/Engine.ini", "config/Game.ini"});
 
-  const uint32 windowWidth = config.getUInt("Window", "Width", 800u);
+  const uint32 windowWidth  = config.getUInt("Window", "Width", 800u);
   const uint32 windowHeight = config.getUInt("Window", "Height", 600u);
-  const String windowTitle = config.getString("Window", "Title", "SFMX Game");
-  const bool enableVSync = config.getBool("Window", "VSync", true);
+  const String windowTitle  = config.getString("Window", "Title", "SFMX Game");
+  const bool enableVSync    = config.getBool("Window", "VSync", true);
 
   // The Window module owns the sf::RenderWindow and creates it on start-up.
   WindowCreateInfo windowInfo;
@@ -141,8 +148,12 @@ int main(int argc, char** argv)
   windowInfo.height = windowHeight;
   Window::startUp(windowInfo);
 
-  sf::RenderWindow& window = Window::instance().getRenderWindow();
+  sf::RenderWindow &window = Window::instance().getRenderWindow();
   window.setVerticalSyncEnabled(enableVSync);
+
+  // Right after the window, so the shared shader program it owns is created and
+  // destroyed strictly inside the lifetime of the window's GL context.
+  GfxRenderer::startUp();
 
   // Engine modules. Order matters: SceneManager clears its scenes at shutDown
   // (returning pooled nodes/components), so it is torn down before the pools,
@@ -180,12 +191,12 @@ int main(int argc, char** argv)
 #endif
   const size_t mountedAssets = AssetManager::instance().mount("assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
-  
+
   ScriptEngine::startUp();
-  
+
   // Load the cooked demo scene into a SceneManager-owned scene; fall back to
   // building it in code (dev convenience if `--cook-scene` has not run yet).
-  SceneManager& scenes = SceneManager::instance();
+  SceneManager &scenes = SceneManager::instance();
   Scene* scenePtr = scenes.loadScene("Main", demo::kSceneFile);
   if (nullptr == scenePtr) {
     std::cerr << "[Scene] could not load " << demo::kSceneFile
@@ -194,7 +205,7 @@ int main(int argc, char** argv)
     demo::buildDemoScene(*scenePtr, static_cast<float>(windowWidth),
                          static_cast<float>(windowHeight));
   }
-  Scene& scene = *scenePtr;
+  Scene &scene = *scenePtr;
 
   // Full-screen post-processing: the scene is rendered offscreen and run through the
   // cooked post shaders. Held in an Optional so its GL render targets (and the shader
@@ -218,14 +229,14 @@ int main(int argc, char** argv)
   // Actions, each with bindings + an Interaction (tap/hold) and Processors.
   // Jump (tap), Crouch (hold), Move (normalized Vector2).
   Mapping* controls = InputSystem::instance().createMapping("DefaultControls");
-  
+
   // ── UI ActionMap: keyboard/gamepad navigation ──────────────────────────
   ActionMap* uiActions = controls->addMap("UI");
 
   InputAction* uiNavigate = uiActions->addAction("Navigate", ActionValueType::kAxis2D);
-  CompositeBinding& navComposite = uiNavigate->addComposite(CompositeType::kVector2D);
-  navComposite.m_parts.push_back(
-    {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kUp), -1, false}, CompositeRole::kNegativeY, {}});
+  CompositeBinding &navComposite = uiNavigate->addComposite(CompositeType::kVector2D);
+  navComposite.m_parts.push_back({
+    InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kUp), -1, false}, CompositeRole::kNegativeY, {}});
   navComposite.m_parts.push_back(
     {InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kDown), -1, false}, CompositeRole::kPositiveY, {}});
   navComposite.m_parts.push_back(
@@ -246,8 +257,10 @@ int main(int argc, char** argv)
   uiSubmit->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kEnter), -1, false});
   uiSubmit->setInteraction(Interaction{InteractionType::kPress, 0.f});
 
-  InputAction* uiCancel = uiActions->addAction("Cancel", ActionValueType::kButton);
-  uiCancel->addBinding(InputControl{DeviceType::kKeyboard, static_cast<int32>(Key::kEscape), -1, false});
+  InputAction* uiCancel =
+      uiActions->addAction("Cancel", ActionValueType::kButton);
+  uiCancel->addBinding(InputControl{
+      DeviceType::kKeyboard, static_cast<int32>(Key::kEscape), -1, false});
   uiCancel->setInteraction(Interaction{InteractionType::kPress, 0.f});
 
   //InputSystem::instance().setActiveMapping(controls);
@@ -261,7 +274,7 @@ int main(int argc, char** argv)
   // Create canvas
   SceneNode* canvasNode = scene.createNode("HUDCanvas");
   auto* canvaComp = canvasNode->addComponent<CanvasComponent>();
-  Canvas& uiCanvas = canvaComp->getCanvas();
+  Canvas &uiCanvas = canvaComp->getCanvas();
 
   // Wire up UI navigation actions
   UIEventSystem::instance().setNavigateAction(uiNavigate);
@@ -270,21 +283,20 @@ int main(int argc, char** argv)
 
   UILabel* debugLabel;
   // Kept alive for the whole loop so the toggle button stays subscribed.
-  HEvent   toggleShaderHandle;
+  HEvent toggleShaderHandle;
   UILabel* shaderLabel = nullptr;
   {
     // Load fonts
     SPtr<FontAsset> fontAsset;
-    constexpr const char* fontPaths[] =
-    {
+    constexpr const char* fontPaths[] = {
       "PlayArea.otf",
     };
-    
+
     bool fontLoaded = false;
-    
+
     for (const char* fp : fontPaths) {
       fontAsset = AssetManager::instance().load<FontAsset>(
-        sfmx::UUID::createFromName(String(fp)));
+          sfmx::UUID::createFromName(String(fp)));
       if (fontAsset && fontAsset->isLoaded()) {
         fontLoaded = true;
         break;
@@ -326,8 +338,7 @@ int main(int argc, char** argv)
     if (fontLoaded) {
       // Upgrades scroll view
       auto* upgradesMenuNode = canvasNode->createChild("UpgradesMenu");
-      UIScrollView* scrollView = upgradesMenuNode->addComponent<UIScrollView>(
-        sf::Vector2f{310.0f, 250.f});
+      UIScrollView* scrollView = upgradesMenuNode->addComponent<UIScrollView>(sf::Vector2f{310.0f, 250.f});
       scrollView->setPosition({25.0f, 100.0f});
       scrollView->syncColliderToRect();
       scrollView->setBackgroundColor(sf::Color(255, 101, 224, 128));
@@ -335,25 +346,23 @@ int main(int argc, char** argv)
 
       // Upgrades list container
       auto* upgradesListNode = canvasNode->createChild("UpgradesList");
-      UIVerticalBox* list = upgradesListNode->addComponent<UIVerticalBox>(
-        sf::Vector2f{310.f, 60.f});
+      UIVerticalBox* list = upgradesListNode->addComponent<UIVerticalBox>(sf::Vector2f{310.f, 60.f});
       list->setPadding({15.0f, 10.0f});
       list->setSpacing(5.0f);
       list->setBoxColor(sf::Color::Transparent);
       scrollView->addChild(list);
-      
+
       // Helper local function to add upgrade entries
       auto addBuyUnitButton = [&](const char* name) {
         // Upgrade container
         auto* hboxNode = canvasNode->createChild(String(name) + " HBox");
-        UIHorizontalBox* hbox = hboxNode->addComponent<UIHorizontalBox>(
-          sf::Vector2f{280.f, 50.f});
+        UIHorizontalBox* hbox = hboxNode->addComponent<UIHorizontalBox>(sf::Vector2f{280.f, 50.f});
         hbox->setPosition({0.0f, 0.0f});
         hbox->setPadding({10.0f, 10.0f});
         hbox->setSpacing(10.f);
         hbox->setBoxColor(sf::Color(40, 40, 55, 200));
         list->addChild(hbox);
-        
+
         // Upgrade name label
         auto* nameLn = canvasNode->createChild(String(name) + " Label");
         auto* nameLbl = nameLn->addComponent<UILabel>(sf::Vector2f{150.f, 30.f});
@@ -363,7 +372,7 @@ int main(int argc, char** argv)
         nameLbl->setCharacterSize(13);
         nameLbl->setTextColor(sf::Color::White);
         hbox->addChild(nameLbl);
-        
+
         // Upgrade cost label
         auto* costLn = canvasNode->createChild(String(name) + " Cost Label");
         auto* costLbl = costLn->addComponent<UILabel>(sf::Vector2f{40.f, 30.f});
@@ -379,10 +388,10 @@ int main(int argc, char** argv)
         auto* btn = n->addComponent<UIButton>(sf::Vector2f{50.f, 30.f});
         btn->setPosition({0.f, 0.f});
         hbox->addChild(btn);
-        
+
         hbox->updateLayout();
       };
-      
+
       // Buy quantity slider
       {
         // Buy label
@@ -425,8 +434,7 @@ int main(int argc, char** argv)
     // Exit game button
     auto* btnExitNode = canvasNode->createChild("ExitBtn");
     UIButton* btnExit = btnExitNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
-    btnExit->setPosition({windowWidth - 225.0f,
-                          windowHeight - 75.0f});
+    btnExit->setPosition({windowWidth - 225.0f, windowHeight - 75.0f});
     btnExit->syncColliderToRect();
     btnExit->setNormalColor(sf::Color(180, 80, 80));
     uiCanvas.addWidget(btnExit);
@@ -461,15 +469,84 @@ int main(int argc, char** argv)
         if (nullptr != label) {
           label->setText(on ? "Shader: ON" : "Shader: OFF");
         }
-      });
+      }
+    );
   }
 
   /*                                                                          */
   /*                                 UI Setup                                 */
   /****************************************************************************/
-  
+
   SceneNode* gameManager = scene.createNode("GameManager");
   gameManager->addComponent<ScriptComponent>(sfmx::UUID::createFromName("gameManager.lua"));
+
+  sfmx::UUID texID = sfmx::UUID::createFromName(String("NumbersMonospace.png"));
+
+  EmitterConfig sampleConfig;
+  sampleConfig.maxParticles = 1024 * 100;
+  sampleConfig.positionOffset = {0.0f, 0.0f};
+  // +Y points down in SFML, so a positive-Y gravity brakes the upward launch.
+  sampleConfig.gravity = {0.f, 200.f};
+  sampleConfig.startSize = {25.f, 25.f};
+  sampleConfig.endSize = {0.f, 0.f};
+  // Left null on purpose: the component resolves it from textureAssetId and
+  // holds the asset alive for as long as the emitter needs it.
+  sampleConfig.texture = nullptr;
+  sampleConfig.textureAssetId = texID;
+  sampleConfig.blendMode = sf::BlendAlpha;
+  sampleConfig.emissionRate = 0.0f;
+  sampleConfig.positionVariance = 0.0f;
+  // -90 degrees is straight up; the variance fans the jet out a little.
+  sampleConfig.direction = sf::degrees(-90.0f);
+  sampleConfig.directionVariance = sf::degrees(45.0f);
+  sampleConfig.speed = 400.0f;
+  sampleConfig.speedVariance = 40.0f;
+  sampleConfig.startRotation = sf::Angle::Zero;
+  sampleConfig.startRotationVariance = sf::Angle::Zero;
+  // Radians per second: a lazy tumble so the stars do not look stamped on.
+  sampleConfig.angularVelocity = 0.0f;
+  sampleConfig.angularVelocityVariance = 0.0f;
+  sampleConfig.startColor = sf::Color::White;
+  // Ending on alpha 0 is what makes them disappear rather than pop out.
+  sampleConfig.endColor = sf::Color(255, 255, 255, 0);
+  // Roughly the time it takes gravity to cancel the launch speed, so they fade
+  // out around the top of their arc instead of raining back down.
+  sampleConfig.lifetime = 3.0f;
+  sampleConfig.lifetimeVariance = 0.25f;
+  sampleConfig.duration = 0.f;
+  sampleConfig.loop = true;
+  // Payload every rate-spawned particle carries. Distinct from the ids the game
+  // loop emits by hand, so the two are told apart by colour in the debug
+  // shader.
+  sampleConfig.customData.id = 67;
+
+  // Sit the emitter near the bottom of whatever the active camera is looking
+  // at, so it stays on screen wherever the serialized camera happens to be
+  // placed.
+  sf::Vector2f emitterPos{static_cast<float>(windowWidth) * 0.5f,
+                          static_cast<float>(windowHeight) * 0.6f};
+
+  SceneNode* particlesNode = scene.createNode("NumberParticles");
+  particlesNode->transform().setPosition(emitterPos);
+
+  auto* particleSystem = particlesNode->addComponent<ParticleSystemComponent>(sampleConfig);
+  particleSystem->start();
+
+  EmitterConfig customConfig = particleSystem->getConfig();
+
+  // Per-particle custom data is only observable through a material: the
+  // built-in quad program declares no custom-data block, so the renderer skips
+  // the upload for it. This debug shader hues each particle by its payload id.
+  if (SPtr<ShaderAsset> particleShader =
+          AssetManager::instance().load<ShaderAsset>(
+              sfmx::UUID::createFromName("shaders/particleCustom.shader"))) {
+    auto* particleMaterial = particlesNode->addComponent<MaterialComponent>();
+    particleMaterial->setShader(std::move(particleShader));
+    particleSystem->setMaterial(particleMaterial);
+  } else {
+    std::cerr << "[Particles] shaders/particleCustom.shader missing; particles "
+                 "will draw with the built-in program and no custom data\n";
+  }
 
   sf::Clock clock;
 
@@ -478,25 +555,21 @@ int main(int argc, char** argv)
   uint32 index = 0;
   float totalTime = 0.0f;
 
-  while (window.isOpen())
-  {
+  while (window.isOpen()) {
     // InputSystem: snapshot device state before polling
     InputSystem::instance().beginFrame();
 
-    while (const Optional<sf::Event> event = window.pollEvent())
-    {
-      if (event->is<sf::Event::Closed>())
-      {
+    while (const Optional<sf::Event> event = window.pollEvent()) {
+      if (event->is<sf::Event::Closed>()) {
         window.close();
       }
-      else if (const auto* text = event->getIf<sf::Event::TextEntered>())
-      {
-        if (auto* textBox = dynamic_cast<UITextBox*>(
-              UIEventSystem::instance().getSelected())) {
+      else if (const auto* text = event->getIf<sf::Event::TextEntered>()) {
+        if (auto* textBox = dynamic_cast<UITextBox*>(UIEventSystem::instance().getSelected())) {
           const char32_t ch = text->unicode;
           if (ch == 8) {
             textBox->deleteCharacter();
-          } else if (ch >= 32) {
+          }
+          else if (ch >= 32) {
             textBox->insertCharacter(static_cast<uint32>(ch));
           }
         }
@@ -510,9 +583,11 @@ int main(int argc, char** argv)
     deltas[index] = deltaTime;
     index = (index + 1) % deltasSize;
     float avg = 0.0f;
-    for (uint32 i = 0; i < deltasSize; ++i) avg += deltas[index];
+    for (uint32 i = 0; i < deltasSize; ++i) {
+      avg += deltas[index];
+    }
     avg /= static_cast<float>(deltasSize);
-
+    
     // The HUD label is written every frame; build the transient text in the
     // frame arena instead of std::format's heap string. setText copies the data,
     // so the buffer only needs to live until the call returns.
@@ -523,24 +598,31 @@ int main(int argc, char** argv)
       debugLabel->setText(StringView(textBuffer));
     }
     
-    
     InputSystem::instance().update(deltaTime, window);
-    
+
     if (Keyboard::instance().wasPressedThisFrame(Key::kEscape)) {
       window.close();
     }
 
+    if (Keyboard::instance().wasPressedThisFrame(Key::kI)) {
+      std::cout << "Current particles: "
+                << particleSystem->getParticleCount()
+                << std::endl;
+    }
+
 #if USING(SFMX_DEBUG_MODE)
-    // Dev hot-reload: F5 re-decodes each script's LuaAsset (its raw source in raw mode)
-    // and re-binds it, so an edited .lua takes effect without restarting the game.
+    // Dev hot-reload: F5 re-decodes each script's LuaAsset (its raw source in
+    // raw mode) and re-binds it, so an edited .lua takes effect without
+    // restarting the game.
     if (AssetManager::instance().getRawScriptMode() &&
         Keyboard::instance().wasPressedThisFrame(Key::kF5)) {
       scene.forEachNode([](SceneNode* n) {
         if (auto* sc = n->getComponent<ScriptComponent>()) {
           const sfmx::UUID id = sc->getScriptAssetId();
           if (id != sfmx::UUID::null()) {
-            static_cast<void>(AssetManager::instance().reload(id));  // re-decode (raw re-read)
-            sc->setScriptAssetId(id);                                // re-bind (recompile)
+            static_cast<void>(
+                AssetManager::instance().reload(id)); // re-decode (raw re-read)
+            sc->setScriptAssetId(id);                 // re-bind (recompile)
           }
         }
       });
@@ -548,12 +630,20 @@ int main(int argc, char** argv)
     }
 #endif
 
-    // Finalize any assets whose background decode completed (GPU upload on this,
-    // the GL-owning thread) and fire their loadAsync callbacks BEFORE the scene
-    // updates, so components/scripts see freshly loaded assets this same frame.
+    // Finalize any assets whose background decode completed (GPU upload on
+    // this, the GL-owning thread) and fire their loadAsync callbacks BEFORE the
+    // scene updates, so components/scripts see freshly loaded assets this same
+    // frame.
     AssetManager::instance().finalize();
 
     UIEventSystem::instance().update(window, deltaTime);
+    
+    customConfig.positionOffset = {
+      Random::range(-500.0f, 500.0f),
+      Random::range(0.0f, 100.0f)
+    };
+    particleSystem->emit(1, customConfig);
+
     SceneManager::instance().update(deltaTime);
 
     totalTime += deltaTime;
@@ -564,7 +654,7 @@ int main(int argc, char** argv)
 
     // Screen-space canvas: reset the view so coordinates match window pixels.
     window.setView(window.getDefaultView());
-    //uiCanvas.draw(window, sf::RenderStates::Default);
+    // uiCanvas.draw(window, sf::RenderStates::Default);
 
     window.display();
 
@@ -572,9 +662,10 @@ int main(int argc, char** argv)
     FrameMemory::instance().endFrame();
   }
 
-  // Release any pending async-load callbacks (they may hold Lua closures) and tear down
-  // the scenes (their ScriptComponents hold Lua handles) while the script engine / Lua
-  // state is still alive — ScriptEngine / AssetManager shut down just below.
+  // Release any pending async-load callbacks (they may hold Lua closures) and
+  // tear down the scenes (their ScriptComponents hold Lua handles) while the
+  // script engine / Lua state is still alive — ScriptEngine / AssetManager shut
+  // down just below.
   AssetManager::instance().cancelAsyncLoads();
   SceneManager::instance().destroyAllScenes();
 
@@ -592,12 +683,8 @@ int main(int argc, char** argv)
   FrameMemory::shutDown();
   MemoryPoolHandler::shutDown();
 
-  // Release the post-processing GL targets (and the shader asset they keep alive)
-  // while the window's context is still current.
   postFx.reset();
-
-  // Shut the window down last: keep its GL context alive until every sf::Texture
-  // owned by the (now torn-down) AssetManager has been released.
+  GfxRenderer::shutDown();
   Window::shutDown();
 
   return 0;

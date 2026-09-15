@@ -1,10 +1,10 @@
 #include <doctest/doctest.h>
 
-#include "utils/UnitTest.h"
-#include "scene/Scene.h"
 #include "scene/ParticleSystemComponent.h"
+#include "scene/Scene.h"
 #include "utils/FrameMemory.h"
 #include "utils/MemoryPoolHandler.h"
+#include "utils/UnitTest.h"
 
 #include <chrono>
 #include <vector>
@@ -62,7 +62,7 @@ struct FrameMemoryScope {
 
 PoolFixture g_poolFixture;
 
-}  // namespace
+} // namespace
 
 DECLARE_TYPE_TRAITS(TestComponent)
 DECLARE_TYPE_TRAITS(AudioStubComponent)
@@ -123,7 +123,7 @@ TEST_CASE("ParticleSystemComponent - emit clamps at capacity") {
   cfg.maxParticles = 30;
   ps->setConfig(cfg);
 
-  ps->emit(100);   // exceeds capacity
+  ps->emit(100); // exceeds capacity
   CHECK(ps->getParticleCount() == 30);
 }
 
@@ -151,8 +151,8 @@ TEST_CASE("ParticleSystemComponent - onUpdate kills expired particles") {
 
   EmitterConfig cfg;
   cfg.maxParticles = 50;
-  cfg.lifetime = 0.5f;       // very short life
-  cfg.emissionRate = 0.0f;   // manual emit only
+  cfg.lifetime = 0.5f;     // very short life
+  cfg.emissionRate = 0.0f; // manual emit only
   ps->setConfig(cfg);
   ps->emit(5);
   REQUIRE(ps->getParticleCount() == 5);
@@ -170,20 +170,20 @@ TEST_CASE("ParticleSystemComponent - emission only when running") {
 
   EmitterConfig cfg;
   cfg.maxParticles = 50;
-  cfg.emissionRate = 100.0f;  // spawns every frame
-  cfg.lifetime = 10.0f;       // won't die mid-test
+  cfg.emissionRate = 100.0f; // spawns every frame
+  cfg.lifetime = 10.0f;      // won't die mid-test
   ps->setConfig(cfg);
 
   ps->start();
   CHECK(ps->isRunning());
 
-  ps->onUpdate(0.5f);   // should have spawned some
+  ps->onUpdate(0.5f); // should have spawned some
   CHECK(ps->getParticleCount() > 0);
 
   ps->stop();
   size_t before = ps->getParticleCount();
-  ps->onUpdate(0.5f);   // running=false => no new spawns
-  CHECK(ps->getParticleCount() >= before);  // (existing may still be alive)
+  ps->onUpdate(0.5f);                      // running=false => no new spawns
+  CHECK(ps->getParticleCount() >= before); // (existing may still be alive)
 }
 
 TEST_CASE("ParticleSystemComponent - start resets elapsed timer") {
@@ -198,12 +198,12 @@ TEST_CASE("ParticleSystemComponent - start resets elapsed timer") {
   cfg.emissionRate = 0.0f;
   ps->setConfig(cfg);
 
-  ps->emit(1);  // avoid early-return in onUpdate when m_count==0 && rate==0
+  ps->emit(1); // avoid early-return in onUpdate when m_count==0 && rate==0
 
   ps->onUpdate(0.6f);
   CHECK(ps->getProgress() == doctest::Approx(0.6f));
 
-  ps->start();   // resets elapsed to 0
+  ps->start(); // resets elapsed to 0
   CHECK(ps->getProgress() == doctest::Approx(0.0f));
 }
 
@@ -285,6 +285,96 @@ TEST_CASE("ParticleSystemComponent - radix sort keeps ties in emit order") {
     after.push_back(p);
   }
   CHECK(after == before);
+}
+
+// -------------------------------------------------------------------------
+// Construction from a config, and per-particle custom data
+// -------------------------------------------------------------------------
+
+// Regression: the two-argument constructor used to store the config without
+// seeding m_capacity, so spawnParticle's `m_count >= m_capacity` check was true
+// from the start and the emitter silently never produced a single particle.
+TEST_CASE(
+    "ParticleSystemComponent - constructing with a config sets capacity") {
+  Scene scene("TestParticle");
+  SceneNode* node = scene.createNode("emitter");
+
+  EmitterConfig cfg;
+  cfg.maxParticles = 64;
+  auto* ps = node->addComponent<ParticleSystemComponent>(cfg);
+  REQUIRE(ps != nullptr);
+
+  CHECK(ps->getMaxParticles() == 64);
+
+  ps->emit(5);
+  CHECK(ps->getParticleCount() == 5);
+}
+
+TEST_CASE(
+    "ParticleSystemComponent - emit stamps custom data on each particle") {
+  Scene scene("TestParticle");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+
+  EmitterConfig cfg;
+  cfg.maxParticles = 16;
+  ps->setConfig(cfg);
+
+  ps->emit(1);
+  REQUIRE(ps->getParticleCount() == 1);
+
+  const Particle* p = ps->getFirstParticle();
+  REQUIRE(p != nullptr);
+  CHECK(p->customData.id == 42);
+  CHECK(p->customData.x == doctest::Approx(1.5f));
+  CHECK(p->customData.y == doctest::Approx(-2.5f));
+  CHECK(p->customData.z == doctest::Approx(0.25f));
+}
+
+TEST_CASE("ParticleSystemComponent - rate-spawned particles take the config "
+          "payload") {
+  Scene scene("TestParticle");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+
+  EmitterConfig cfg;
+  cfg.maxParticles = 16;
+  cfg.emissionRate = 10.0f;
+  cfg.lifetime = 100.0f; // long enough that nothing is culled mid-test
+  cfg.customData.id = 7;
+  ps->setConfig(cfg);
+
+  ps->onUpdate(0.5f); // 10/s for half a second == 5 particles
+  REQUIRE(ps->getParticleCount() == 5);
+
+  size_t seen = 0;
+  for (const Particle* p = ps->getFirstParticle(); nullptr != p; p = p->next) {
+    CHECK(p->customData.id == 7);
+    ++seen;
+  }
+  CHECK(seen == 5);
+}
+
+// The plain emit() overload must fall back to the config payload, not to zero.
+TEST_CASE(
+    "ParticleSystemComponent - emit without a payload uses the config one") {
+  Scene scene("TestParticle");
+  SceneNode* node = scene.createNode("emitter");
+  auto* ps = node->addComponent<ParticleSystemComponent>();
+  REQUIRE(ps != nullptr);
+
+  EmitterConfig cfg;
+  cfg.maxParticles = 8;
+  cfg.customData.id = 3;
+  ps->setConfig(cfg);
+
+  ps->emit(2);
+  REQUIRE(ps->getParticleCount() == 2);
+  for (const Particle* p = ps->getFirstParticle(); nullptr != p; p = p->next) {
+    CHECK(p->customData.id == 3);
+  }
 }
 
 // -------------------------------------------------------------------------
