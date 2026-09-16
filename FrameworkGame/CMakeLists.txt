@@ -64,6 +64,8 @@ add_library(FrameworkGame STATIC
     source/assets/MusicCodec.cpp
     source/assets/LuaAsset.cpp
     source/assets/LuaCodec.cpp
+    source/assets/LocalizationAsset.cpp
+    source/assets/LocalizationCodec.cpp
     source/assets/AssetManager.cpp
 
     source/input/InputTypes.cpp
@@ -79,6 +81,8 @@ add_library(FrameworkGame STATIC
     source/input/InputSystem.cpp
 
     source/resource/SpriteAtlas.cpp
+
+    source/gfx/GfxRenderer.cpp
 
     source/ui/UIWidget.cpp
     source/ui/Canvas.cpp
@@ -116,6 +120,7 @@ add_library(FrameworkGame STATIC
     source/render/PostProcessPipeline.cpp
 
     source/utils/MemoryPoolHandler.cpp
+    source/utils/FrameMemory.cpp
     source/utils/Random.cpp
     source/utils/UUID.cpp
 

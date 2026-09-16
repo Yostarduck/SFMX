@@ -2,56 +2,117 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include "scene/MaterialComponent.h"
+#include "utils/Arithmetic.h"
+#include "utils/FrameScratch.h"
 #include "utils/MemoryPoolHandler.h"
 #include "utils/Random.h"
-#include "utils/Arithmetic.h"
 
 #include "assets/AssetManager.h"
+#include "assets/ShaderAsset.h"
 #include "assets/TextureAsset.h"
 #include "core/DataStream.h"
 #include "core/DataStreamTypes.h"
+#include "gfx/GfxRenderer.h"
 
 #include <SFML/Graphics/Texture.hpp>
-#include <SFML/Graphics/VertexBuffer.hpp>
 #include <SFML/Graphics/Transform.hpp>
+#include <SFML/Graphics/VertexBuffer.hpp>
+#include <SFML/Graphics/View.hpp>
 
-namespace sfmx
-{
+namespace sfmx {
 
 namespace {
-/** @brief ParticleSystemComponent blob layout version; bump on format changes. */
+/**
+ * @brief ParticleSystemComponent blob layout version; bump on format changes.
+ */
 constexpr uint32 kParticleSystemComponentVersion = 1;
+
+// IEEE-754 float -> sortable uint32: ascending order of the key matches
+// ascending order of the float (negative zero and infinities included in the
+// middle/ends respectively).
+uint32
+sortableFloatKey(float value) {
+  uint32 bits;
+  std::memcpy(&bits, &value, sizeof(bits));
+  return (bits & 0x80000000u) ? ~bits : (bits | 0x80000000u);
+}
+
+// A particle plus the sortable key of its current Y. Gathered into a contiguous
+// array so the radix passes below only touch sequential memory.
+struct SortableParticle {
+  uint32    key;
+  Particle* ptr;
+};
 } // namespace
 
 ParticleSystemComponent::ParticleSystemComponent(SceneNode* owner)
-  : ComponentT<ParticleSystemComponent>(owner) {}
+  : ComponentT<ParticleSystemComponent>(owner) {
+}
 
-
+// m_capacity has to be seeded here as well as in setConfig(): spawnParticle()
+// bails on `m_count >= m_capacity`, so a component built straight from a config
+// would silently never emit a single particle.
 ParticleSystemComponent::ParticleSystemComponent(SceneNode* owner,
                                                  const EmitterConfig& config)
-  : ComponentT<ParticleSystemComponent>(owner),
-    m_config(config) {}
-
+  : ComponentT<ParticleSystemComponent>(owner), m_config(config),
+    m_capacity(config.maxParticles) {
+}
 
 ParticleSystemComponent::~ParticleSystemComponent() {
   clear();
 }
 
 void
+ParticleSystemComponent::onAttached() {
+  resolveTextureAsset();
+}
+
+void
+ParticleSystemComponent::resolveTextureAsset() {
+  if (nullptr != m_config.texture ||
+      m_config.textureAssetId == UUID::null() ||
+      !AssetManager::isStarted()) {
+    return;
+  }
+
+  SPtr<TextureAsset> asset =
+    AssetManager::instance().load<TextureAsset>(m_config.textureAssetId);
+  
+  if (nullptr != asset && asset->isLoaded()) {
+    m_textureAsset = asset;
+    m_config.texture = &asset->texture();
+  }
+}
+
+void
 ParticleSystemComponent::setConfig(const EmitterConfig& config) {
   m_config = config;
+  // Drop the previous keep-alive before re-resolving: the new config may point
+  // at a different asset, a caller-owned raw texture, or none at all.
+  m_textureAsset.reset();
+  resolveTextureAsset();
   m_capacity = config.maxParticles;
   m_firstParticle = nullptr;
   m_lastParticle = nullptr;
 
   SFMX_ASSERT(MemoryPoolHandler::instance().pool<Particle>().getCapacity() >= m_capacity &&
-    "Shared particle pool too small. Call registerPool<Particle>(budget) with a larger budget.");
+              "Shared particle pool too small. Call "
+              "registerPool<Particle>(budget) with a larger budget.");
 
-  // Vertex buffer created lazily in rebuildVertices() to avoid OpenGL context
+  // Vertex buffer created lazily at first draw to avoid an OpenGL context
   // dependency during construction / configuration (needed for headless CI).
+  // The path is re-resolved too, since the two paths need different buffer
+  // sizes.
   m_vertexBuffer.reset();
+  m_drawPathResolved = false;
+  m_useInstancing = false;
+
+  // Sized once here so the per-frame rebuild never allocates.
+  m_customData.assign(m_capacity, ParticleCustomData{});
+  m_hasCustomData = false;
 
   m_elapsed = 0.f;
   m_running = true;
@@ -59,10 +120,15 @@ ParticleSystemComponent::setConfig(const EmitterConfig& config) {
 }
 
 void
-ParticleSystemComponent::emit(size_t count) {
+ParticleSystemComponent::emit(size_t count,
+                              const std::optional<EmitterConfig> &overrideConfig) {
+  if (m_count >= m_capacity) {
+    return;
+  }
+
   const size_t clamped = std::min(count, m_capacity - m_count);
   for (size_t i = 0; i < clamped; ++i) {
-    spawnParticle();
+    spawnParticle(overrideConfig);
   }
 }
 
@@ -102,60 +168,69 @@ ParticleSystemComponent::getProgress() const {
 }
 
 void
-ParticleSystemComponent::spawnParticle() {
+ParticleSystemComponent::spawnParticle(const std::optional<EmitterConfig> &overrideConfig) {
   auto& pool = MemoryPoolHandler::instance().pool<Particle>();
   if (m_count >= m_capacity || pool.isFull()) {
     return;
   }
 
-  const float dirAngle = m_config.direction.asRadians() +
-                         Random::range<float>(-m_config.directionVariance.asRadians(),
-                                              m_config.directionVariance.asRadians());
-  const float spd = m_config.speed +
-                    Random::range<float>(-m_config.speedVariance, m_config.speedVariance);
-  const float lifetime = m_config.lifetime +
-                         Random::range<float>(-m_config.lifetimeVariance,
-                                              m_config.lifetimeVariance);
-  const float rot = m_config.startRotation.asRadians() +
-                    Random::range<float>(-m_config.startRotationVariance.asRadians(),
-                                         m_config.startRotationVariance.asRadians());
-  const float angVel = m_config.angularVelocity +
-                       Random::range<float>(-m_config.angularVelocityVariance,
-                                            m_config.angularVelocityVariance);
+  const EmitterConfig& config = overrideConfig.has_value() ? overrideConfig.value() : m_config;
+
+  const float dirAngle =
+    config.direction.asRadians() +
+    Random::range<float>(-config.directionVariance.asRadians(),
+                         config.directionVariance.asRadians());
+  const float spd = config.speed + Random::range<float>(-config.speedVariance,
+                                                        config.speedVariance);
+  const float lifetime =
+    config.lifetime +
+    Random::range<float>(-config.lifetimeVariance, config.lifetimeVariance);
+  const float rot =
+    config.startRotation.asRadians() +
+    Random::range<float>(-config.startRotationVariance.asRadians(),
+                          config.startRotationVariance.asRadians());
+  const float angVel = config.angularVelocity +
+                       Random::range<float>(-config.angularVelocityVariance,
+                                            config.angularVelocityVariance);
 
   const float posOffsetX =
-    Random::range<float>(-m_config.positionVariance,
-                         m_config.positionVariance);
+    Random::range<float>(-config.positionVariance, config.positionVariance);
   const float posOffsetY =
-    Random::range<float>(-m_config.positionVariance,
-                         m_config.positionVariance);
+    Random::range<float>(-config.positionVariance, config.positionVariance);
 
   Particle* p = pool.allocate();
-  p->position        = m_config.positionOffset +
-                       sf::Vector2f(posOffsetX, posOffsetY);
-  p->velocity        = sf::Vector2f(std::cos(dirAngle) * spd,
-                                    std::sin(dirAngle) * spd);
-  p->rotation        = rot;
+  p->position = config.positionOffset + sf::Vector2f(posOffsetX, posOffsetY);
+  p->velocity = sf::Vector2f(std::cos(dirAngle) * spd, std::sin(dirAngle) * spd);
+  p->rotation = rot;
   p->angularVelocity = angVel;
-  p->color           = m_config.startColor;
-  p->lifetime        = lifetime;
-  p->maxLifetime     = lifetime;
-  p->progress        = 0.f;
+  p->color = config.startColor;
+  p->lifetime = lifetime;
+  p->maxLifetime = lifetime;
+  p->progress = 0.f;
+  p->customData = config.customData;
+
+  if (0 != config.customData.id ||
+      0.f != config.customData.x ||
+      0.f != config.customData.y ||
+      0.f != config.customData.z) {
+    m_hasCustomData = true;
+  }
 
   if (m_worldSpace) {
     const sf::Transform& world = m_owner->getWorldTransform();
     p->position = world.transformPoint(p->position);
-    p->velocity = world.transformPoint(p->velocity) -
-                  world.transformPoint({0.f, 0.f});
+    p->velocity = world.transformPoint(p->velocity) - world.transformPoint({0.f, 0.f});
   }
 
   // Append to linked list
   p->prev = m_lastParticle;
   p->next = nullptr;
-  if (m_lastParticle)
+  if (m_lastParticle) {
     m_lastParticle->next = p;
-  else
+  }
+  else {
     m_firstParticle = p;
+  }
   m_lastParticle = p;
   ++m_count;
   m_verticesDirty = true;
@@ -170,15 +245,19 @@ ParticleSystemComponent::kill(Particle* particle) {
   }
 
   // Unlink from doubly-linked list
-  if (particle->prev)
+  if (particle->prev) {
     particle->prev->next = particle->next;
-  else
+  }
+  else {
     m_firstParticle = particle->next;
+  }
 
-  if (particle->next)
+  if (particle->next) {
     particle->next->prev = particle->prev;
-  else
+  }
+  else {
     m_lastParticle = particle->prev;
+  }
 
   --m_count;
   m_verticesDirty = true;
@@ -205,14 +284,12 @@ ParticleSystemComponent::onUpdate(float deltaTime) {
   }
 
   for (Particle* p = m_firstParticle; p; p = p->next) {
-    p->position    += p->velocity * deltaTime;
-    p->velocity    += m_config.gravity * deltaTime;
-    p->lifetime    -= deltaTime;
-    p->rotation    += p->angularVelocity * deltaTime;
+    p->position += p->velocity * deltaTime;
+    p->velocity += m_config.gravity * deltaTime;
+    p->lifetime -= deltaTime;
+    p->rotation += p->angularVelocity * deltaTime;
 
-    p->progress = p->maxLifetime > 0.f
-                  ? 1.f - p->lifetime / p->maxLifetime
-                  : 1.f;
+    p->progress = p->maxLifetime > 0.f ? 1.f - p->lifetime / p->maxLifetime : 1.f;
     p->color = lerp::color(m_config.startColor, m_config.endColor, p->progress);
   }
 
@@ -237,27 +314,74 @@ ParticleSystemComponent::onUpdate(float deltaTime) {
     }
   }
 
-  // Sort BackToFront
+  // Sort BackToFront.
+  // LSD radix sort over a sortable-float key (position.y): stable, O(4*N), and
+  // completely comparison-free. Keys are gathered ONCE into a contiguous
+  // {key, particle} array, so all radix passes work over sequential memory, and
+  // the two buffers back onto the inline stack or the frame arena (FrameScratch)
+  // -- no heap allocation and no per-pass cache misses on pool-scattered
+  // particles (the single gather below is the only scattered read).
   if (m_sortMode == ParticleSortMode::kBackToFront && m_count > 1) {
-    Vector<Particle*> sorted;
-    sorted.reserve(m_count);
-    for (Particle* p = m_firstParticle; p; p = p->next)
-      sorted.push_back(p);
+    const size_t n = m_count;
 
-    std::sort(sorted.begin(), sorted.end(),
-              [](const Particle* a, const Particle* b) {
-                  return a->position.y < b->position.y;
-              });
+    FrameScratch<SortableParticle, 64> bufferA(n);
+    FrameScratch<SortableParticle, 64> bufferB(n);
+    SortableParticle* src = bufferA.data();
+    SortableParticle* dst = bufferB.data();
 
-    m_firstParticle = sorted.front();
-    m_lastParticle  = sorted.back();
-    for (size_t i = 0; i < sorted.size(); ++i) {
-      sorted[i]->prev = (i > 0) ? sorted[i - 1] : nullptr;
-      sorted[i]->next = (i + 1 < sorted.size()) ? sorted[i + 1] : nullptr;
+    // Gather keys once: this is the only pass that touches pool-scattered
+    // particles; everything below is sequential on the contiguous arrays.
+    size_t i = 0;
+    for (Particle* p = m_firstParticle; p; p = p->next) {
+      src[i].key = sortableFloatKey(p->position.y);
+      src[i].ptr = p;
+      ++i;
+    }
+
+    // Per-byte LSD radix: 4 passes x 256 buckets. Each pass scatters in the
+    // order of the previous one, so equal keys keep their relative order.
+    uint32 hist[256];
+    for (uint32 pass = 0; pass < 4; ++pass) {
+      const uint32 shift = pass * 8;
+      for (uint32 b = 0; b < 256; ++b) {
+        hist[b] = 0;
+      }
+      for (i = 0; i < n; ++i) {
+        ++hist[(src[i].key >> shift) & 0xFF];
+      }
+      uint32 start = 0;
+      for (uint32 b = 0; b < 256; ++b) {
+        const uint32 count = hist[b];
+        hist[b] = start;
+        start += count;
+      }
+      for (i = 0; i < n; ++i) {
+        const uint32 bin = (src[i].key >> shift) & 0xFF;
+        dst[hist[bin]++] = src[i];
+      }
+      std::swap(src, dst);
+    }
+
+    // Relink the doubly-linked list in sorted order.
+    m_firstParticle = src[0].ptr;
+    m_lastParticle  = src[n - 1].ptr;
+    for (i = 0; i < n; ++i) {
+      src[i].ptr->prev = (i > 0) ? src[i - 1].ptr : nullptr;
+      src[i].ptr->next = (i + 1 < n) ? src[i + 1].ptr : nullptr;
     }
   }
 
   m_verticesDirty = true;
+}
+
+void
+ParticleSystemComponent::resolveDrawPath() const {
+  if (m_drawPathResolved) {
+    return;
+  }
+
+  m_drawPathResolved = true;
+  m_useInstancing = GfxRenderer::hasQuadRenderer();
 }
 
 void
@@ -267,24 +391,140 @@ ParticleSystemComponent::onDraw(sf::RenderTarget& target,
     return;
   }
 
+  resolveDrawPath();
+
+  if (m_worldSpace) {
+    states.transform = sf::Transform::Identity;
+  }
+
+  if (m_useInstancing) {
+    rebuildInstances();
+
+    if (m_vertexBuffer) {
+      gfx::QuadBatch batch;
+      batch.instances = m_vertexBuffer.get();
+      batch.instanceCount = m_count;
+      batch.mvp = target.getView().getTransform() * states.transform;
+      batch.texture = m_config.texture;
+      batch.blendMode = m_config.blendMode;
+      batch.sizeAtBlend0 = m_config.startSize;
+      batch.sizeAtBlend1 = m_config.endSize;
+
+      // The material's shader replaces the built-in program, which is the only
+      // way custom data becomes observable: the built-in one declares no block.
+      if (nullptr != m_material) {
+        const SPtr<ShaderAsset> &shaderAsset = m_material->getShader();
+        if (nullptr != shaderAsset && shaderAsset->isLoaded()) {
+          // apply() uploads the material's own uniforms as a side effect; the
+          // scratch states it writes back into are not used on this path.
+          sf::RenderStates materialStates;
+          m_material->apply(materialStates);
+          batch.shader = &shaderAsset->shader();
+        }
+      }
+
+      batch.customData = m_customData.data();
+      batch.customDataCount = std::min(m_count, m_customData.size());
+
+      if (GfxRenderer::instance().quadRenderer()->draw(target, batch)) {
+        return;
+      }
+    }
+
+    // The driver turned out not to support instancing (only knowable once a
+    // context was current). Drop to the legacy path for good, discarding the
+    // buffer so it is recreated with the vertex layout that path expects.
+    m_useInstancing = false;
+    m_vertexBuffer.reset();
+    m_verticesDirty = true;
+  }
+
+  if (m_hasCustomData && !m_customDataWarned) {
+    m_customDataWarned = true;
+    std::cerr << "ParticleSystemComponent: per-particle custom data needs the "
+                 "instanced draw path; this emitter fell back to the plain "
+                 "vertex path and will render without it"
+              << std::endl;
+  }
+
   rebuildVertices();
 
   if (!m_vertexBuffer) {
     return;
   }
 
-  if (m_worldSpace) {
-    states.transform = sf::Transform::Identity;
-  }
-
   states.blendMode = m_config.blendMode;
-  states.texture   = m_config.texture;
+  states.texture = m_config.texture;
 
   if (nullptr != m_material) {
     m_material->apply(states);
   }
 
   target.draw(*m_vertexBuffer, 0, m_count * 6, states);
+}
+
+void
+ParticleSystemComponent::rebuildInstances() const {
+  if (!m_verticesDirty) {
+    return;
+  }
+
+  // Lazy buffer creation, same reasoning as rebuildVertices(): no OpenGL
+  // context is touched until the component actually draws.
+  if (!m_vertexBuffer) {
+    if (m_capacity == 0) {
+      return;
+    }
+
+    m_vertexBuffer = MakeUnique<sf::VertexBuffer>();
+    if (!m_vertexBuffer->create(m_capacity)) {
+      m_vertexBuffer.reset();
+      return;
+    }
+    m_vertexBuffer->setUsage(sf::VertexBuffer::Usage::Stream);
+    m_vertexBuffer->setPrimitiveType(sf::PrimitiveType::Points);
+  }
+
+  // Sized here rather than only in setConfig, because a component built
+  // straight from a config through the constructor never goes through
+  // setConfig. Steady state is a single comparison; it only allocates when the
+  // capacity changes.
+  if (m_customData.size() != m_capacity) {
+    m_customData.assign(m_capacity, ParticleCustomData{});
+  }
+
+  // Fixed-size stack buffer for instance data, uploaded in batches. Six times
+  // as many particles fit per batch as on the legacy path, since a particle is
+  // one 20-byte instance here rather than six vertices.
+  static constexpr size_t kBatchInstances = 1024;
+  gfx::QuadInstance batch[kBatchInstances];
+
+  size_t batchFilled = 0;
+  size_t uploadOffset = 0;
+
+  // No trigonometry, no corner expansion, no size interpolation: the vertex
+  // shader derives all of that from these four fields.
+  for (Particle* p = m_firstParticle; p; p = p->next) {
+    batch[batchFilled] =
+        gfx::makeQuadInstance(p->position, p->color, p->rotation, p->progress);
+    // Written in the same walk so custom index i belongs to instance i. The
+    // upload offset is the running total, not batchFilled, which resets.
+    if (uploadOffset + batchFilled < m_customData.size()) {
+      m_customData[uploadOffset + batchFilled] = p->customData;
+    }
+    ++batchFilled;
+
+    if (batchFilled == kBatchInstances || p == m_lastParticle) {
+      if (!m_vertexBuffer->update(batch, batchFilled,
+                                  static_cast<unsigned int>(uploadOffset))) {
+        return;
+      }
+      uploadOffset += batchFilled;
+      batchFilled = 0;
+    }
+  }
+
+  m_verticesDirty = false;
 }
 
 void
@@ -313,15 +553,14 @@ ParticleSystemComponent::rebuildVertices() const {
   sf::Vector2f texSize;
   if (hasTexture) {
     const sf::Vector2u ts = m_config.texture->getSize();
-    texSize = sf::Vector2f(static_cast<float>(ts.x),
-                            static_cast<float>(ts.y));
+    texSize = sf::Vector2f(static_cast<float>(ts.x), static_cast<float>(ts.y));
   }
 
   const sf::Vector2f uvs[4] = {
-    {0.f,        0.f},
-    {texSize.x,  0.f},
-    {texSize.x,  texSize.y},
-    {0.f,        texSize.y},
+      {0.f, 0.f},
+      {texSize.x, 0.f},
+      {texSize.x, texSize.y},
+      {0.f, texSize.y},
   };
   const sf::Vector2f zeroUV[4] = {{}, {}, {}, {}};
 
@@ -330,23 +569,23 @@ ParticleSystemComponent::rebuildVertices() const {
 
   for (Particle* p = m_firstParticle; p; p = p->next) {
     const sf::Vector2f halfSize =
-      lerp::vector2(m_config.startSize, m_config.endSize, p->progress) * 0.5f;
+        lerp::vector2(m_config.startSize, m_config.endSize, p->progress) * 0.5f;
 
     const float cosA = std::cos(p->rotation);
     const float sinA = std::sin(p->rotation);
 
     const sf::Vector2f localCorners[4] = {
-      {-halfSize.x, -halfSize.y},
-      { halfSize.x, -halfSize.y},
-      { halfSize.x,  halfSize.y},
-      {-halfSize.x,  halfSize.y},
+        {-halfSize.x, -halfSize.y},
+        {halfSize.x, -halfSize.y},
+        {halfSize.x, halfSize.y},
+        {-halfSize.x, halfSize.y},
     };
 
     sf::Vector2f worldCorners[4];
     for (int j = 0; j < 4; ++j) {
       worldCorners[j] = {
-        localCorners[j].x * cosA - localCorners[j].y * sinA + p->position.x,
-        localCorners[j].x * sinA + localCorners[j].y * cosA + p->position.y,
+          localCorners[j].x * cosA - localCorners[j].y * sinA + p->position.x,
+          localCorners[j].x * sinA + localCorners[j].y * cosA + p->position.y,
       };
     }
 
@@ -361,8 +600,9 @@ ParticleSystemComponent::rebuildVertices() const {
     batchFilled += 6;
 
     if (batchFilled + 6 > BATCH_VERTS || p == m_lastParticle) {
-      if (!m_vertexBuffer->update(batch, batchFilled, uploadOffset))
+      if (!m_vertexBuffer->update(batch, batchFilled, uploadOffset)) {
         return;
+      }
       uploadOffset += batchFilled;
       batchFilled = 0;
     }
@@ -407,8 +647,8 @@ ParticleSystemComponent::onSerialize(DataStream& stream) const {
 
   stream << m_config.startColor.r << m_config.startColor.g
          << m_config.startColor.b << m_config.startColor.a;
-  stream << m_config.endColor.r << m_config.endColor.g
-         << m_config.endColor.b << m_config.endColor.a;
+  stream << m_config.endColor.r << m_config.endColor.g << m_config.endColor.b
+         << m_config.endColor.a;
 
   stream << m_config.lifetime;
   stream << m_config.lifetimeVariance;
@@ -444,28 +684,30 @@ ParticleSystemComponent::onDeserialize(DataStream& stream) {
   stream >> colorSrc >> colorDst >> colorEq >> alphaSrc >> alphaDst >> alphaEq;
   cfg.blendMode.colorSrcFactor = static_cast<sf::BlendMode::Factor>(colorSrc);
   cfg.blendMode.colorDstFactor = static_cast<sf::BlendMode::Factor>(colorDst);
-  cfg.blendMode.colorEquation  = static_cast<sf::BlendMode::Equation>(colorEq);
+  cfg.blendMode.colorEquation = static_cast<sf::BlendMode::Equation>(colorEq);
   cfg.blendMode.alphaSrcFactor = static_cast<sf::BlendMode::Factor>(alphaSrc);
   cfg.blendMode.alphaDstFactor = static_cast<sf::BlendMode::Factor>(alphaDst);
-  cfg.blendMode.alphaEquation  = static_cast<sf::BlendMode::Equation>(alphaEq);
+  cfg.blendMode.alphaEquation = static_cast<sf::BlendMode::Equation>(alphaEq);
 
   stream >> cfg.emissionRate;
   stream >> cfg.positionVariance;
   float direction = 0.f, directionVar = 0.f;
   stream >> direction >> directionVar;
-  cfg.direction         = sf::radians(direction);
+  cfg.direction = sf::radians(direction);
   cfg.directionVariance = sf::radians(directionVar);
   stream >> cfg.speed;
   stream >> cfg.speedVariance;
   float startRot = 0.f, startRotVar = 0.f;
   stream >> startRot >> startRotVar;
-  cfg.startRotation         = sf::radians(startRot);
+  cfg.startRotation = sf::radians(startRot);
   cfg.startRotationVariance = sf::radians(startRotVar);
   stream >> cfg.angularVelocity;
   stream >> cfg.angularVelocityVariance;
 
-  stream >> cfg.startColor.r >> cfg.startColor.g >> cfg.startColor.b >> cfg.startColor.a;
-  stream >> cfg.endColor.r >> cfg.endColor.g >> cfg.endColor.b >> cfg.endColor.a;
+  stream >> cfg.startColor.r >> cfg.startColor.g >> cfg.startColor.b >>
+      cfg.startColor.a;
+  stream >> cfg.endColor.r >> cfg.endColor.g >> cfg.endColor.b >>
+      cfg.endColor.a;
 
   stream >> cfg.lifetime;
   stream >> cfg.lifetimeVariance;
@@ -479,16 +721,8 @@ ParticleSystemComponent::onDeserialize(DataStream& stream) {
   uint8 worldSpace = 0;
   stream >> worldSpace;
 
-  // Re-resolve the texture by asset UUID (kept alive so cfg.texture stays valid).
-  if (cfg.textureAssetId != UUID::null() && AssetManager::isStarted()) {
-    SPtr<TextureAsset> asset =
-        AssetManager::instance().load<TextureAsset>(cfg.textureAssetId);
-    if (nullptr != asset && asset->isLoaded()) {
-      m_textureAsset = asset;
-      cfg.texture    = &asset->texture();
-    }
-  }
-
+  // setConfig re-resolves the texture from cfg.textureAssetId and keeps the
+  // asset alive, so nothing extra is needed here.
   setConfig(cfg);
   setSortMode(static_cast<ParticleSortMode>(sortMode));
   setWorldSpace(worldSpace != 0);

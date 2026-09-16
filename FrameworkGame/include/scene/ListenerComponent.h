@@ -22,7 +22,7 @@ namespace sfmx
  */
 class ListenerComponent : public ComponentT<ListenerComponent>
 {
-public:
+ public:
   /** @brief Constructs a listener component on the given node */
   explicit ListenerComponent(SceneNode* owner);
 
@@ -64,7 +64,7 @@ public:
   /** @brief Restores the state written by @ref onSerialize. */
   void onDeserialize(DataStream& stream) override;
 
-private:
+ private:
   bool m_autoUpdate = true;
 };
 

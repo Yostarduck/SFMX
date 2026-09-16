@@ -1,4 +1,5 @@
 #include "assets/AssetCodecRegistry.h"
+#include <iostream>
 
 #include "assets/AssetFile.h"
 

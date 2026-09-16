@@ -2,6 +2,7 @@
 
 #include "assets/MusicAsset.h"
 #include "assets/LuaAsset.h"
+#include "assets/LocalizationAsset.h"
 #include "assets/ShaderAsset.h"
 #include "assets/SoundAsset.h"
 #include "assets/TextureAsset.h"
@@ -31,6 +32,7 @@ AssetImporterRegistry::registerBuiltins() {
   registerImporter<LuaAsset>(ChunkFormat::kRaw, ".lua");
   registerImporter<FontAsset>(ChunkFormat::kTtf,  ".ttf");
   registerImporter<FontAsset>(ChunkFormat::kOtf,  ".otf");
+  registerImporter<LocalizationAsset>(ChunkFormat::kCsv,  ".csv");
   // A loose `.frag` is a fragment-only shader (SFML supplies the default vertex
   // stage); it cooks as one stage-tagged chunk through the default path. A
   // `.shader` manifest lists several stage files, so it needs the cook hook to

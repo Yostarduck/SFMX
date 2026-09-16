@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "core/DataStream.h"
+#include "core/Path.h"
 
 namespace sfmx
 {

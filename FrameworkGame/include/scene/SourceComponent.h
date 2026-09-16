@@ -37,7 +37,7 @@ enum class AudioStatus : int32 { kPlaying, kPaused, kStopped };
  */
 class SourceComponent : public ComponentT<SourceComponent>
 {
-public:
+ public:
   /** @brief Constructs a silent source with no backend loaded */
   SourceComponent(SceneNode* owner);
   ~SourceComponent() override;
@@ -156,7 +156,7 @@ public:
   /** @brief Returns the active SoundSource pointer (may be null) */
   NODISCARD const sf::SoundSource* getSource() const;
 
-private:
+ private:
 
   /** @brief Non-const access to the active SoundSource (may be null) */
   NODISCARD sf::SoundSource* activeSource();

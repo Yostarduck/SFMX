@@ -24,6 +24,9 @@ add_executable(UnitTests
     AssetCookerTest.cpp
     ImageDecoderSeamTest.cpp
     ImageWebPModuleTest.cpp
+    FrameMemoryTest.cpp
+    FrameScratchTest.cpp
+    LocalizationAssetTest.cpp
     ScriptHotReloadTest.cpp
 )
 

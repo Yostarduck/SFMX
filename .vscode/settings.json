@@ -11,6 +11,17 @@
     "--compile-commands-dir=Build",
     "--background-index"
   ],
+  "editor.rulers": [
+    {
+      "column": 80,
+      "color": "#D8C96A66"
+    },
+    {
+      "column": 95,
+      "color": "#D97A7A66"
+    }
+  ],
+  "editor.formatOnSave": false,
   "C_Cpp.intelliSenseEngine": "Disabled",
   "cmake.sourceDirectory": "${workspaceFolder}",
   "cmake.buildDirectory": "${workspaceFolder}/Build",

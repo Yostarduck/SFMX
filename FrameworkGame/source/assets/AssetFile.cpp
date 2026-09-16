@@ -329,7 +329,7 @@ AssetFileReader::readChunk(size_t index, Vector<uint8>& out) const {
     return got == entry.size;
   }
 
-  if (ChunkCompression::kZstd != entry.compression) {
+  if (ChunkCompression::kLz4 != entry.compression) {
     return false;  // unsupported codec (e.g. kLZ4): fail cleanly, never the loop
   }
 

@@ -36,8 +36,16 @@ FetchContent_Declare(SFML
     SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
-add_library(SketchGfx INTERFACE)
+# Was an INTERFACE library that only re-exported SFML. It is now STATIC because it
+# also carries the rendering abstraction: the OpenGL entry points SFML keeps private
+# and the instanced quad renderer built on top of them. Consumers are unaffected --
+# they still just link SFMX::SketchGfx.
+add_library(SketchGfx STATIC
+    source/gfx/GLFunctions.cpp
+    source/gfx/InstancedQuadRenderer.cpp)
 add_library(SFMX::SketchGfx ALIAS SketchGfx)
 
-target_link_libraries(SketchGfx INTERFACE SFML::Graphics SFML::Audio)
+target_include_directories(SketchGfx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(SketchGfx PUBLIC SFML::Graphics SFML::Audio)
 

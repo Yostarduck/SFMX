@@ -1,12 +1,13 @@
 #pragma once
 
 #include "core/platform/Prerequisites.h"
+#include "core/Path.h"
 
 namespace sfmx
 {
 class IniFile
 {
-public:
+ public:
   IniFile();
   ~IniFile();
 
@@ -36,7 +37,7 @@ public:
                          StringView key,
                          bool defaultValue = false) const;
 
-private:
+ private:
   struct Impl;
   UniquePtr<Impl> m_impl;
 };
