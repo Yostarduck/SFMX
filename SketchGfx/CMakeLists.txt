@@ -27,6 +27,8 @@ else()
   message(FATAL_ERROR "Unsupported platform")
 endif()
 
+set(SFML_BUILD_NETWORK OFF CACHE BOOL "" FORCE)
+
 include(FetchContent)
 FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git

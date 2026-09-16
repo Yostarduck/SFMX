@@ -19,6 +19,7 @@
 #include "scripts/RegisterKeyboard.h"
 #include "scripts/RegisterMouse.h"
 #include "scripts/RegisterGamepad.h"
+#include "scripts/RegisterInputMapping.h"
 
 #include "scripts/RegisterComponent.h"
 #include "scripts/RegisterComponentAccess.h"
@@ -95,6 +96,7 @@ registerAll(sol::state_view lua) {
   registerKeyboard(lua);
   registerMouse(lua);
   registerGamepad(lua);
+  registerInputMapping(lua);
 
   // Assets (IAsset before AssetManager: load/get hand back SPtr<IAsset>).
   registerIAsset(lua);

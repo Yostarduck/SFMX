@@ -2,6 +2,8 @@
 
 #include "core/platform/Prerequisites.h"
 #include "input/InputTypes.h"
+#include "input/InputValue.h"
+#include "input/Interaction.h"
 
 namespace sfmx
 {
@@ -122,6 +124,20 @@ registerInputTypes(sol::state_view lua) {
     { "RStick", GamepadButton::kRStick },
 
     { "Count",  GamepadButton::kCount }
+  });
+
+  lua.new_enum<ActionValueType>("ActionValueType", {
+    { "Button", ActionValueType::kButton },
+    { "Axis1D", ActionValueType::kAxis1D },
+    { "Axis2D", ActionValueType::kAxis2D }
+  });
+
+  lua.new_enum<ActionPhase>("ActionPhase", {
+    { "Disabled",  ActionPhase::kDisabled },
+    { "Waiting",   ActionPhase::kWaiting },
+    { "Started",   ActionPhase::kStarted },
+    { "Performed", ActionPhase::kPerformed },
+    { "Canceled",  ActionPhase::kCanceled }
   });
 
   lua.set_function("toString", sol::overload(

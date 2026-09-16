@@ -28,7 +28,10 @@ registerScriptComponent(sol::state_view lua) {
         return sol::make_object(state, sol::lua_nil);
       }
       return sol::make_object(state, table);
-    }
+    },
+
+    "unbind",    &ScriptComponent::unregisterEvent,
+    "unbindAll", &ScriptComponent::unregisterAllEvents
   );
 }
 

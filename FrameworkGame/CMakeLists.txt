@@ -139,6 +139,7 @@ add_library(FrameworkGame STATIC
     source/scripts/RegisterKeyboard.cpp
     source/scripts/RegisterMouse.cpp
     source/scripts/RegisterGamepad.cpp
+    source/scripts/RegisterInputMapping.cpp
     source/scripts/RegisterComponent.cpp
     source/scripts/RegisterComponentAccess.cpp
     source/scripts/RegisterTransformComponent.cpp

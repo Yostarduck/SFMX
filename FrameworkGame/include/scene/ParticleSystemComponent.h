@@ -263,11 +263,6 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent> {
   void
   onAttached() override;
 
-  /** @brief Read-only head of the active-particle list (inspection / tests). */
-  NODISCARD FORCEINLINE const Particle* getFirstParticle() const {
-    return m_firstParticle;
-  }
-
   /**
    * @brief Advances the simulation by @p deltaTime seconds.
    *
