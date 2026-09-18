@@ -29,7 +29,7 @@
 #include "scripts/RegisterCameraComponent.h"
 #include "scripts/RegisterSpriteComponent.h"
 #include "scripts/RegisterAnimatorComponent.h"
-//#include "scripts/RegisterParticleSystemComponent.h"
+#include "scripts/RegisterParticleSystemComponent.h"
 #include "scripts/RegisterScriptComponent.h"
 
 #include "scripts/RegisterSceneManager.h"
@@ -111,7 +111,7 @@ registerAll(sol::state_view lua) {
   registerCameraComponent(lua);
   registerSpriteComponent(lua);
   registerAnimatorComponent(lua);
-  //registerParticleSystemComponent(lua); // Not ready yet, wait for ResourceManager
+  registerParticleSystemComponent(lua);
   registerScriptComponent(lua);
 
   // Scene graph.
@@ -166,7 +166,6 @@ registerAll(sol::state_view lua) {
   // supplies a custom add thunk that picks the overload from the Lua arguments:
   //   node:addComponent(ParticleSystemComponent)          -- default config
   //   node:addComponent(ParticleSystemComponent, config)  -- EmitterConfig
-  /*
   registerComponentType<ParticleSystemComponent>(
     [](sol::state_view lua, SceneNode& node, const sol::variadic_args& args)
       -> sol::object {
@@ -177,7 +176,6 @@ registerAll(sol::state_view lua) {
       }
       return sol::make_object(lua, node.addComponent<ParticleSystemComponent>());
     });
-  */
 
   // ScriptComponent references its Lua script by asset UUID, so the thunk takes
   // the asset NAME from the trailing Lua argument and resolves it via

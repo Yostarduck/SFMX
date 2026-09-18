@@ -26,6 +26,10 @@ end
 function Enemy.damage(self, amount)
   self.life = self.life - amount
 
+  if self.gameManager ~= nil then
+    self.gameManager:displayDamage(self.transform:getPosition(), amount)
+  end
+
   if self.life <= 0 then
     SceneManager:getActiveScene():destroyNode(self.owner)
     

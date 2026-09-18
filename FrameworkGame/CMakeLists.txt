@@ -148,7 +148,7 @@ add_library(FrameworkGame STATIC
     source/scripts/RegisterCameraComponent.cpp
     source/scripts/RegisterSpriteComponent.cpp
     source/scripts/RegisterAnimatorComponent.cpp
-    #source/scripts/RegisterParticleSystemComponent.cpp
+    source/scripts/RegisterParticleSystemComponent.cpp
     source/scripts/RegisterScriptComponent.cpp
 
     source/scripts/RegisterUIWidget.cpp
