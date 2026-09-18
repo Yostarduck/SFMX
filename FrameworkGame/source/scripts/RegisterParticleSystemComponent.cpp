@@ -100,7 +100,7 @@ registerParticleSystemComponent(sol::state_view lua) {
     "gravity",        &EmitterConfig::gravity,
     "startSize",      &EmitterConfig::startSize,
     "endSize",        &EmitterConfig::endSize,
-    // "texture",        &EmitterConfig::texture, // Not exposed yet
+    //"texture",        &EmitterConfig::texture, // Intentionally left out
     "textureAssetId", &EmitterConfig::textureAssetId,
 
     "blendMode",      &EmitterConfig::blendMode,

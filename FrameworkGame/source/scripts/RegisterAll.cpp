@@ -111,7 +111,7 @@ registerAll(sol::state_view lua) {
   registerCameraComponent(lua);
   registerSpriteComponent(lua);
   registerAnimatorComponent(lua);
-  registerParticleSystemComponent(lua); // Not ready yet, wait for ResourceManager
+  registerParticleSystemComponent(lua);
   registerScriptComponent(lua);
 
   // Scene graph.
