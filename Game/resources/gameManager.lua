@@ -43,6 +43,9 @@ local enemySpawnRate = 0
 local spawnCooldown = 0
 local playerDamage = 0
 
+local particles = nil
+local particlesConfig = nil
+
 function GameManager.onCreated(self)
   self.targetEnemy = nil
 end
@@ -164,6 +167,18 @@ function GameManager.onStart(self)
   else
     print("Elite Warlock Button not found")
   end
+
+  particlesNode = scene:findNode("NumberParticles")
+  if particlesNode ~= nil then
+    particles = particlesNode:getComponent(ParticleSystemComponent)
+    if particles ~= nil then
+      particlesConfig = particles:getConfig()
+    else
+      print("NumberParticles component not found")
+    end
+  else
+    print("NumberParticles not found")
+  end
   
   camera = scene:getCamera()
   camera:setFollowNode(true)
@@ -220,6 +235,14 @@ end
 
 function GameManager.buyEliteWarlock(self)
   onUnitBought(self, EliteWarlockData)
+end
+
+function GameManager.displayDamage(self, position, value)
+  if particles ~= nil and particlesConfig ~= nil then
+    particlesConfig.positionOffset = position
+    particlesConfig.customData.id = value
+    particles:emit(1, particlesConfig)
+  end
 end
 
 function spawnEnemy(self)

@@ -525,8 +525,7 @@ main(int argc, char **argv) {
   // Sit the emitter near the bottom of whatever the active camera is looking
   // at, so it stays on screen wherever the serialized camera happens to be
   // placed.
-  sf::Vector2f emitterPos{static_cast<float>(windowWidth) * 0.5f,
-                          static_cast<float>(windowHeight) * 0.6f};
+  sf::Vector2f emitterPos{0.0f, 0.0f};
 
   SceneNode* particlesNode = scene.createNode("NumberParticles");
   particlesNode->transform().setPosition(emitterPos);
@@ -639,12 +638,6 @@ main(int argc, char **argv) {
     AssetManager::instance().finalize();
 
     UIEventSystem::instance().update(window, deltaTime);
-    
-    customConfig.positionOffset = {
-      Random::range(-500.0f, 500.0f),
-      Random::range(0.0f, 100.0f)
-    };
-    particleSystem->emit(1, customConfig);
 
     SceneManager::instance().update(deltaTime);
 
