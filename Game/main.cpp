@@ -56,6 +56,11 @@
 #include "core/Window.h"
 
 #include "gfx/GfxRenderer.h"
+#include "gfx/InstanceDrawer.h"
+
+#include "scene/InstancedSpriteComponent.h"
+#include "scene/SpriteComponent.h"
+#include "resource/SpriteAtlas.h"
 
 #include "utils/MemoryPoolHandler.h"
 #include "utils/FrameMemory.h"
@@ -154,6 +159,9 @@ main(int argc, char **argv) {
   // Right after the window, so the shared shader program it owns is created and
   // destroyed strictly inside the lifetime of the window's GL context.
   GfxRenderer::startUp();
+  // Batches instanced sprites; owns GPU buffers, so it lives inside the context
+  // too (shut down before GfxRenderer / the window below).
+  InstanceDrawer::startUp();
 
   // Engine modules. Order matters: SceneManager clears its scenes at shutDown
   // (returning pooled nodes/components), so it is torn down before the pools,
@@ -549,7 +557,58 @@ main(int argc, char **argv) {
                  "will draw with the built-in program and no custom data\n";
   }
 
+  // Instancing stress test: two grids of the same sprite over the same atlas,
+  // one drawn through the InstanceDrawer (1 draw call per atlas) and one drawn
+  // the classic way (1 draw call per sprite). Only one grid is visible at a
+  // time; press B to flip between them and compare the HUD's FPS.
+  SceneNode* stressInstanced = nullptr;
+  SceneNode* stressRegular = nullptr;
+  size_t stressCount = 0;  // sprites per grid (== regular-mode draw calls)
+  if (SPtr<TextureAsset> atlas =
+          AssetManager::instance().load<TextureAsset>(texID)) {
+    const Vector<sf::IntRect> frames =
+        sfmx::Atlas::getSpriteRectsByGrid(atlas->texture().getSize(), 10u, 1u);
+
+    constexpr uint32 kStressCols = 300u;
+    constexpr uint32 kStressRows = 150u;  // 45k sprites per grid
+    constexpr float kStressSpacing = 4.f;
+    constexpr float kStressSize = 3.5f;
+    stressCount = static_cast<size_t>(kStressCols) * kStressRows;
+    const float originX = -static_cast<float>(kStressCols) * kStressSpacing * 0.5f;
+    const float originY = -static_cast<float>(kStressRows) * kStressSpacing * 0.5f;
+
+    stressInstanced = scene.createNode("StressInstanced");
+    stressRegular = scene.createNode("StressRegular");
+    stressRegular->setVisible(false);  // start on the instanced grid
+
+    for (uint32 r = 0; r < kStressRows; ++r) {
+      for (uint32 c = 0; c < kStressCols; ++c) {
+        const sf::Vector2f pos = {originX + static_cast<float>(c) * kStressSpacing,
+                                  originY + static_cast<float>(r) * kStressSpacing};
+        const uint32 frame = (r * kStressCols + c) % 10u;
+
+        SceneNode* inst = stressInstanced->createChild("i");
+        inst->transform().setPosition(pos);
+        auto* isprite = inst->addComponent<InstancedSpriteComponent>();
+        isprite->setAtlas(atlas, frames, sf::BlendAlpha, kStressCols * kStressRows);
+        isprite->setFrame(frame);
+        isprite->setSize({kStressSize, kStressSize});
+
+        SceneNode* reg = stressRegular->createChild("r");
+        reg->transform().setPosition(pos);
+        auto* rsprite = reg->addComponent<SpriteComponent>();
+        rsprite->setTextureAsset(atlas);
+        rsprite->setRect(frames[frame]);
+        rsprite->setScale({kStressSize / static_cast<float>(frames[frame].size.x),
+                           kStressSize / static_cast<float>(frames[frame].size.y)});
+      }
+    }
+  }
+
   sf::Clock clock;
+
+  bool showInstanced = true;  // which stress grid is currently visible
+  bool vsyncOn = enableVSync; // toggled with V to uncap the frame rate
 
   constexpr size_t deltasSize = 100;
   std::array<float, deltasSize> deltas;
@@ -592,10 +651,16 @@ main(int argc, char **argv) {
     // The HUD label is written every frame; build the transient text in the
     // frame arena instead of std::format's heap string. setText copies the data,
     // so the buffer only needs to live until the call returns.
-    char* textBuffer = static_cast<char*>(FrameMemory::instance().allocate(128));
+    char* textBuffer = static_cast<char*>(FrameMemory::instance().allocate(160));
     if (nullptr != textBuffer) {
-      std::snprintf(textBuffer, 128, "FPS: %.0f\nNodes: %zu",
-                    std::round(1.0f / avg), scene.getNodeCount());
+      const size_t drawCalls =
+          showInstanced ? InstanceDrawer::instance().getLastDrawCalls()
+                        : stressCount;
+      std::snprintf(textBuffer, 160,
+                    "FPS: %.0f\nNodes: %zu\nStress[B]: %s\nDraws: %zu\nVSync[V]: %s",
+                    std::round(1.0f / avg), scene.getNodeCount(),
+                    showInstanced ? "INSTANCED" : "REGULAR",
+                    drawCalls, vsyncOn ? "on" : "off");
       debugLabel->setText(StringView(textBuffer));
     }
     
@@ -609,6 +674,23 @@ main(int argc, char **argv) {
       std::cout << "Current particles: "
                 << particleSystem->getParticleCount()
                 << std::endl;
+    }
+
+    if (Keyboard::instance().wasPressedThisFrame(Key::kB) &&
+        nullptr != stressInstanced && nullptr != stressRegular) {
+      showInstanced = !showInstanced;
+      stressInstanced->setVisible(showInstanced);
+      stressRegular->setVisible(!showInstanced);
+      std::cout << "[Stress] mode: "
+                << (showInstanced ? "INSTANCED" : "REGULAR")
+                << " | sprites/grid: " << stressCount
+                << " | FPS: " << std::round(1.0f / avg) << std::endl;
+    }
+
+    if (Keyboard::instance().wasPressedThisFrame(Key::kV)) {
+      vsyncOn = !vsyncOn;
+      window.setVerticalSyncEnabled(vsyncOn);
+      std::cout << "[Stress] vsync: " << (vsyncOn ? "on" : "off") << std::endl;
     }
 
 #if USING(SFMX_DEBUG_MODE)
@@ -679,6 +761,7 @@ main(int argc, char **argv) {
   MemoryPoolHandler::shutDown();
 
   postFx.reset();
+  InstanceDrawer::shutDown();
   GfxRenderer::shutDown();
   Window::shutDown();
 

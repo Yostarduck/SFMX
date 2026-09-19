@@ -83,6 +83,7 @@ add_library(FrameworkGame STATIC
     source/resource/SpriteAtlas.cpp
 
     source/gfx/GfxRenderer.cpp
+    source/gfx/InstanceDrawer.cpp
 
     source/ui/UIWidget.cpp
     source/ui/Canvas.cpp
@@ -110,6 +111,7 @@ add_library(FrameworkGame STATIC
     source/scene/SourceComponent.cpp
     source/scene/ListenerComponent.cpp
     source/scene/SpriteComponent.cpp
+    source/scene/InstancedSpriteComponent.cpp
     source/scene/MaterialComponent.cpp
     source/scene/AnimatorComponent.cpp
     source/scene/ColliderComponent.cpp
