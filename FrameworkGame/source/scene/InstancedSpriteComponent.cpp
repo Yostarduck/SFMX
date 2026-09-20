@@ -28,6 +28,21 @@ InstancedSpriteComponent::setAtlas(SPtr<TextureAsset> atlas,
 }
 
 void
+InstancedSpriteComponent::setTexture(SPtr<TextureAsset> texture,
+                                     const sf::BlendMode& blend,
+                                     size_t reserveInstances) {
+  if (nullptr == texture) {
+    m_atlasAsset = nullptr;
+    return;
+  }
+
+  const sf::Vector2u size = texture->texture().getSize();
+  const Vector<sf::IntRect> frame = {sf::IntRect(
+      {0, 0}, {static_cast<int>(size.x), static_cast<int>(size.y)})};
+  setAtlas(std::move(texture), frame, blend, reserveInstances);
+}
+
+void
 InstancedSpriteComponent::onDraw(sf::RenderTarget& target,
                                  sf::RenderStates states) const {
   SFMX_PARAMETER_UNUSED(target);

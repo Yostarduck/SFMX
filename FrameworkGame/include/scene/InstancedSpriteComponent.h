@@ -43,6 +43,18 @@ class InstancedSpriteComponent : public ComponentT<InstancedSpriteComponent>
            const sf::BlendMode& blend = sf::BlendAlpha,
            size_t reserveInstances = 1024);
 
+  /**
+   * @brief Bind a whole texture as a single-frame atlas (a plain sprite).
+   *
+   * Convenience for one image with no sub-rects: the full texture becomes frame
+   * 0. Instances still batch by texture and blend, so many of these collapse
+   * into one draw just like atlas frames do.
+   */
+  void
+  setTexture(SPtr<TextureAsset> texture,
+             const sf::BlendMode& blend = sf::BlendAlpha,
+             size_t reserveInstances = 1024);
+
   void
   setFrame(uint32 frame) { m_frame = frame; }
 
