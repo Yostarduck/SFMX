@@ -1,5 +1,6 @@
 #include "scene/Scene.h"
 
+#include "gfx/InstanceDrawer.h"
 #include "utils/FrameScratch.h"
 #include "utils/MemoryPoolHandler.h"
 
@@ -237,9 +238,17 @@ Scene::draw(sf::RenderTarget& target) const {
     return;
   }
 
+  const bool instanced = InstanceDrawer::isStarted();
+
   if (m_cameras.empty()) {
     target.setView(target.getDefaultView());
+    if (instanced) {
+      InstanceDrawer::instance().beginPass();
+    }
     m_root->draw(target, sf::RenderStates::Default);
+    if (instanced) {
+      InstanceDrawer::instance().flush(target);
+    }
     return;
   }
 
@@ -257,7 +266,13 @@ Scene::draw(sf::RenderTarget& target) const {
     if (!cam->getOwner() || !cam->getOwner()->isEnabledInHierarchy())
       continue;
     target.setView(cam->getView());
+    if (instanced) {
+      InstanceDrawer::instance().beginPass();
+    }
     m_root->draw(target, sf::RenderStates::Default);
+    if (instanced) {
+      InstanceDrawer::instance().flush(target);
+    }
   }
 }
 

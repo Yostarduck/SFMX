@@ -14,6 +14,16 @@
 #include "scene/ScriptComponent.h"
 #include "scene/SourceComponent.h"
 #include "scene/SpriteComponent.h"
+#include "scene/InstancedSpriteComponent.h"
+#include "ui/UIButton.h"
+#include "ui/UICheckbox.h"
+#include "ui/UIHorizontalBox.h"
+#include "ui/UIImage.h"
+#include "ui/UILabel.h"
+#include "ui/UIScrollView.h"
+#include "ui/UISlider.h"
+#include "ui/UITextBox.h"
+#include "ui/UIVerticalBox.h"
 
 #include "resource/Frame.h"
 #include "resource/SpriteAtlas.h"
@@ -117,6 +127,7 @@ registerDemoPools(MemoryPoolHandler& pools) {
   pools.registerPool<ListenerComponent>(1);
   pools.registerPool<CameraComponent>(1);
   pools.registerPool<SpriteComponent>(1024 * 100);
+  pools.registerPool<InstancedSpriteComponent>(1024 * 100);
   pools.registerPool<MaterialComponent>(256);
   pools.registerPool<AnimatorComponent>(256);
   pools.registerPool<Particle>(1024 * 100);
@@ -149,6 +160,7 @@ registerDemoComponents() {
   reg.registerComponent<ListenerComponent>();
   reg.registerComponent<CameraComponent>();
   reg.registerComponent<SpriteComponent>();
+  reg.registerComponent<InstancedSpriteComponent>();
   reg.registerComponent<AnimatorComponent>();
   reg.registerComponent<ParticleSystemComponent>();
   reg.registerComponent<ColliderComponent>();
