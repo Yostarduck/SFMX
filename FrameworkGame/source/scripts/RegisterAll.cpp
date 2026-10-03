@@ -38,6 +38,7 @@
 #include "scripts/RegisterAssetManager.h"
 
 #include "scripts/RegisterUIWidget.h"
+#include "scripts/RegisterUIManager.h"
 #include "scripts/RegisterUIButton.h"
 #include "scripts/RegisterUICheckbox.h"
 #include "scripts/RegisterUIHorizontalBox.h"
@@ -56,16 +57,6 @@
 #include "scene/AnimatorComponent.h"
 #include "scene/ParticleSystemComponent.h"
 #include "scene/ScriptComponent.h"
-
-#include "ui/UIButton.h"
-#include "ui/UICheckbox.h"
-#include "ui/UIHorizontalBox.h"
-#include "ui/UIImage.h"
-#include "ui/UILabel.h"
-#include "ui/UIScrollView.h"
-#include "ui/UISlider.h"
-#include "ui/UITextBox.h"
-#include "ui/UIVerticalBox.h"
 
 namespace sfmx
 {
@@ -198,15 +189,7 @@ registerAll(sol::state_view lua) {
       return sol::make_object(lua, sol::lua_nil);
   });
   
-  registerComponentType<UIButton>();
-  registerComponentType<UICheckbox>();
-  registerComponentType<UIHorizontalBox>();
-  registerComponentType<UIImage>();
-  registerComponentType<UILabel>();
-  registerComponentType<UIScrollView>();
-  registerComponentType<UISlider>();
-  registerComponentType<UITextBox>();
-  registerComponentType<UIVerticalBox>();
+  registerUIManager(lua);
 }
 
 }  // namespace script

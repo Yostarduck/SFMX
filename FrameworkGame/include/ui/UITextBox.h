@@ -10,16 +10,14 @@
 
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
-#include "scene/SceneNode.h"
-#include "scene/Component.h"
+#include <SFML/System/String.hpp>
 #include "ui/UIWidget.h"
 
 namespace sfmx
 {
 class FontAsset;
 
-class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
-                        public ComponentT<UITextBox>
+class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>
 {
  public:
   using UIWidget::isEnabled;
@@ -38,15 +36,12 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
   using UIWidget::getColor;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
-  using UIWidget::syncColliderToRect;
   using UIWidget::onPointerDown;
   using UIWidget::onSelect;
   using UIWidget::onDeselect;
 
-  /** @brief  Standalone constructor (no SceneNode). */
+  /** @brief  Constructor (normally called through ui::createWidget<UITextBox>). */
   UITextBox(sf::Vector2f size = {200.f, 40.f});
-  /** @brief  Component constructor attached to a SceneNode. */
-  UITextBox(SceneNode* node, sf::Vector2f size = {200.f, 40.f});
   ~UITextBox() override = default;
 
   /** @brief  Type UUID for serialization. */
@@ -56,14 +51,16 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
   /** @brief  Restore state written by onSerialize. */
   void onDeserialize(DataStream& stream) override;
 
-  /** @brief  Replace the displayed text. */
+  /** @brief  Replace the displayed text (input interpreted as UTF-8). */
   FORCEINLINE void setText(StringView text) {
-    m_textContent = String(text);
+    m_textContent = sf::String::fromUtf8(text.begin(), text.end());
+    clampCursor();
     syncText();
   }
-  /** @brief  Current text content. */
-  NODISCARD FORCEINLINE StringView getText() const {
-    return m_textContent;
+  /** @brief  Current text content, encoded as UTF-8. */
+  NODISCARD FORCEINLINE String getText() const {
+    const sf::U8String utf8 = m_textContent.toUtf8();
+    return String(reinterpret_cast<const char*>(utf8.data()), utf8.size());
   }
 
   
@@ -103,10 +100,25 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
   /** @brief  Current focused-border colour. */
   NODISCARD FORCEINLINE sf::Color getFocusedBorderColor() const { return m_focusedBorderColor; }
 
-  /** @brief  Move the text cursor to a character index. */
-  FORCEINLINE void setCursorPosition(uint32 pos) { m_cursorPos = pos; }
+  /** @brief  Move the text cursor to a character index (clamped to the content). */
+  FORCEINLINE void setCursorPosition(uint32 pos) { m_cursorPos = pos; clampCursor(); }
   /** @brief  Current cursor character index. */
   NODISCARD FORCEINLINE uint32 getCursorPosition() const { return m_cursorPos; }
+
+  /** @brief  Move the cursor one character left (keyboard editing). */
+  FORCEINLINE void moveCursorLeft() {
+    if (m_cursorPos > 0) { --m_cursorPos; }
+  }
+  /** @brief  Move the cursor one character right (keyboard editing). */
+  FORCEINLINE void moveCursorRight() {
+    if (m_cursorPos < static_cast<uint32>(m_textContent.getSize())) { ++m_cursorPos; }
+  }
+  /** @brief  Jump the cursor to the start of the content. */
+  FORCEINLINE void moveCursorHome() { m_cursorPos = 0; }
+  /** @brief  Jump the cursor to the end of the content. */
+  FORCEINLINE void moveCursorEnd() {
+    m_cursorPos = static_cast<uint32>(m_textContent.getSize());
+  }
 
   /** @brief  Text shown when the input is empty. */
   FORCEINLINE void setPlaceholder(StringView text) { m_placeholder = String(text); }
@@ -128,17 +140,25 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>,
   void deleteForward();
 
  private:
-  /** @brief  Focus the textbox and move cursor to the click position. */
+  /** @brief  Focus the textbox and place the caret at the click position. */
   void triggerPointerDown(sf::Vector2f position) override;
+  /** @brief  Cancel/Escape: fire the event, then drop selection (unfocus). */
+  void triggerCancel() override;
   /** @brief  Draw background, border, clipped text, and optional cursor. */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
   /** @brief  Push m_textContent into the sf::Text. */
   void syncText();
-  /** @brief  Update cursor shape position from m_cursorPos. */
-  void syncCursor();
+  /** @brief  Keep m_cursorPos within [0, content length]. */
+  FORCEINLINE void clampCursor() {
+    if (m_cursorPos > static_cast<uint32>(m_textContent.getSize())) {
+      m_cursorPos = static_cast<uint32>(m_textContent.getSize());
+    }
+  }
 
-  String m_textContent;
+  // UTF-32 internally: edits are per code point, no ANSI round-trip mangling
+  // (the old std::string + toAnsiString() path destroyed non-ASCII input).
+  sf::String m_textContent;
   String m_placeholder;
   mutable UniquePtr<sf::Text> m_text;
   mutable sf::Vector2f m_lastPos;

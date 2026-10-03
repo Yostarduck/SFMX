@@ -4,7 +4,6 @@
 
 #include "scene/AnimatorComponent.h"
 #include "scene/CameraComponent.h"
-#include "scene/CanvasComponent.h"
 #include "scene/ColliderComponent.h"
 #include "scene/ComponentRegistry.h"
 #include "scene/ListenerComponent.h"
@@ -15,15 +14,6 @@
 #include "scene/ScriptComponent.h"
 #include "scene/SourceComponent.h"
 #include "scene/SpriteComponent.h"
-#include "ui/UIButton.h"
-#include "ui/UICheckbox.h"
-#include "ui/UIHorizontalBox.h"
-#include "ui/UIImage.h"
-#include "ui/UILabel.h"
-#include "ui/UIScrollView.h"
-#include "ui/UISlider.h"
-#include "ui/UITextBox.h"
-#include "ui/UIVerticalBox.h"
 
 #include "resource/Frame.h"
 #include "resource/SpriteAtlas.h"
@@ -134,16 +124,7 @@ registerDemoPools(MemoryPoolHandler& pools) {
   pools.registerPool<ColliderComponent>(64);
   pools.registerPool<RigidBodyComponent>(64);
   pools.registerPool<ScriptComponent>(1024 * 100);
-  pools.registerPool<UIButton>(64);
-  pools.registerPool<UILabel>(64);
-  pools.registerPool<UIImage>(64);
-  pools.registerPool<UICheckbox>(64);
-  pools.registerPool<UITextBox>(64);
-  pools.registerPool<UISlider>(64);
-  pools.registerPool<UIVerticalBox>(16);
-  pools.registerPool<UIHorizontalBox>(16);
-  pools.registerPool<UIScrollView>(16);
-  pools.registerPool<CanvasComponent>(8);
+  // UI widget pools are registered by UIManager::onStartUp (ui/ owns them).
 
   std::cout << "Total pools memory usage: " << pools.getTotalMemoryUsage() << "\n";
   std::cout << "[Info] SceneNode pool memory usage: " << pools.pool<SceneNode>().getMemoryUsage() << std::endl;
@@ -158,10 +139,6 @@ registerDemoPools(MemoryPoolHandler& pools) {
   std::cout << "[Info] ColliderComponent pool memory usage: " << pools.pool<ColliderComponent>().getMemoryUsage() << std::endl;
   std::cout << "[Info] RigidBodyComponent pool memory usage: " << pools.pool<RigidBodyComponent>().getMemoryUsage() << std::endl;
   std::cout << "[Info] ScriptComponent pool memory usage: " << pools.pool<ScriptComponent>().getMemoryUsage() << std::endl;
-  std::cout << "[Info] UIButton pool memory usage: " << pools.pool<UIButton>().getMemoryUsage() << std::endl;
-  std::cout << "[Info] UILabel pool memory usage: " << pools.pool<UILabel>().getMemoryUsage() << std::endl;
-  std::cout << "[Info] UIImage pool memory usage: " << pools.pool<UIImage>().getMemoryUsage() << std::endl;
-  std::cout << "[Info] CanvasComponent pool memory usage: " << pools.pool<CanvasComponent>().getMemoryUsage() << std::endl;
 }
 
 void
@@ -177,16 +154,6 @@ registerDemoComponents() {
   reg.registerComponent<ColliderComponent>();
   reg.registerComponent<RigidBodyComponent>();
   reg.registerComponent<ScriptComponent>();
-  reg.registerComponent<CanvasComponent>();
-  reg.registerComponent<UIButton>();
-  reg.registerComponent<UILabel>();
-  reg.registerComponent<UIImage>();
-  reg.registerComponent<UICheckbox>();
-  reg.registerComponent<UITextBox>();
-  reg.registerComponent<UISlider>();
-  reg.registerComponent<UIVerticalBox>();
-  reg.registerComponent<UIHorizontalBox>();
-  reg.registerComponent<UIScrollView>();
 }
 
 void
@@ -205,10 +172,6 @@ poolsInfo() {
   std::cout << "[Info] Total ColliderComponent elements: " << pools.pool<ColliderComponent>().getAllocatedCount() << std::endl;
   std::cout << "[Info] Total RigidBodyComponent elements: " << pools.pool<RigidBodyComponent>().getAllocatedCount() << std::endl;
   std::cout << "[Info] Total ScriptComponent elements: " << pools.pool<ScriptComponent>().getAllocatedCount() << std::endl;
-  std::cout << "[Info] Total UIButton elements: " << pools.pool<UIButton>().getAllocatedCount() << std::endl;
-  std::cout << "[Info] Total UILabel elements: " << pools.pool<UILabel>().getAllocatedCount() << std::endl;
-  std::cout << "[Info] Total UIImage elements: " << pools.pool<UIImage>().getAllocatedCount() << std::endl;
-  std::cout << "[Info] Total CanvasComponent elements: " << pools.pool<CanvasComponent>().getAllocatedCount() << std::endl;
 }
 
 void

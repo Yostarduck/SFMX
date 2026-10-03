@@ -3,7 +3,6 @@
 #include "ui/UITextBox.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -16,9 +15,7 @@ void
 registerUITextBox(sol::state_view lua) {
   lua.new_usertype<UITextBox>("UITextBox",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UITextBox>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "setText", &UITextBox::setText,
     "getText", &UITextBox::getText,

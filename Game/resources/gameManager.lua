@@ -55,114 +55,86 @@ function GameManager.onStart(self)
   
   myScript = self.owner:getComponent(ScriptComponent)
   
-  infoLabelNode = scene:findNode("InfoLabel")
-  if infoLabelNode ~= nil then
-    infoLabel = infoLabelNode:getComponent(UILabel)
-  else
+  infoLabel = UI:get("InfoLabel")
+  if infoLabel == nil then
     print("infoLabel not found")
   end
-  
-  upgradesMenuButtonNode = scene:findNode("UpgradesButton")
-  if upgradesMenuButtonNode ~= nil then
-    upgradesMenuButton = upgradesMenuButtonNode:getComponent(UIButton)
 
+  upgradesMenuButton = UI:get("UpgradesButton")
+  if upgradesMenuButton ~= nil then
     upgradesMenuButton:onPointerClick(myScript, "toggleMenu")
   else
     print("UpgradesButton not found")
   end
-  
-  upgradesMenuContainerNode = scene:findNode("UpgradesMenu")
-  if upgradesMenuContainerNode ~= nil then
-    upgradesMenuContainer = upgradesMenuContainerNode:getComponent(UIScrollView)
-    
+
+  upgradesMenuContainer = UI:get("UpgradesMenu")
+  if upgradesMenuContainer ~= nil then
     upgradesMenuContainer:setEnabled(false)
     upgradesMenuContainer:setVisible(false)
   else
     print("UpgradesMenu not found")
   end
 
-  buySliderNode = scene:findNode("BuySlider")
-  if buySliderNode ~= nil then
-    buySlider = buySliderNode:getComponent(UISlider)
-  else
+  buySlider = UI:get("BuySlider")
+  if buySlider == nil then
     print("BuySlider not found")
   end
-  
-  commonMageCostNode = scene:findNode("Common Mage Cost Label")
-  if commonMageCostNode ~= nil then
-    commonMageCostLabel = commonMageCostNode:getComponent(UILabel)
 
+  commonMageCostLabel = UI:get("Common Mage Cost Label")
+  if commonMageCostLabel ~= nil then
     commonMageCostLabel:setText("$" .. CommonMageData.cost)
   end
-  
-  buyCommonMageNode = scene:findNode("Common Mage Button")
-  if buyCommonMageNode ~= nil then
-    buyCommonMageButton = buyCommonMageNode:getComponent(UIButton)
 
+  buyCommonMageButton = UI:get("Common Mage Button")
+  if buyCommonMageButton ~= nil then
     buyCommonMageButton:onPointerClick(myScript, "buyCommonMage")
   else
     print("Common Mage Button not found")
   end
-  
-  fireMageCostNode = scene:findNode("Fire Mage Cost Label")
-  if fireMageCostNode ~= nil then
-    fireMageCostLabel = fireMageCostNode:getComponent(UILabel)
 
+  fireMageCostLabel = UI:get("Fire Mage Cost Label")
+  if fireMageCostLabel ~= nil then
     fireMageCostLabel:setText("$" .. FireMageData.cost)
   end
-  
-  buyFireMageNode = scene:findNode("Fire Mage Button")
-  if buyFireMageNode ~= nil then
-    buyFireMageButton = buyFireMageNode:getComponent(UIButton)
 
+  buyFireMageButton = UI:get("Fire Mage Button")
+  if buyFireMageButton ~= nil then
     buyFireMageButton:onPointerClick(myScript, "buyFireMage")
   else
     print("Fire Mage Button not found")
   end
-  
-  thunderMageCostNode = scene:findNode("Thunder Mage Cost Label")
-  if thunderMageCostNode ~= nil then
-    thunderMageCostLabel = thunderMageCostNode:getComponent(UILabel)
 
+  thunderMageCostLabel = UI:get("Thunder Mage Cost Label")
+  if thunderMageCostLabel ~= nil then
     thunderMageCostLabel:setText("$" .. ThunderMageData.cost)
   end
-  
-  buyThunderMageNode = scene:findNode("Thunder Mage Button")
-  if buyThunderMageNode ~= nil then
-    buyThunderMageButton = buyThunderMageNode:getComponent(UIButton)
 
+  buyThunderMageButton = UI:get("Thunder Mage Button")
+  if buyThunderMageButton ~= nil then
     buyThunderMageButton:onPointerClick(myScript, "buyThunderMage")
   else
     print("Thunder Mage Button not found")
   end
-  
-  elderWizardCostNode = scene:findNode("Elder Wizard Cost Label")
-  if elderWizardCostNode ~= nil then
-    elderWizardCostLabel = elderWizardCostNode:getComponent(UILabel)
 
+  elderWizardCostLabel = UI:get("Elder Wizard Cost Label")
+  if elderWizardCostLabel ~= nil then
     elderWizardCostLabel:setText("$" .. ElderWizardData.cost)
   end
-  
-  buyElderWizardNode = scene:findNode("Elder Wizard Button")
-  if buyElderWizardNode ~= nil then
-    buyElderWizardButton = buyElderWizardNode:getComponent(UIButton)
 
+  buyElderWizardButton = UI:get("Elder Wizard Button")
+  if buyElderWizardButton ~= nil then
     buyElderWizardButton:onPointerClick(myScript, "buyElderWizard")
   else
     print("Elder Wizard Button not found")
   end
-  
-  eliteWarlockCostNode = scene:findNode("Elite Warlock Cost Label")
-  if eliteWarlockCostNode ~= nil then
-    eliteWarlockCostLabel = eliteWarlockCostNode:getComponent(UILabel)
 
+  eliteWarlockCostLabel = UI:get("Elite Warlock Cost Label")
+  if eliteWarlockCostLabel ~= nil then
     eliteWarlockCostLabel:setText("$" .. EliteWarlockData.cost)
   end
-  
-  buyEliteWarlockNode = scene:findNode("Elite Warlock Button")
-  if buyEliteWarlockNode ~= nil then
-    buyEliteWarlockButton = buyEliteWarlockNode:getComponent(UIButton)
 
+  buyEliteWarlockButton = UI:get("Elite Warlock Button")
+  if buyEliteWarlockButton ~= nil then
     buyEliteWarlockButton:onPointerClick(myScript, "buyEliteWarlock")
   else
     print("Elite Warlock Button not found")

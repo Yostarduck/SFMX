@@ -13,7 +13,6 @@
 #include "input/Mouse.h"
 
 #include "scene/CameraComponent.h"
-#include "scene/CanvasComponent.h"
 #include "scene/ComponentRegistry.h"
 #include "scene/MaterialComponent.h"
 #include "scene/ParticleSystemComponent.h"
@@ -23,17 +22,15 @@
 #include "scene/ScriptComponent.h"
 #include "scene/SourceComponent.h"
 
-#include "ui/Canvas.h"
+#include "ui/UIFactory.h"
+#include "ui/UIManager.h"
 #include "ui/UIButton.h"
-#include "ui/UICheckbox.h"
 #include "ui/UICheckboxGroup.h"
-#include "ui/UIEventSystem.h"
 #include "ui/UIHorizontalBox.h"
 #include "ui/UIImage.h"
 #include "ui/UILabel.h"
 #include "ui/UIScrollView.h"
 #include "ui/UISlider.h"
-#include "ui/UITextBox.h"
 #include "ui/UIVerticalBox.h"
 
 #include "assets/AssetCooker.h"
@@ -192,6 +189,12 @@ main(int argc, char **argv) {
   const size_t mountedAssets = AssetManager::instance().mount("assets");
   std::cout << "[Assets] mounted " << mountedAssets << " from assets\n";
 
+  // UI before ScriptEngine: ScriptEngine::onStartUp binds the Lua globals, and
+  // the `UI` global only binds when UIManager is already up (registerUIManager
+  // guards on UIManager::isStarted()). Start-up also registers the widget
+  // pools, so it must precede the first ui::createWidget below.
+  UIManager::startUp();
+
   ScriptEngine::startUp();
 
   // Load the cooked demo scene into a SceneManager-owned scene; fall back to
@@ -265,23 +268,18 @@ main(int argc, char **argv) {
 
   InputSystem::instance().setActiveMapping(controls);
 
-  UIEventSystem::startUp();
-
   /****************************************************************************/
   /*                                 UI Setup                                 */
   /*                                                                          */
 
-  // Create canvas
-  SceneNode* canvasNode = scene.createNode("HUDCanvas");
-  auto* canvaComp = canvasNode->addComponent<CanvasComponent>();
-  Canvas &uiCanvas = canvaComp->getCanvas();
+  // Wire up UI navigation actions. No scene-side canvas exists anymore: the
+  // UIManager owns the widget roots (started with the engine modules above).
+  UIManager& uiManager = UIManager::instance();
+  uiManager.setNavigateAction(uiNavigate);
+  uiManager.setSubmitAction(uiSubmit);
+  uiManager.setCancelAction(uiCancel);
 
-  // Wire up UI navigation actions
-  UIEventSystem::instance().setNavigateAction(uiNavigate);
-  UIEventSystem::instance().setSubmitAction(uiSubmit);
-  UIEventSystem::instance().setCancelAction(uiCancel);
-
-  UILabel* debugLabel;
+  UILabel* debugLabel = nullptr;
   // Kept alive for the whole loop so the toggle button stays subscribed.
   HEvent toggleShaderHandle;
   UILabel* shaderLabel = nullptr;
@@ -305,48 +303,52 @@ main(int argc, char **argv) {
 
     // Debug label
     if (fontLoaded) {
-      auto* debugNode = canvasNode->createChild("DebugLabel");
-      debugLabel = debugNode->addComponent<UILabel>(sf::Vector2f{float(windowWidth), 50.f});
+      debugLabel = ui::createWidget<UILabel>(sf::Vector2f{float(windowWidth), 50.f});
+      debugLabel->setName("DebugLabel");
       debugLabel->setPosition({25.0f, windowHeight - 50.0f});
+      // Bottom-left pinned: authoring position first, anchors next, then the
+      // anchor-relative offset LAST (setPosition rewrites the slot offset).
+      debugLabel->setAnchorMin({0.f, 1.f});
+      debugLabel->setAnchorMax({0.f, 1.f});
+      debugLabel->setPivot({0.f, 1.f});
+      debugLabel->setOffset({25.0f, 0.f});  // 25 from left, flush to bottom
       debugLabel->setFontAsset(fontAsset);
       debugLabel->setText("");
       debugLabel->setCharacterSize(22);
       debugLabel->setTextColor(sf::Color::White);
-      uiCanvas.addWidget(debugLabel);
+      uiManager.addRoot(debugLabel);
     }
 
     // Show upgrades menu button
-    auto* upgradesNode = canvasNode->createChild("UpgradesButton");
-    UIButton* upgradesBtn = upgradesNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    UIButton* upgradesBtn = ui::createWidget<UIButton>(sf::Vector2f{200.f, 50.f});
+    upgradesBtn->setName("UpgradesButton");
     upgradesBtn->setPosition({25.0f, 25.0f});
-    upgradesBtn->syncColliderToRect();
-    uiCanvas.addWidget(upgradesBtn);
+    uiManager.addRoot(upgradesBtn);
 
     // Info label
     if (fontLoaded) {
-      auto* infoNode = canvasNode->createChild("InfoLabel");
-      auto* infoLabel = infoNode->addComponent<UILabel>(sf::Vector2f{400.f, 50.f});
+      auto* infoLabel = ui::createWidget<UILabel>(sf::Vector2f{400.f, 50.f});
+      infoLabel->setName("InfoLabel");
       infoLabel->setPosition({250.0f, 25.0f});
       infoLabel->setFontAsset(fontAsset);
       infoLabel->setText("");
       infoLabel->setCharacterSize(22);
       infoLabel->setTextColor(sf::Color::White);
-      uiCanvas.addWidget(infoLabel);
+      uiManager.addRoot(infoLabel);
     }
 
     // Upgrades menu
     if (fontLoaded) {
       // Upgrades scroll view
-      auto* upgradesMenuNode = canvasNode->createChild("UpgradesMenu");
-      UIScrollView* scrollView = upgradesMenuNode->addComponent<UIScrollView>(sf::Vector2f{310.0f, 250.f});
+      UIScrollView* scrollView = ui::createWidget<UIScrollView>(sf::Vector2f{310.0f, 250.f});
+      scrollView->setName("UpgradesMenu");
       scrollView->setPosition({25.0f, 100.0f});
-      scrollView->syncColliderToRect();
       scrollView->setBackgroundColor(sf::Color(255, 101, 224, 128));
-      uiCanvas.addWidget(scrollView);
+      uiManager.addRoot(scrollView);
 
       // Upgrades list container
-      auto* upgradesListNode = canvasNode->createChild("UpgradesList");
-      UIVerticalBox* list = upgradesListNode->addComponent<UIVerticalBox>(sf::Vector2f{310.f, 60.f});
+      UIVerticalBox* list = ui::createWidget<UIVerticalBox>(sf::Vector2f{310.f, 60.f});
+      list->setName("UpgradesList");
       list->setPadding({15.0f, 10.0f});
       list->setSpacing(5.0f);
       list->setBoxColor(sf::Color::Transparent);
@@ -355,8 +357,8 @@ main(int argc, char **argv) {
       // Helper local function to add upgrade entries
       auto addBuyUnitButton = [&](const char* name) {
         // Upgrade container
-        auto* hboxNode = canvasNode->createChild(String(name) + " HBox");
-        UIHorizontalBox* hbox = hboxNode->addComponent<UIHorizontalBox>(sf::Vector2f{280.f, 50.f});
+        UIHorizontalBox* hbox = ui::createWidget<UIHorizontalBox>(sf::Vector2f{280.f, 50.f});
+        hbox->setName(String(name) + " HBox");
         hbox->setPosition({0.0f, 0.0f});
         hbox->setPadding({10.0f, 10.0f});
         hbox->setSpacing(10.f);
@@ -364,8 +366,8 @@ main(int argc, char **argv) {
         list->addChild(hbox);
 
         // Upgrade name label
-        auto* nameLn = canvasNode->createChild(String(name) + " Label");
-        auto* nameLbl = nameLn->addComponent<UILabel>(sf::Vector2f{150.f, 30.f});
+        auto* nameLbl = ui::createWidget<UILabel>(sf::Vector2f{150.f, 30.f});
+        nameLbl->setName(String(name) + " Label");
         nameLbl->setPosition({0.f, 0.f});
         nameLbl->setFontAsset(fontAsset);
         nameLbl->setText(name);
@@ -374,8 +376,8 @@ main(int argc, char **argv) {
         hbox->addChild(nameLbl);
 
         // Upgrade cost label
-        auto* costLn = canvasNode->createChild(String(name) + " Cost Label");
-        auto* costLbl = costLn->addComponent<UILabel>(sf::Vector2f{40.f, 30.f});
+        auto* costLbl = ui::createWidget<UILabel>(sf::Vector2f{40.f, 30.f});
+        costLbl->setName(String(name) + " Cost Label");
         costLbl->setPosition({0.f, 0.f});
         costLbl->setFontAsset(fontAsset);
         costLbl->setText("$");
@@ -384,8 +386,8 @@ main(int argc, char **argv) {
         hbox->addChild(costLbl);
 
         // Upgrade button
-        auto* n = canvasNode->createChild(String(name) + " Button");
-        auto* btn = n->addComponent<UIButton>(sf::Vector2f{50.f, 30.f});
+        auto* btn = ui::createWidget<UIButton>(sf::Vector2f{50.f, 30.f});
+        btn->setName(String(name) + " Button");
         btn->setPosition({0.f, 0.f});
         hbox->addChild(btn);
 
@@ -395,8 +397,8 @@ main(int argc, char **argv) {
       // Buy quantity slider
       {
         // Buy label
-        auto* buyLabelNode = canvasNode->createChild("BuyLabel");
-        auto* label = buyLabelNode->addComponent<UILabel>(sf::Vector2f{180.f, 22.f});
+        auto* label = ui::createWidget<UILabel>(sf::Vector2f{180.f, 22.f});
+        label->setName("BuyLabel");
         label->setPosition({0.f, 0.f});
         label->setFontAsset(fontAsset);
         label->setText("Amount of units to buy");
@@ -405,8 +407,8 @@ main(int argc, char **argv) {
         list->addChild(label);
 
         // Buy slider
-        auto* buySliderNode = canvasNode->createChild("BuySlider");
-        UISlider* buySlider = buySliderNode->addComponent<UISlider>(sf::Vector2f{180.f, 20.f});
+        UISlider* buySlider = ui::createWidget<UISlider>(sf::Vector2f{180.f, 20.f});
+        buySlider->setName("BuySlider");
         buySlider->setPosition({0.f, 0.f});
         buySlider->setRange(1.f, 10.f);
         buySlider->setValue(1.f);
@@ -431,31 +433,42 @@ main(int argc, char **argv) {
       scrollView->setContentHeight(contentH);
     }
 
-    // Exit game button
-    auto* btnExitNode = canvasNode->createChild("ExitBtn");
-    UIButton* btnExit = btnExitNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    // Exit game button — bottom-right pinned (authoring position → anchors →
+    // anchor-relative offset LAST: setPosition rewrites the slot offset).
+    UIButton* btnExit = ui::createWidget<UIButton>(sf::Vector2f{200.f, 50.f});
+    btnExit->setName("ExitBtn");
     btnExit->setPosition({windowWidth - 225.0f, windowHeight - 75.0f});
-    btnExit->syncColliderToRect();
+    btnExit->setAnchorMin({1.f, 1.f});
+    btnExit->setAnchorMax({1.f, 1.f});
+    btnExit->setPivot({1.f, 1.f});
+    btnExit->setOffset({-25.0f, -25.0f});  // 25px margin from the corner
     btnExit->setNormalColor(sf::Color(180, 80, 80));
-    uiCanvas.addWidget(btnExit);
+    uiManager.addRoot(btnExit);
 
     // Toggle post-processing shader on/off, to eyeball the effect.
-    auto* toggleNode = canvasNode->createChild("ToggleShaderBtn");
-    UIButton* toggleShaderBtn = toggleNode->addComponent<UIButton>(sf::Vector2f{200.f, 50.f});
+    UIButton* toggleShaderBtn = ui::createWidget<UIButton>(sf::Vector2f{200.f, 50.f});
+    toggleShaderBtn->setName("ToggleShaderBtn");
     toggleShaderBtn->setPosition({windowWidth - 225.0f, windowHeight - 140.0f});
-    toggleShaderBtn->syncColliderToRect();
+    toggleShaderBtn->setAnchorMin({1.f, 1.f});
+    toggleShaderBtn->setAnchorMax({1.f, 1.f});
+    toggleShaderBtn->setPivot({1.f, 1.f});
+    toggleShaderBtn->setOffset({-25.0f, -90.0f});
     toggleShaderBtn->setNormalColor(sf::Color(80, 140, 180));
-    uiCanvas.addWidget(toggleShaderBtn);
+    uiManager.addRoot(toggleShaderBtn);
 
     if (fontLoaded) {
-      auto* shaderLabelNode = canvasNode->createChild("ShaderLabel");
-      shaderLabel = shaderLabelNode->addComponent<UILabel>(sf::Vector2f{200.f, 50.f});
+      shaderLabel = ui::createWidget<UILabel>(sf::Vector2f{200.f, 50.f});
+      shaderLabel->setName("ShaderLabel");
       shaderLabel->setPosition({windowWidth - 215.0f, windowHeight - 128.0f});
+      shaderLabel->setAnchorMin({1.f, 1.f});
+      shaderLabel->setAnchorMax({1.f, 1.f});
+      shaderLabel->setPivot({1.f, 1.f});
+      shaderLabel->setOffset({-15.0f, -78.0f});
       shaderLabel->setFontAsset(fontAsset);
       shaderLabel->setText("Shader: ON");
       shaderLabel->setCharacterSize(18);
       shaderLabel->setTextColor(sf::Color::White);
-      uiCanvas.addWidget(shaderLabel);
+      uiManager.addRoot(shaderLabel);
     }
 
     PostProcessPipeline* fx = postFx ? &*postFx : nullptr;
@@ -563,20 +576,15 @@ main(int argc, char **argv) {
     while (const Optional<sf::Event> event = window.pollEvent()) {
       if (event->is<sf::Event::Closed>()) {
         window.close();
+        InputSystem::instance().onEvent(*event);
       }
-      else if (const auto* text = event->getIf<sf::Event::TextEntered>()) {
-        if (auto* textBox = dynamic_cast<UITextBox*>(UIEventSystem::instance().getSelected())) {
-          const char32_t ch = text->unicode;
-          if (ch == 8) {
-            textBox->deleteCharacter();
-          }
-          else if (ch >= 32) {
-            textBox->insertCharacter(static_cast<uint32>(ch));
-          }
-        }
+      else if (UIManager::instance().handleEvent(*event)) {
+        // UI consumed it: a focused text editor owns typing, caret keys and
+        // Escape-to-cancel — the game input layer must not see those strokes.
       }
-
-      InputSystem::instance().onEvent(*event);
+      else {
+        InputSystem::instance().onEvent(*event);
+      }
     }
 
     const float deltaTime = clock.restart().asSeconds();
@@ -593,7 +601,7 @@ main(int argc, char **argv) {
     // frame arena instead of std::format's heap string. setText copies the data,
     // so the buffer only needs to live until the call returns.
     char* textBuffer = static_cast<char*>(FrameMemory::instance().allocate(128));
-    if (nullptr != textBuffer) {
+    if (nullptr != textBuffer && nullptr != debugLabel) {
       std::snprintf(textBuffer, 128, "FPS: %.0f\nNodes: %zu",
                     std::round(1.0f / avg), scene.getNodeCount());
       debugLabel->setText(StringView(textBuffer));
@@ -637,7 +645,7 @@ main(int argc, char **argv) {
     // frame.
     AssetManager::instance().finalize();
 
-    UIEventSystem::instance().update(window, deltaTime);
+    UIManager::instance().update(window, deltaTime);
 
     SceneManager::instance().update(deltaTime);
 
@@ -647,9 +655,10 @@ main(int argc, char **argv) {
     // Scene through the post chain (or straight to the window when no passes).
     postFx->render(scenes, window, totalTime);
 
-    // Screen-space canvas: reset the view so coordinates match window pixels.
-    window.setView(window.getDefaultView());
-    // uiCanvas.draw(window, sf::RenderStates::Default);
+    // Screen-space UI, drawn AFTER the post chain so the HUD stays crisp.
+    // UIManager::draw switches to the default view itself (window pixels,
+    // matching the hit-test coordinate space) and restores it afterwards.
+    UIManager::instance().draw(window);
 
     window.display();
 
@@ -664,7 +673,10 @@ main(int argc, char **argv) {
   AssetManager::instance().cancelAsyncLoads();
   SceneManager::instance().destroyAllScenes();
 
-  UIEventSystem::shutDown();
+  // Destroy the widget roots after the scenes (their ScriptComponents have
+  // unsubscribed from widget events by now) but before ScriptEngine shuts the
+  // Lua state down and before the pools go away.
+  UIManager::shutDown();
 
   ScriptEngine::shutDown();
   AssetManager::shutDown();

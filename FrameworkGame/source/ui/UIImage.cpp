@@ -10,18 +10,11 @@ namespace sfmx
 
 namespace
 {
-constexpr uint32 kUIImageVersion = 1;
+constexpr uint32 kUIImageVersion = 2;
 }
 
 UIImage::UIImage(sf::Vector2f size)
-  : UIWidgetT<UIImage, WidgetType::kImage>(),
-    ComponentT<UIImage>(nullptr) {
-  setSize(size);
-}
-
-UIImage::UIImage(SceneNode* node, sf::Vector2f size)
-  : UIWidgetT<UIImage, WidgetType::kImage>(),
-    ComponentT<UIImage>(node) {
+  : UIWidgetT<UIImage, WidgetType::kImage>() {
   setSize(size);
 }
 
@@ -80,7 +73,6 @@ sf::IntRect UIImage::getTextureRect() const {
 }
 
 void UIImage::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
-  if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible() || !m_sprite) {
     return;
   }
@@ -105,6 +97,7 @@ void UIImage::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
 
 void UIImage::onSerialize(DataStream& stream) const {
   stream << kUIImageVersion;
+  serializeBase(stream);
   stream << m_textureAssetId;
   stream << static_cast<uint8>(m_flipX ? 1 : 0);
   stream << static_cast<uint8>(m_flipY ? 1 : 0);
@@ -124,6 +117,7 @@ void UIImage::onDeserialize(DataStream& stream) {
   if (version != kUIImageVersion) {
     return;
   }
+  deserializeBase(stream);
 
   UUID id;
   stream >> id;
