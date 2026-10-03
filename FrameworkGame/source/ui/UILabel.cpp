@@ -27,7 +27,11 @@ UILabel::UILabel(sf::Vector2f size)
   setSize(size);
 }
 
-UILabel::~UILabel() = default;
+UILabel::~UILabel()  {
+  m_text.reset();
+  m_fontAsset.reset();
+  m_text.release();
+}
 
 // -- Type --------------------------------------------------------------------
 

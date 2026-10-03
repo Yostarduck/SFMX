@@ -669,7 +669,9 @@ main(int argc, char **argv) {
                     std::round(1.0f / avg), scene.getNodeCount(),
                     showInstanced ? "INSTANCED" : "REGULAR",
                     drawCalls, vsyncOn ? "on" : "off");
-      debugLabel->setText(StringView(textBuffer));
+      if (nullptr != debugLabel) {
+        debugLabel->setText(StringView(textBuffer));
+      }
     }
     
     InputSystem::instance().update(deltaTime, window);
