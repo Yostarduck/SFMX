@@ -2,7 +2,6 @@
 
 #include "ui/UIWidget.h"
 #include "scene/ScriptComponent.h"
-#include "scene/SceneNode.h"
 
 #include "core/platform/Prerequisites.h"
 

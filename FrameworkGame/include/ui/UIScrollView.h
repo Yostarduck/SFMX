@@ -10,8 +10,6 @@
 
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/View.hpp>
-#include "scene/SceneNode.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -23,14 +21,13 @@ namespace sfmx
  *
  * Children are positioned in content-space (0,0 = top of the content area).
  * The ScrollView applies its viewport transform and scroll offset during
- * drawing and hit-testing.  Children are NOT registered with the Canvas
- * directly — only the ScrollView root is.
+ * drawing and hit-testing.  Children are owned by the ScrollView (destroyed
+ * with it).
  *
  * Clipping uses sf::View viewport (same technique as UITextBox).
  * Use setScrollOffset() or scrollBy() to programmatically scroll.
  */
-class UIScrollView final : public UIWidgetT<UIScrollView, WidgetType::kScrollView>,
-                           public ComponentT<UIScrollView>
+class UIScrollView final : public UIWidgetT<UIScrollView, WidgetType::kScrollView>
 {
  public:
   /** @brief  Enable/disable state. */
@@ -63,10 +60,8 @@ class UIScrollView final : public UIWidgetT<UIScrollView, WidgetType::kScrollVie
   using UIWidget::getColor;
   /** @brief  Set the tint colour. */
   using UIWidget::setColor;
-  /** @brief  Test if a canvas-space point is inside this widget. */
+  /** @brief  Test if a local-space point is inside this widget. */
   using UIWidget::containsPoint;
-  /** @brief  Sync the physics collider shape with the widget rect. */
-  using UIWidget::syncColliderToRect;
   /** @brief  Called when pointer enters the widget area. */
   using UIWidget::onPointerEnter;
   /** @brief  Called when pointer exits the widget area. */
@@ -82,10 +77,8 @@ class UIScrollView final : public UIWidgetT<UIScrollView, WidgetType::kScrollVie
   /** @brief  Get the parent UIWidget, or nullptr. */
   using UIWidget::getUIparent;
 
-  /** @brief  Standalone constructor (no SceneNode). */
+  /** @brief  Constructor (normally called through ui::createWidget<UIScrollView>). */
   UIScrollView(sf::Vector2f size = {300.f, 400.f});
-  /** @brief  Component constructor attached to a SceneNode. */
-  UIScrollView(SceneNode* node, sf::Vector2f size = {300.f, 400.f});
   ~UIScrollView() override = default;
 
   // -- Serialization ------------------------------------------------------------
@@ -126,8 +119,6 @@ class UIScrollView final : public UIWidgetT<UIScrollView, WidgetType::kScrollVie
   void triggerScroll(float delta) override;
   /** @brief  Translate + scroll offset applied to content-space children. */
   NODISCARD sf::Transform getChildTransform() const override;
-  /** @brief  Hit-test with scroll-aware content-space transform. */
-  NODISCARD UIWidget* hitTestInHierarchy(sf::Vector2f point) const override;
   /** @brief  Clip to viewport via sf::View, draw background, then draw scrolled children. */
   void drawHierarchy(sf::RenderTarget& target, sf::RenderStates states) const override;
   /** @brief  Convert canvas-space point to content-space, accounting for scroll offset. */

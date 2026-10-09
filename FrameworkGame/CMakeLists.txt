@@ -86,8 +86,7 @@ add_library(FrameworkGame STATIC
     source/gfx/InstanceDrawer.cpp
 
     source/ui/UIWidget.cpp
-    source/ui/Canvas.cpp
-    source/ui/UIEventSystem.cpp
+    source/ui/UIManager.cpp
     source/ui/UIButton.cpp
     source/ui/UILabel.cpp
     source/ui/UIImage.cpp
@@ -98,8 +97,9 @@ add_library(FrameworkGame STATIC
     source/ui/UIVerticalBox.cpp
     source/ui/UIHorizontalBox.cpp
     source/ui/UIScrollView.cpp
+    source/ui/UIWidgetRegistry.cpp
+    source/ui/UISerializer.cpp
 
-    source/scene/CanvasComponent.cpp
     source/scene/Scene.cpp
     source/scene/SceneManager.cpp
     source/scene/SceneNode.cpp
@@ -164,7 +164,7 @@ add_library(FrameworkGame STATIC
     source/scripts/RegisterUISlider.cpp
     source/scripts/RegisterUITextBox.cpp
     source/scripts/RegisterUIVerticalBox.cpp
-
+    source/scripts/RegisterUIManager.cpp
     source/scripts/RegisterScene.cpp
     source/scripts/RegisterSceneNode.cpp
     source/scripts/RegisterSceneManager.cpp

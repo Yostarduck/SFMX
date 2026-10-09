@@ -3,7 +3,6 @@
 #include "ui/UILabel.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -16,9 +15,7 @@ void
 registerUILabel(sol::state_view lua) {
   lua.new_usertype<UILabel>("UILabel",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UILabel>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "setText", &UILabel::setText,
     "getText", &UILabel::getText,

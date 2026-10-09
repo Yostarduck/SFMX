@@ -3,7 +3,6 @@
 #include "ui/UISlider.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "scene/ScriptComponent.h"
 #include "ui/UIWidget.h"
 
@@ -17,9 +16,7 @@ void
 registerUISlider(sol::state_view lua) {
   lua.new_usertype<UISlider>("UISlider",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UISlider>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "getValue", &UISlider::getValue,
     "setValue", &UISlider::setValue,

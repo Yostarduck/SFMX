@@ -3,7 +3,6 @@
 #include "ui/UIButton.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -16,9 +15,7 @@ void
 registerUIButton(sol::state_view lua) {
   lua.new_usertype<UIButton>("UIButton",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UIButton>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "setNormalColor", &UIButton::setNormalColor,
     "setHoveredColor", &UIButton::setHoveredColor,
