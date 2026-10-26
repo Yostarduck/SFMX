@@ -3,7 +3,7 @@
  * @file UIWidget.h
  * @author Swampertor
  * @date 2026/06/10
- * @brief  Base class for every UI element placed on a Canvas.
+ * @brief  Base class for every UI element owned by the UIManager.
  */
 /************************************************************************/
 #pragma once
@@ -14,15 +14,16 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
-#include "core/physics/Collider.h"
 #include "core/platform/Prerequisites.h"
 #include "utils/EventSystem.h"
 #include "utils/TypeTraits.h"
+#include "ui/UISlot.h"
 
 namespace sfmx
 {
 
-class Canvas;
+class UIManager;
+class DataStream;
 
 
 enum class WidgetType : uint8
@@ -40,17 +41,20 @@ enum class WidgetType : uint8
 };
 
 /**
- * @brief Base class for every UI element placed on a Canvas or attached to a
- *        SceneNode through a component.
+ * @brief Base class for every UI element in the UI document tree.
  *
  * Provides a local-space rectangle (m_rect), Unity-style anchor & pivot for
  * layout, an enable / visible / interactable state machine, a hierarchy of
  * parent and children, and virtual event callbacks that fire corresponding
  * Event<> members (subscribable via RAII HEvent handles).
  *
- * Hit-testing (containsPoint) can optionally use the physics collider system
- * (ICollider / intersect dispatch) instead of the raw m_rect.  Call one of the
- * setCollider*() methods or syncColliderToRect() to enable it.
+ * Hit-testing (containsPoint) is a plain m_rect check.
+ *
+ * Ownership: every widget is either a ROOT registered with the UIManager
+ * (m_manager set on the widget itself) or a CHILD of a container widget
+ * (m_parent set). A parent destroys its children; the UIManager destroys its
+ * roots. Destruction goes through the widget's memory pool (erased
+ * MemoryPoolHandler::deallocate), never `delete`.
  *
  * The event flow mirrors the InputAction pattern: override the virtual
  * onPointerXxx to change widget behaviour; the base implementation fires
@@ -68,165 +72,151 @@ class UIWidget
   // -- Identity & state ------------------------------------------------------
 
   /** @brief Concrete shape discriminator (fast enum path; also the serialized tag) */
-  NODISCARD virtual WidgetType 
+  NODISCARD virtual WidgetType
   getType() const = 0;
 
   /** @brief Type UUID for serialization (see TypeTraits). */
-  NODISCARD virtual UUID 
+  NODISCARD virtual UUID
   getTypeId() const = 0;
 
+  /** @brief Unique-ish lookup name (what `UI:get(name)` searches for). */
+  NODISCARD FORCEINLINE const String&
+  getName() const { return m_name; }
+  FORCEINLINE void
+  setName(StringView name) { m_name = name; }
+
   /** @brief True if the widget and its callbacks are processed. */
-  NODISCARD FORCEINLINE bool 
+  NODISCARD FORCEINLINE bool
   isEnabled() const { return m_enabled; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setEnabled(bool enabled) { m_enabled = enabled; }
 
   /** @brief True if the widget participates in rendering. */
-  NODISCARD FORCEINLINE bool 
+  NODISCARD FORCEINLINE bool
   isVisible() const { return m_visible; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setVisible(bool visible) { m_visible = visible; }
 
   /** @brief True if the widget can receive pointer events. */
-  NODISCARD FORCEINLINE bool 
+  NODISCARD FORCEINLINE bool
   isInteractable() const { return m_interactable; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setInteractable(bool interactable) { m_interactable = interactable; }
 
-  /** @brief True when this widget is the current EventSystem selection. */
-  NODISCARD FORCEINLINE bool 
+  /** @brief True when this widget is the current UIManager selection. */
+  NODISCARD FORCEINLINE bool
   isFocused() const { return m_focused; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setFocused(bool focused) { m_focused = focused; }
 
   /** @brief Whether this widget blocks pointer events from reaching widgets drawn below it. */
-  NODISCARD FORCEINLINE bool 
+  NODISCARD FORCEINLINE bool
   isBlockingInput() const { return m_blocksInput; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setBlocksInput(bool blocks) { m_blocksInput = blocks; }
 
   // -- Rect ------------------------------------------------------------------
 
-  /** @brief Local-space position (relative to parent or canvas). */
-  NODISCARD FORCEINLINE sf::Vector2f 
+  /** @brief Local-space position (relative to parent, or window pixels at root level). */
+  NODISCARD FORCEINLINE sf::Vector2f
   getPosition() const { return m_rect.position; }
-  FORCEINLINE void 
-  setPosition(sf::Vector2f position) { m_rect.position = position; }
+  // Also rewrites the slot offset: raw placement is the offset datum for
+  // default anchors (authoring order: set anchors + the final offset AFTER
+  // positioning — see ui/UISlot.h).
+  //
+  // The three setters are VIRTUAL: widgets that cache geometry
+  // (UIButton/UICheckbox/UISlider rebuild only when marked dirty) must
+  // override them — UIManager::relayout moves roots through a UIWidget*,
+  // and a name-hiding "override" would leave stale pixels drawn at the old
+  // position while hit-testing follows the moved rect.
+  FORCEINLINE virtual void
+  setPosition(sf::Vector2f position) {
+    m_rect.position = position;
+    m_slot.offset = position;
+  }
 
   /** @brief Widget size in local-space units. */
-  NODISCARD FORCEINLINE sf::Vector2f 
+  NODISCARD FORCEINLINE sf::Vector2f
   getSize() const { return m_rect.size; }
-  FORCEINLINE void 
+  FORCEINLINE virtual void
   setSize(sf::Vector2f size) { m_rect.size = size; }
 
   /** @brief Full bounding rectangle (position + size). */
-  NODISCARD FORCEINLINE const sf::FloatRect& 
+  NODISCARD FORCEINLINE const sf::FloatRect&
   getRect() const { return m_rect; }
-  FORCEINLINE void 
-  setRect(const sf::FloatRect& rect) { m_rect = rect; }
+  FORCEINLINE virtual void
+  setRect(const sf::FloatRect& rect) {
+    m_rect = rect;
+    m_slot.offset = rect.position;
+  }
 
-  // -- Anchor & pivot (Unity-style layout) -----------------------------------
+  // -- Slot: anchors, pivot, offset (Unity-style layout) ----------------------
+  // APPLIED only at root level: the implicit viewport-spanning root panel
+  // calls UIManager::relayout (sf::Event::Resized hook, and addRoot while the
+  // viewport is known), which recomputes each root's position from its slot.
+  // Defaults (anchors {0,0}/{0,0}, pivot {0,0}) make offset == absolute
+  // top-left position, so manually positioned setups keep working unchanged.
+  // Inside boxes / ScrollView the slot rides along but is IGNORED — their
+  // auto-layout (padding/spacing) owns child positions.
+  // Authoring order: setPosition/setRect rewrite the offset, so set anchors
+  // and the anchor-relative offset AFTER positioning (see ui/UISlot.h).
 
-  /** @brief Normalized anchor minimum (0-1, fraction of parent size). */
-  NODISCARD FORCEINLINE sf::Vector2f 
-  getAnchorMin() const { return m_anchorMin; }
-  FORCEINLINE void 
-  setAnchorMin(sf::Vector2f min) { m_anchorMin = min; }
+  /** @brief Full layout slot (anchors, pivot, offset) of this widget. */
+  NODISCARD FORCEINLINE const UISlot&
+  getSlot() const { return m_slot; }
+  FORCEINLINE void
+  setSlot(const UISlot& slot) { m_slot = slot; }
 
-  /** @brief Normalized anchor maximum (0-1, fraction of parent size). */
-  NODISCARD FORCEINLINE sf::Vector2f 
-  getAnchorMax() const { return m_anchorMax; }
-  FORCEINLINE void 
-  setAnchorMax(sf::Vector2f max) { m_anchorMax = max; }
+  /** @brief Normalized anchor minimum (0-1, fraction of viewport at root level). */
+  NODISCARD FORCEINLINE sf::Vector2f
+  getAnchorMin() const { return m_slot.anchorMin; }
+  FORCEINLINE void
+  setAnchorMin(sf::Vector2f min) { m_slot.anchorMin = min; }
 
-  /** @brief Pivot point as fraction of size (0=bottom-left, 1=top-right). */
-  NODISCARD FORCEINLINE sf::Vector2f 
-  getPivot() const { return m_pivot; }
-  FORCEINLINE void 
-  setPivot(sf::Vector2f pivot) { m_pivot = pivot; }
+  /** @brief Normalized anchor maximum (0-1, fraction of viewport at root level). */
+  NODISCARD FORCEINLINE sf::Vector2f
+  getAnchorMax() const { return m_slot.anchorMax; }
+  FORCEINLINE void
+  setAnchorMax(sf::Vector2f max) { m_slot.anchorMax = max; }
+
+  /** @brief Pivot as fraction of size (0,0 = top-left ... 1,1 = bottom-right). */
+  NODISCARD FORCEINLINE sf::Vector2f
+  getPivot() const { return m_slot.pivot; }
+  FORCEINLINE void
+  setPivot(sf::Vector2f pivot) { m_slot.pivot = pivot; }
+
+  /** @brief Pivot position relative to the anchor reference (rewritten by setPosition/setRect). */
+  NODISCARD FORCEINLINE sf::Vector2f
+  getOffset() const { return m_slot.offset; }
+  FORCEINLINE void
+  setOffset(sf::Vector2f offset) { m_slot.offset = offset; }
 
   // -- Visual ----------------------------------------------------------------
 
   /** @brief Tint / fill colour. */
-  NODISCARD FORCEINLINE sf::Color 
+  NODISCARD FORCEINLINE sf::Color
   getColor() const { return m_color; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setColor(sf::Color color) { m_color = color; }
 
-  // -- Canvas ----------------------------------------------------------------
+  // -- Manager ---------------------------------------------------------------
 
-  /** @brief The Canvas that owns this widget, or nullptr.
-   *         Walks the parent chain so hierarchy children find the canvas. */
-  NODISCARD FORCEINLINE Canvas*
-  getCanvas() const {
-    if (m_canvas != nullptr) return m_canvas;
-    return m_parent != nullptr ? m_parent->getCanvas() : nullptr;
+  /** @brief The UIManager that owns this widget's root, or nullptr.
+   *         Walks the parent chain so hierarchy children find the manager. */
+  NODISCARD FORCEINLINE UIManager*
+  getManager() const {
+    if (m_manager != nullptr) return m_manager;
+    return m_parent != nullptr ? m_parent->getManager() : nullptr;
   }
-
-  // -- Collider (optional) ---------------------------------------------------
-
-  /**
-   * @brief Replace the hit-test shape with a circle.
-   * @param center  Local-space center.
-   * @param radius  Circle radius.  Defaults to centering on the widget rect.
-   */
-  void 
-  setColliderCircle(const sf::Vector2f& center, float radius);
-  FORCEINLINE void 
-  setColliderCircle(float radius) { setColliderCircle({0.f, 0.f}, radius); }
-
-  /** @brief Replace the hit-test shape with an axis-aligned box. */
-  void 
-  setColliderAABB(const sf::Vector2f& center, const sf::Vector2f& halfSize);
-  /** @see setColliderAABB */
-  FORCEINLINE void 
-  setColliderAABB(const sf::Vector2f& halfSize)
-  { setColliderAABB({0.f, 0.f}, halfSize); }
-
-  /** @brief Replace the hit-test shape with an oriented box. */
-  void 
-  setColliderOBB(const sf::Vector2f& center, const sf::Vector2f& halfSize);
-  FORCEINLINE void 
-  setColliderOBB(const sf::Vector2f& halfSize)
-  { setColliderOBB({0.f, 0.f}, halfSize); }
-
-  /** @brief Replace the hit-test shape with a point. */
-  void 
-  setColliderPoint(const sf::Vector2f& localPos);
-  FORCEINLINE void 
-  setColliderPoint() { setColliderPoint({0.f, 0.f}); }
-
-  /** @brief Replace the hit-test shape with a line segment. */
-  void 
-  setColliderLine(const sf::Vector2f& localStart,
-                  const sf::Vector2f& localEnd);
-
-  /** @brief Remove the collider; hit-testing falls back to m_rect. */
-  void 
-  clearCollider();
-
-  /**
-   * @brief Convenience: set an AABB collider that matches m_rect.
-   *
-   * Call after changing size or position to keep the collider in sync.
-   */
-  void 
-  syncColliderToRect();
-
-  /** @brief The current collider, or nullptr if none. */
-  NODISCARD FORCEINLINE ICollider* 
-  getCollider() const { return m_collider.get(); }
 
   // -- Hit testing -----------------------------------------------------------
 
   /**
    * @brief True if @p point (in local space) lies inside this widget.
    *
-   * If a collider has been set (via setCollider* or syncColliderToRect) the
-   * physics intersect() dispatch is used; otherwise falls back to the raw
-   * m_rect.contains() check.
+   * Rect-only check (`m_rect.contains`).
    */
-  NODISCARD virtual bool 
+  NODISCARD virtual bool
   containsPoint(sf::Vector2f point) const;
 
   // -- Virtual event callbacks -----------------------------------------------
@@ -237,7 +227,7 @@ class UIWidget
    * Base implementation fires the @ref onPointerEnter Event<>.
    * Override to add widget-specific behaviour (e.g. hover highlight).
    */
-  virtual void 
+  virtual void
   triggerPointerEnter(sf::Vector2f position);
 
   /**
@@ -245,7 +235,7 @@ class UIWidget
    *
    * Base implementation fires the @ref onPointerExit Event<>.
    */
-  virtual void 
+  virtual void
   triggerPointerExit(sf::Vector2f position);
 
   /**
@@ -253,7 +243,7 @@ class UIWidget
    *
    * Base implementation fires the @ref onPointerDown Event<>.
    */
-  virtual void 
+  virtual void
   triggerPointerDown(sf::Vector2f position);
 
   /**
@@ -261,7 +251,7 @@ class UIWidget
    *
    * Base implementation fires the @ref onPointerUp Event<>.
    */
-  virtual void 
+  virtual void
   triggerPointerUp(sf::Vector2f position);
 
   /**
@@ -269,31 +259,31 @@ class UIWidget
    *
    * Base implementation fires the @ref onPointerClick Event<>.
    */
-  virtual void 
+  virtual void
   triggerPointerClick(sf::Vector2f position);
 
   /** @brief Called when the scroll wheel is used over this widget or its children. */
   virtual void
   triggerScroll(float delta);
 
-  /** @brief Called when this widget becomes the EventSystem selection. */
-  virtual void 
+  /** @brief Called when this widget becomes the UIManager selection. */
+  virtual void
   triggerSelect();
 
-  /** @brief Called when this widget loses the EventSystem selection. */
-  virtual void 
+  /** @brief Called when this widget loses the UIManager selection. */
+  virtual void
   triggerDeselect();
 
   /** @brief Called when the user presses the submit/confirm action. */
-  virtual void 
+  virtual void
   triggerSubmit();
 
   /** @brief Called when the user presses the cancel/back action. */
-  virtual void 
+  virtual void
   triggerCancel();
 
   /** @brief Whether this widget is a text editor (skips navigation while focused). */
-  NODISCARD virtual bool 
+  NODISCARD virtual bool
   isTextEditor() const { return false; }
 
   // -- Hierarchy (parent / children) -----------------------------------------
@@ -307,7 +297,9 @@ class UIWidget
   /**
    * @brief Add a child managed by this container widget.
    *
-   * The child must NOT already be registered with a Canvas.
+   * The child must NOT be a root registered with the UIManager.
+   * A parent owns its children: destroying this widget destroys the child
+   * through its memory pool.
    */
   void addChild(UIWidget* child);
 
@@ -334,112 +326,139 @@ class UIWidget
   /**
    * @brief Recursive hit-test through this widget and its children.
    *
-   * Default: checks visibility, interactable, containsPoint; returns this.
-   * Containers override to recurse into children (reverse order) after
-   * transforming the point by @ref getChildTransform.
+   * Takes a point in the frame this widget's rect lives in (root space for
+   * roots, the parent's child frame for children). Returns the topmost widget
+   * under the point — recursion maps the point into each child's frame with
+   * the INVERSE of @ref getChildTransform, the exact reverse of the
+   * composition @ref drawHierarchy applies forward, so hit-testing mirrors
+   * drawing exactly. Invisible widgets return nullptr;
+   * disabled / non-interactable widgets return this (they block widgets drawn
+   * underneath but never receive pointer events — the UIManager gates
+   * dispatch). Blocking vs. fall-through (@ref isBlockingInput) is decided by
+   * the caller (UIManager::hitTest).
    */
   NODISCARD virtual UIWidget* hitTestInHierarchy(sf::Vector2f point) const;
 
   /**
-   * @brief Convert a canvas-space point to this widget's local space.
+   * @brief Convert a root-space (window pixel) point to this widget's local space.
    *
-   * Default returns @p canvasPoint unchanged (root widgets are in canvas-space).
+   * Default walks the parent chain subtracting each position.
    * Containers override to account for their own position + scroll offset.
    */
   NODISCARD virtual sf::Vector2f toLocalSpace(sf::Vector2f canvasPoint) const;
 
   // -- Navigation links (explicit neighbor) -----------------------------------
 
-  FORCEINLINE void 
+  FORCEINLINE void
   setNavUp(UIWidget* widget) { m_navUp = widget; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setNavDown(UIWidget* widget) { m_navDown = widget; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setNavLeft(UIWidget* widget) { m_navLeft = widget; }
-  FORCEINLINE void 
+  FORCEINLINE void
   setNavRight(UIWidget* widget) { m_navRight = widget; }
 
-  NODISCARD FORCEINLINE UIWidget* 
+  NODISCARD FORCEINLINE UIWidget*
   getNavUp() const { return m_navUp; }
-  NODISCARD FORCEINLINE UIWidget* 
+  NODISCARD FORCEINLINE UIWidget*
   getNavDown() const { return m_navDown; }
-  NODISCARD FORCEINLINE UIWidget* 
+  NODISCARD FORCEINLINE UIWidget*
   getNavLeft() const { return m_navLeft; }
-  NODISCARD FORCEINLINE UIWidget* 
+  NODISCARD FORCEINLINE UIWidget*
   getNavRight() const { return m_navRight; }
 
   // -- Public Event connect methods (InputAction-style RAII handles) ----------
 
   /** @brief Subscribe to pointer-enter. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onPointerEnter(Function<void(sf::Vector2f)> cb) const
   { return m_onPointerEnterEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to pointer-exit. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onPointerExit(Function<void(sf::Vector2f)> cb) const
   { return m_onPointerExitEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to pointer-down. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onPointerDown(Function<void(sf::Vector2f)> cb) const
   { return m_onPointerDownEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to pointer-up. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onPointerUp(Function<void(sf::Vector2f)> cb) const
   { return m_onPointerUpEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to click. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onPointerClick(Function<void(sf::Vector2f)> cb) const
   { return m_onPointerClickEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to selection. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onSelect(Function<void()> cb) const
   { return m_onSelectEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to deselection. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onDeselect(Function<void()> cb) const
   { return m_onDeselectEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to submit. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onSubmit(Function<void()> cb) const
   { return m_onSubmitEvent.connect(std::move(cb)); }
 
   /** @brief Subscribe to cancel. Returns an RAII unsubscribe handle. */
-  NODISCARD FORCEINLINE HEvent 
+  NODISCARD FORCEINLINE HEvent
   onCancel(Function<void()> cb) const
   { return m_onCancelEvent.connect(std::move(cb)); }
 
-  // -- Drawing ---------------------------------------------------------------
+  // -- Lifecycle --------------------------------------------------------------
+
+  /**
+   * @brief Per-frame update hook, driven recursively by UIManager::update.
+   * @param deltaTime Seconds elapsed since the previous frame.
+   */
+  virtual void
+  onUpdate(float deltaTime);
 
   /**
    * @brief Draw this widget onto @p target.
    *
-   * Only draws when called through Canvas::draw (checks internal flag).
-   * When a widget is attached to both a Canvas and a SceneNode (via ComponentT),
-   * the SceneNode draw path is skipped to avoid double-rendering.
-   *
    * @param target The surface to draw onto.
    * @param states Render states carrying the accumulated transform of the
-   *               parent canvas / component chain.
+   *               parent widget chain.
    */
-  virtual void 
+  virtual void
   onDraw(sf::RenderTarget& target, sf::RenderStates states) const;
 
+  /** @brief Write this widget's persistent state (UI document, Phase 5). Default: nothing. */
+  virtual void
+  onSerialize(DataStream& stream) const { SFMX_PARAMETER_UNUSED(stream); }
+
+  /** @brief Read state written by @ref onSerialize. Default: nothing. */
+  virtual void
+  onDeserialize(DataStream& stream) { SFMX_PARAMETER_UNUSED(stream); }
+
+  /**
+   * @brief Write the shared base state every widget round-trips: format
+   *        version, name, enabled/visible/interactable/focused/blocksInput
+   *        flags, rect, slot (anchors/pivot/offset) and colour.
+   *
+   * Call right AFTER your own version byte in @ref onSerialize — it keeps
+   * every payload uniform and fixes widgets that used to drop their rect
+   * (UILabel/UIImage) or anchors (the boxes/scroll view).
+   */
+  void
+  serializeBase(DataStream& stream) const;
+
+  /** @brief Counterpart of @ref serializeBase — call right after your version check. */
+  void
+  deserializeBase(DataStream& stream);
+
  protected:
-  friend class Canvas;
-  friend class UIEventSystem;
-  friend class CanvasComponent;
-
-  /** @brief True while Canvas::draw is iterating widgets. */
-  static bool s_canvasDrawing;
-
-  FORCEINLINE void setCanvas(Canvas* canvas) { m_canvas = canvas; }
+  friend class UIManager;
 
   // Event members (private — fired by the base virtual callback implementations)
   Event<void(sf::Vector2f)> mutable m_onPointerEnterEvent;
@@ -452,6 +471,8 @@ class UIWidget
   Event<void()> mutable m_onSubmitEvent;
   Event<void()> mutable m_onCancelEvent;
 
+  String m_name;
+
   bool m_enabled = true;
   bool m_visible = true;
   bool m_interactable = true;
@@ -459,21 +480,19 @@ class UIWidget
   bool m_blocksInput = true;
 
   sf::FloatRect m_rect;        // position + size (local space)
-  sf::Vector2f m_anchorMin;    // Unity-style normalized 0-1
-  sf::Vector2f m_anchorMax;
-  sf::Vector2f m_pivot;        // (0,0)=bottom-left, (1,1)=top-right, (0.5,0.5)=center
+  UISlot m_slot;               // anchors + pivot + offset (see ui/UISlot.h)
 
   sf::Color m_color = sf::Color::White;
 
-  UniquePtr<ICollider> m_collider;
+  // Root registration back-pointer. Set ONLY on root widgets; children reach
+  // the manager through getManager()'s parent-chain walk.
+  UIManager* m_manager = nullptr;
 
-  Canvas* m_canvas = nullptr;
-
-  // Hierarchy (parent / children — raw pointers, no ownership).
+  // Hierarchy (parent / children — parent owns children).
   UIWidget* m_parent = nullptr;
   Vector<UIWidget*> m_children;
 
-  // Navigation links (explicit neighbours, raw pointers — owned by Canvas).
+  // Navigation links (explicit neighbours, raw pointers).
   UIWidget* m_navUp = nullptr;
   UIWidget* m_navDown = nullptr;
   UIWidget* m_navLeft = nullptr;

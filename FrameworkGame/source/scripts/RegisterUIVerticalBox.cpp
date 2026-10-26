@@ -3,7 +3,6 @@
 #include "ui/UIVerticalBox.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -16,9 +15,7 @@ void
 registerUIVerticalBox(sol::state_view lua) {
   lua.new_usertype<UIVerticalBox>("UIVerticalBox",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UIVerticalBox>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "setSpacing", &UIVerticalBox::setSpacing,
     "getSpacing", &UIVerticalBox::getSpacing,

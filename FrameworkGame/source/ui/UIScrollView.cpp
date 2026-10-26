@@ -8,20 +8,10 @@
 namespace sfmx
 {
 
-/** @brief  Standalone constructor (no SceneNode). */
+/** @brief  Constructor (normally called through ui::createWidget<UIScrollView>). */
 UIScrollView::UIScrollView(sf::Vector2f size)
-  : UIWidgetT<UIScrollView, WidgetType::kScrollView>(),
-    ComponentT<UIScrollView>(nullptr) {
+  : UIWidgetT<UIScrollView, WidgetType::kScrollView>() {
   setSize(size);
-  syncColliderToRect();
-}
-
-/** @brief  Component constructor attached to a SceneNode. */
-UIScrollView::UIScrollView(SceneNode* node, sf::Vector2f size)
-  : UIWidgetT<UIScrollView, WidgetType::kScrollView>(),
-    ComponentT<UIScrollView>(node) {
-  setSize(size);
-  syncColliderToRect();
 }
 
 // -- Serialization ---------------------------------------------------------------
@@ -33,21 +23,11 @@ UUID UIScrollView::getTypeId() const {
 
 /** @brief  Serialize flags, rect, colour, scroll offset, content height, background colour. */
 void UIScrollView::onSerialize(DataStream& stream) const {
-  constexpr uint32 kVersion = 1;
+  // Version 2: shared base state (flags/rect/colour, now also anchors + name)
+  // moved into UIWidget::serializeBase.
+  constexpr uint32 kVersion = 2;
   stream << kVersion;
-
-  uint8 flags = 0;
-  if (isEnabled())       flags |= 1 << 0;
-  if (isVisible())       flags |= 1 << 1;
-  if (isInteractable())  flags |= 1 << 2;
-  if (isFocused())       flags |= 1 << 3;
-  stream << flags;
-
-  const sf::FloatRect& r = getRect();
-  stream << r.position.x << r.position.y << r.size.x << r.size.y;
-
-  const sf::Color& c = getColor();
-  stream << c.r << c.g << c.b << c.a;
+  serializeBase(stream);
 
   stream << m_scrollOffset << m_contentHeight;
   stream << m_backgroundColor.r << m_backgroundColor.g
@@ -58,27 +38,12 @@ void UIScrollView::onSerialize(DataStream& stream) const {
 void UIScrollView::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != 1) return;
-
-  uint8 flags = 0;
-  stream >> flags;
-  setEnabled((flags & (1 << 0)) != 0);
-  setVisible((flags & (1 << 1)) != 0);
-  setInteractable((flags & (1 << 2)) != 0);
-  setFocused((flags & (1 << 3)) != 0);
-
-  sf::FloatRect r;
-  stream >> r.position.x >> r.position.y >> r.size.x >> r.size.y;
-  setRect(r);
-
-  uint8 cr, cg, cb, ca;
-  stream >> cr >> cg >> cb >> ca;
-  setColor(sf::Color(cr, cg, cb, ca));
+  if (version != 2) return;
+  deserializeBase(stream);
 
   stream >> m_scrollOffset >> m_contentHeight;
   stream >> m_backgroundColor.r >> m_backgroundColor.g
          >> m_backgroundColor.b >> m_backgroundColor.a;
-  syncColliderToRect();
 }
 
 // -- Scrolling -------------------------------------------------------------------
@@ -102,26 +67,6 @@ sf::Transform UIScrollView::getChildTransform() const {
   sf::Transform t;
   t.translate({getPosition().x, getPosition().y - m_scrollOffset});
   return t;
-}
-
-/** @brief  Hit-test with scroll-aware content-space transform. */
-UIWidget* UIScrollView::hitTestInHierarchy(sf::Vector2f point) const {
-  if (!isEnabled() || !isVisible() || !isInteractable()) return nullptr;
-  if (!containsPoint(point)) return nullptr;
-
-  // Transform to content-space for children
-  const sf::Vector2f contentPoint = point - getPosition() +
-    sf::Vector2f(0.f, m_scrollOffset);
-
-  // Check children in reverse order (last drawn = topmost)
-  for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-    UIWidget* child = *it;
-    if (UIWidget* hit = child->hitTestInHierarchy(contentPoint)) {
-      return hit;
-    }
-  }
-
-  return isBlockingInput() ? const_cast<UIScrollView*>(this) : nullptr;
 }
 
 /** @brief  Clip to viewport via sf::View, draw background, then draw scrolled children. */
@@ -171,8 +116,6 @@ sf::Vector2f UIScrollView::toLocalSpace(sf::Vector2f canvasPoint) const {
 /** @brief  Draw the background rectangle covering the viewport area. */
 void UIScrollView::onDraw(sf::RenderTarget& target,
                            sf::RenderStates states) const {
-  if (!UIWidget::s_canvasDrawing) return;
-
   sf::RectangleShape bg;
   bg.setSize(getSize());
   bg.setPosition(getPosition());

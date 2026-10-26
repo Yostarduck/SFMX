@@ -9,8 +9,6 @@
 #pragma once
 
 #include <SFML/Graphics/RectangleShape.hpp>
-#include "scene/SceneNode.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -21,10 +19,9 @@ namespace sfmx
  *         spacing and padding.
  *
  * Mirrors UIVerticalBox on the X axis.  Children use box-local coordinates.
- * Add via addChild(); the HorizontalBox itself is the only Canvas root.
+ * Add via addChild(); children are owned by the box (destroyed with it).
  */
-class UIHorizontalBox final : public UIWidgetT<UIHorizontalBox, WidgetType::kHorizontalBox>,
-                              public ComponentT<UIHorizontalBox>
+class UIHorizontalBox final : public UIWidgetT<UIHorizontalBox, WidgetType::kHorizontalBox>
 {
  public:
   using UIWidget::isEnabled;
@@ -43,7 +40,6 @@ class UIHorizontalBox final : public UIWidgetT<UIHorizontalBox, WidgetType::kHor
   using UIWidget::getColor;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
-  using UIWidget::syncColliderToRect;
   /** @brief  Delegate to UIWidget::onPointerEnter. */
   using UIWidget::onPointerEnter;
   /** @brief  Delegate to UIWidget::onPointerExit. */
@@ -55,10 +51,8 @@ class UIHorizontalBox final : public UIWidgetT<UIHorizontalBox, WidgetType::kHor
   using UIWidget::getChildren;
   using UIWidget::getUIparent;
 
-  /** @brief  Standalone constructor (no SceneNode). */
+  /** @brief  Constructor (normally called through ui::createWidget<UIHorizontalBox>). */
   UIHorizontalBox(sf::Vector2f size = {400.f, 200.f});
-  /** @brief  Component constructor attached to a SceneNode. */
-  UIHorizontalBox(SceneNode* node, sf::Vector2f size = {400.f, 200.f});
   ~UIHorizontalBox() override = default;
 
   // -- Serialization ------------------------------------------------------------
@@ -94,10 +88,6 @@ class UIHorizontalBox final : public UIWidgetT<UIHorizontalBox, WidgetType::kHor
 
   /** @brief  Translate children by this box's position so they are relative to the box origin. */
   NODISCARD sf::Transform getChildTransform() const override;
-  /** @brief  Recursive hit-test: transform point to local space, check children in reverse order. */
-  NODISCARD UIWidget* hitTestInHierarchy(sf::Vector2f point) const override;
-  /** @brief  Convert canvas-space point to box-local space, walking the parent chain. */
-  NODISCARD sf::Vector2f toLocalSpace(sf::Vector2f canvasPoint) const override;
 
  private:
   /** @brief  Rebuild layout before drawing if dirty. */

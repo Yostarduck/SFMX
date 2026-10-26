@@ -3,7 +3,6 @@
 #include "ui/UIScrollView.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -16,9 +15,7 @@ void
 registerUIScrollView(sol::state_view lua) {
   lua.new_usertype<UIScrollView>("UIScrollView",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UIScrollView>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "setScrollOffset", &UIScrollView::setScrollOffset,
     "getScrollOffset", &UIScrollView::getScrollOffset,

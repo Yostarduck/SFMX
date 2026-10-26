@@ -10,16 +10,13 @@
 
 #include <SFML/Graphics/RectangleShape.hpp>
 
-#include "scene/SceneNode.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
 {
 
 /**
- * @brief A clickable button that can live in a Canvas (standalone) or on a
- *        SceneNode (component mode, via ComponentT<UIButton>).
+ * @brief A clickable button in the UIManager-owned widget tree.
  *
  * Visual states:
  *   Normal, Hovered, Pressed, Disabled.
@@ -27,19 +24,12 @@ namespace sfmx
  * The button draws a coloured rectangle (sf::RectangleShape) and transitions
  * its colour on state changes.
  *
- * Note on dual-mode:
- *   UIButton inherits from both UIWidget and ComponentT<UIButton>.  When used
- *   via addComponent<UIButton>(...), the ComponentT constructor attaches the
- *   button to the scene graph and pools it via MemoryPool; when created without
- *   a node (standalone constructor), only the UIWidget functionality is used.
- *
  * Pool allocation caveat:
- *   This class allocates/deallocates in its constructor/destructor through the
- *   MemoryPool system (inherited from ComponentT).  Prefer creating buttons at
- *   scene load and toggling enable/visible during gameplay rather than
+ *   Create buttons with ui::createWidget<UIButton>(...) (memory pool) and
+ *   prefer toggling enable/visible during gameplay rather than
  *   creating/destroying them at runtime.
  */
-class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public ComponentT<UIButton>
+class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>
 {
  public:
   using UIWidget::isEnabled;
@@ -54,7 +44,6 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   using UIWidget::getColor;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
-  using UIWidget::syncColliderToRect;
   using UIWidget::onPointerEnter;
   using UIWidget::onPointerExit;
   using UIWidget::onPointerDown;
@@ -75,18 +64,10 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   // -- Constructors ----------------------------------------------------------
 
   /**
-   * @brief Constructor for standalone (canvas) usage.
+   * @brief Constructor (normally called through ui::createWidget<UIButton>).
    * @param size Initial size.
    */
   UIButton(sf::Vector2f size = {200.f, 50.f});
-
-  /**
-   * @brief Constructor for component usage (attached to a SceneNode).
-   * @param node  The node this component belongs to.
-   * @param size  Initial size.
-   */
-  UIButton(SceneNode* node,
-           sf::Vector2f size = {200.f, 50.f});
 
   ~UIButton() override;
 
@@ -131,6 +112,7 @@ class UIButton final : public UIWidgetT<UIButton, WidgetType::kButton>, public C
   void triggerPointerUp(sf::Vector2f position) override;
   void triggerSelect() override;
   void triggerDeselect() override;
+  void triggerSubmit() override;
 
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 

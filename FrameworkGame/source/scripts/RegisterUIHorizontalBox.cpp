@@ -3,7 +3,6 @@
 #include "ui/UIHorizontalBox.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -16,9 +15,7 @@ void
 registerUIHorizontalBox(sol::state_view lua) {
   lua.new_usertype<UIHorizontalBox>("UIHorizontalBox",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UIHorizontalBox>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "setSpacing", &UIHorizontalBox::setSpacing,
     "getSpacing", &UIHorizontalBox::getSpacing,

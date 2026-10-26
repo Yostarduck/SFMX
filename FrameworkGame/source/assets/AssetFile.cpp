@@ -2,7 +2,6 @@
 
 #include <cstring>
 
-// #include "zstd.h"                  // vendored single-file zstd (ThirdParty/zstd)
 #include "lz4.h"
 
 #include "core/DataStreamTypes.h"  // UUID operator<< / >>
@@ -32,20 +31,16 @@ constexpr uint64 kChunkEntryBytes =
     kUuidBytes +      // format      (ChunkFormatId, a name-derived UUID)
     sizeof(uint16);   // compression (ChunkCompression written as uint16)
 
-// zstd compression level. Levels run 1 (fastest, weakest) to 22 (slowest,
-// strongest); the default is 3, and 19 is the highest "normal" level (20-22 are
-// "ultra" tiers that need much more memory). We pick 19 because cooking is a
-// one-time offline step, so paying extra time for the best ratio is essentially
-// free at runtime: zstd's decompression speed is roughly constant across levels,
-// so a high cook level costs nothing on load.
-// constexpr int kZstdLevel = 19;
+// Compression knob. LZ4 has no levels — LZ4_compress_default is a single
+// fixed, speed-first level — so this constant is inert today; it stays at its
+// historical value (19) for provenance only. Cook/load-time paths never read it.
 constexpr int kLz4Level = 19;
 
-// Compress [src, src+srcSize) into @p out. Returns false on a zstd error (out
+// Compress [src, src+srcSize) into @p out. Returns false on an LZ4 error (out
 // cleared). Cook-time / load-time only, never the game loop, so heap is fine.
 bool
 compressLz4(const uint8* src, size_t srcSize, Vector<uint8>& out) {
-  // The exact compressed size is data-dependent, but ZSTD_compressBound gives the
+  // The exact compressed size is data-dependent, but LZ4_compressBound gives the
   // worst-case upper bound, so a single resize() reserves enough up front (no
   // incremental growth). The resize(written) below only trims the logical size;
   // the capacity stays, so it never reallocates.
@@ -65,7 +60,7 @@ compressLz4(const uint8* src, size_t srcSize, Vector<uint8>& out) {
 }
 
 // Decompress [src, src+srcSize) into @p out, sized to the known @p rawSize.
-// Returns false if zstd errors or the result is not exactly @p rawSize.
+// Returns false if LZ4 errors or the result is not exactly @p rawSize.
 bool
 decompressLz4(const uint8* src, size_t srcSize, size_t rawSize,
                Vector<uint8>& out) {

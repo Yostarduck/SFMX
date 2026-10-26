@@ -11,8 +11,6 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
-#include "scene/SceneNode.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -21,8 +19,7 @@ namespace sfmx
 class TextureAsset;
 class UICheckboxGroup;
 
-class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
-                         public ComponentT<UICheckbox>
+class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>
 {
  public:
   using UIWidget::isEnabled;
@@ -37,15 +34,12 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
   using UIWidget::getColor;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
-  using UIWidget::syncColliderToRect;
   using UIWidget::onPointerEnter;
   using UIWidget::onPointerExit;
   using UIWidget::onPointerClick;
 
-  /** @brief  Standalone constructor (no SceneNode). */
+  /** @brief  Constructor (normally called through ui::createWidget<UICheckbox>). */
   UICheckbox(sf::Vector2f size = {24.f, 24.f});
-  /** @brief  Component constructor attached to a SceneNode. */
-  UICheckbox(SceneNode* node, sf::Vector2f size = {24.f, 24.f});
   ~UICheckbox() override;
 
   /** @brief  Type UUID for serialization. */
@@ -115,6 +109,8 @@ class UICheckbox final : public UIWidgetT<UICheckbox, WidgetType::kCheckbox>,
   void triggerPointerExit(sf::Vector2f position) override;
   /** @brief  Toggle checked state on click. */
   void triggerPointerClick(sf::Vector2f position) override;
+  /** @brief  Toggle checked state on keyboard/gamepad submit. */
+  void triggerSubmit() override;
   /** @brief  Draw the box + checkmark, or the texture sprite. */
   void onDraw(sf::RenderTarget& target, sf::RenderStates states) const override;
 

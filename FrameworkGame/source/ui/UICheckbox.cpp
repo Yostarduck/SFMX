@@ -11,17 +11,8 @@ namespace sfmx
 {
 
 UICheckbox::UICheckbox(sf::Vector2f size)
-  : UIWidgetT<UICheckbox, WidgetType::kCheckbox>(),
-    ComponentT<UICheckbox>(nullptr) {
+  : UIWidgetT<UICheckbox, WidgetType::kCheckbox>() {
   setSize(size);
-  syncColliderToRect();
-}
-
-UICheckbox::UICheckbox(SceneNode* node, sf::Vector2f size)
-  : UIWidgetT<UICheckbox, WidgetType::kCheckbox>(),
-    ComponentT<UICheckbox>(node) {
-  setSize(size);
-  syncColliderToRect();
 }
 
 UICheckbox::~UICheckbox()
@@ -152,6 +143,14 @@ void UICheckbox::triggerPointerClick(sf::Vector2f position) {
   UIWidget::triggerPointerClick(position);
 }
 
+void UICheckbox::triggerSubmit() {
+  // Keyboard/gamepad activation goes through the exact pointer-click path, so
+  // group exclusivity, the checked visual and the click event all behave the
+  // same as a mouse click.
+  UIWidget::triggerSubmit();
+  triggerPointerClick(getPosition() + getSize() * 0.5f);
+}
+
 sf::Color UICheckbox::resolveColor() const {
   if (!isEnabled()) {
     const sf::Color c = m_checked ? m_checkedBoxColor : m_boxColor;
@@ -206,7 +205,6 @@ void UICheckbox::syncVisual() const {
 
 void UICheckbox::onDraw(sf::RenderTarget& target,
                          sf::RenderStates states) const {
-  if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible()) { return; }
 
   if (m_visualDirty) { syncVisual(); }
@@ -222,27 +220,12 @@ void UICheckbox::onDraw(sf::RenderTarget& target,
 }
 
 void UICheckbox::onSerialize(DataStream& stream) const {
-  constexpr uint32 kVersion = 2;
+  // Version 3: shared base state moved into UIWidget::serializeBase; the
+  // checked state leaves the shared flags byte and rides as its own byte.
+  constexpr uint32 kVersion = 3;
   stream << kVersion;
-
-  uint8 flags = 0;
-  if (isEnabled())       flags |= 1 << 0;
-  if (isVisible())       flags |= 1 << 1;
-  if (isInteractable())  flags |= 1 << 2;
-  if (isFocused())       flags |= 1 << 3;
-  if (isBlockingInput()) flags |= 1 << 4;
-  if (m_checked)         flags |= 1 << 5;
-  stream << flags;
-
-  const sf::FloatRect& r = getRect();
-  stream << r.position.x << r.position.y << r.size.x << r.size.y;
-
-  stream << getAnchorMin().x << getAnchorMin().y
-         << getAnchorMax().x << getAnchorMax().y
-         << getPivot().x     << getPivot().y;
-
-  const sf::Color& c = getColor();
-  stream << c.r << c.g << c.b << c.a;
+  serializeBase(stream);
+  stream << static_cast<uint8>(m_checked ? 1 : 0);
 
   stream << m_boxColor.r << m_boxColor.g << m_boxColor.b << m_boxColor.a;
   stream << m_hoveredBoxColor.r << m_hoveredBoxColor.g
@@ -256,31 +239,14 @@ void UICheckbox::onSerialize(DataStream& stream) const {
 void UICheckbox::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version < 1 || version > 2) {
+  if (version != 3) {
     return;
   }
+  deserializeBase(stream);
 
-  uint8 flags = 0;
-  stream >> flags;
-  setEnabled((flags & (1 << 0)) != 0);
-  setVisible((flags & (1 << 1)) != 0);
-  setInteractable((flags & (1 << 2)) != 0);
-  setFocused((flags & (1 << 3)) != 0);
-  setBlocksInput((flags & (1 << 4)) != 0);
-  m_checked = (flags & (1 << 5)) != 0;
-
-  sf::FloatRect r;
-  stream >> r.position.x >> r.position.y >> r.size.x >> r.size.y;
-  setRect(r);
-
-  sf::Vector2f val;
-  stream >> val.x >> val.y; setAnchorMin(val);
-  stream >> val.x >> val.y; setAnchorMax(val);
-  stream >> val.x >> val.y; setPivot(val);
-
-  uint8 cr, cg, cb, ca;
-  stream >> cr >> cg >> cb >> ca;
-  setColor(sf::Color(cr, cg, cb, ca));
+  uint8 checked = 0;
+  stream >> checked;
+  m_checked = checked != 0;
 
   stream >> m_boxColor.r >> m_boxColor.g >> m_boxColor.b >> m_boxColor.a;
   stream >> m_hoveredBoxColor.r >> m_hoveredBoxColor.g

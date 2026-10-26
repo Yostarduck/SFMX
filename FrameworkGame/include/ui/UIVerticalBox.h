@@ -9,8 +9,6 @@
 #pragma once
 
 #include <SFML/Graphics/RectangleShape.hpp>
-#include "scene/SceneNode.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -21,13 +19,11 @@ namespace sfmx
  *         spacing and padding.
  *
  * Children are positioned in box-local coordinates.  Add children via
- * addChild() — they are NOT registered with the Canvas directly (only the
- * VerticalBox root is).  Call updateLayout() after adding children or
- * changing sizes to recompute positions; it is also called on the next
- * draw if the layout is dirty.
+ * addChild() — they are owned by the box (destroyed with it).  Call
+ * updateLayout() after adding children or changing sizes to recompute
+ * positions; it is also called on the next update if the layout is dirty.
  */
-class UIVerticalBox final : public UIWidgetT<UIVerticalBox, WidgetType::kVerticalBox>,
-                            public ComponentT<UIVerticalBox>
+class UIVerticalBox final : public UIWidgetT<UIVerticalBox, WidgetType::kVerticalBox>
 {
  public:
   using UIWidget::isEnabled;
@@ -46,7 +42,6 @@ class UIVerticalBox final : public UIWidgetT<UIVerticalBox, WidgetType::kVertica
   using UIWidget::getColor;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
-  using UIWidget::syncColliderToRect;
   using UIWidget::onPointerEnter;
   using UIWidget::onPointerExit;
   using UIWidget::onPointerClick;
@@ -55,10 +50,8 @@ class UIVerticalBox final : public UIWidgetT<UIVerticalBox, WidgetType::kVertica
   using UIWidget::getChildren;
   using UIWidget::getUIparent;
 
-  /** @brief  Standalone constructor (no SceneNode). */
+  /** @brief  Constructor (normally called through ui::createWidget<UIVerticalBox>). */
   UIVerticalBox(sf::Vector2f size = {200.f, 400.f});
-  /** @brief  Component constructor attached to a SceneNode. */
-  UIVerticalBox(SceneNode* node, sf::Vector2f size = {200.f, 400.f});
   ~UIVerticalBox() override = default;
 
   /** @brief  Type UUID for serialization. */
@@ -92,10 +85,6 @@ class UIVerticalBox final : public UIWidgetT<UIVerticalBox, WidgetType::kVertica
 
   /** @brief  Translate children by this box's position so they are relative to the box origin. */
   NODISCARD sf::Transform getChildTransform() const override;
-  /** @brief  Recursive hit-test: transform point to local space, check children in reverse order. */
-  NODISCARD UIWidget* hitTestInHierarchy(sf::Vector2f point) const override;
-  /** @brief  Convert canvas-space point to box-local space, walking the parent chain. */
-  NODISCARD sf::Vector2f toLocalSpace(sf::Vector2f canvasPoint) const override;
 
  private:
   /** @brief  Rebuild layout before drawing if dirty. */

@@ -3,7 +3,6 @@
 #include "ui/UIImage.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -16,9 +15,7 @@ void
 registerUIImage(sol::state_view lua) {
   lua.new_usertype<UIImage>("UIImage",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UIImage>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "setTextureAssetId", &UIImage::setTextureAssetId,
     "getTextureAssetId", &UIImage::getTextureAssetId,

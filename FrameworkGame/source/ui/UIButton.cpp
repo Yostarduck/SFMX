@@ -5,17 +5,8 @@ namespace sfmx
 {
 
 UIButton::UIButton(sf::Vector2f size)
-  : UIWidgetT<UIButton, WidgetType::kButton>(),
-    ComponentT<UIButton>(nullptr) {
+  : UIWidgetT<UIButton, WidgetType::kButton>() {
   setSize(size);
-  syncColliderToRect();
-}
-
-UIButton::UIButton(SceneNode* node, sf::Vector2f size)
-  : UIWidgetT<UIButton, WidgetType::kButton>(),
-    ComponentT<UIButton>(node) {
-  setSize(size);
-  syncColliderToRect();
 }
 
 UIButton::~UIButton() = default;
@@ -85,6 +76,19 @@ void UIButton::triggerDeselect() {
   UIWidget::triggerDeselect();
 }
 
+void UIButton::triggerSubmit() {
+  // Keyboard/gamepad activation: flash the pressed visual while the submit
+  // event fires, restore (resolveColor falls through to the focused colour
+  // while this button is the selection), then fire the same click event a
+  // pointer press+release would — subscribers can't tell them apart.
+  m_visualState = VisualState::kPressed;
+  m_visualDirty = true;
+  UIWidget::triggerSubmit();
+  m_visualState = VisualState::kNormal;
+  m_visualDirty = true;
+  UIWidget::triggerPointerClick(getPosition() + getSize() * 0.5f);
+}
+
 // -- Drawing -----------------------------------------------------------------
 
 void UIButton::syncVisual() const {
@@ -95,7 +99,6 @@ void UIButton::syncVisual() const {
 }
 
 void UIButton::onDraw(sf::RenderTarget& target, sf::RenderStates states) const {
-  if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible()) { return; }
 
   if (m_visualDirty) { syncVisual(); }
@@ -128,66 +131,11 @@ sf::Color UIButton::resolveColor() const {
 
 void
 UIButton::onSerialize(DataStream& stream) const {
-  // Version
-  constexpr uint32 kVersion = 2;
+  // Version 4: shared base state (flags/rect/anchors/colour) moved into
+  // UIWidget::serializeBase; v3 and older payloads no longer parse.
+  constexpr uint32 kVersion = 4;
   stream << kVersion;
-
-  uint8 flags = 0;
-  if (isEnabled())       flags |= 1 << 0;
-  if (isVisible())       flags |= 1 << 1;
-  if (isInteractable())  flags |= 1 << 2;
-  if (isFocused())       flags |= 1 << 3;
-  if (isBlockingInput()) flags |= 1 << 4;
-  stream << flags;
-
-  const sf::FloatRect& r = getRect();
-  stream << r.position.x << r.position.y << r.size.x << r.size.y;
-
-  stream << getAnchorMin().x << getAnchorMin().y
-         << getAnchorMax().x << getAnchorMax().y
-         << getPivot().x     << getPivot().y;
-
-  const sf::Color& c = getColor();
-  stream << c.r << c.g << c.b << c.a;
-
-  // Collider
-  const ICollider* col = getCollider();
-  if (col) {
-    stream << static_cast<uint8>(col->getType());
-    switch (col->getType()) {
-      case ColliderType::kCircle: {
-        const auto* c = static_cast<const CircleCollider*>(col);
-        stream << c->getCenter().x << c->getCenter().y << c->getRadius();
-        break;
-      }
-      case ColliderType::kAABB: {
-        const auto* a = static_cast<const AABBCollider*>(col);
-        stream << a->getCenter().x << a->getCenter().y
-               << a->getHalfSize().x << a->getHalfSize().y;
-        break;
-      }
-      case ColliderType::kOBB: {
-        const auto* o = static_cast<const OBBCollider*>(col);
-        stream << o->getCenter().x << o->getCenter().y
-               << o->getHalfSize().x << o->getHalfSize().y;
-        break;
-      }
-      case ColliderType::kPoint: {
-        const auto* p = static_cast<const PointCollider*>(col);
-        stream << p->getPoint().x << p->getPoint().y;
-        break;
-      }
-      case ColliderType::kLine: {
-        const auto* l = static_cast<const LineCollider*>(col);
-        stream << l->getStart().x << l->getStart().y
-               << l->getEnd().x   << l->getEnd().y;
-        break;
-      }
-    }
-  } 
-  else {
-    stream << static_cast<uint8>(0xFF);
-  }
+  serializeBase(stream);
 
   // Button colour overrides
   stream << m_normalColor.r   << m_normalColor.g
@@ -206,71 +154,10 @@ void
 UIButton::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != 2) {
+  if (version != 4) {
     return;
   }
-
-  uint8 flags = 0;
-  stream >> flags;
-  setEnabled((flags & (1 << 0)) != 0);
-  setVisible((flags & (1 << 1)) != 0);
-  setInteractable((flags & (1 << 2)) != 0);
-  setFocused((flags & (1 << 3)) != 0);
-  setBlocksInput((flags & (1 << 4)) != 0);
-
-  sf::FloatRect r;
-  stream >> r.position.x >> r.position.y >> r.size.x >> r.size.y;
-  setRect(r);
-
-  sf::Vector2f val;
-  stream >> val.x >> val.y; setAnchorMin(val);
-  stream >> val.x >> val.y; setAnchorMax(val);
-  stream >> val.x >> val.y; setPivot(val);
-
-  uint8 cr, cg, cb, ca;
-  stream >> cr >> cg >> cb >> ca;
-  setColor(sf::Color(cr, cg, cb, ca));
-
-  // Collider
-  uint8 tag = 0;
-  stream >> tag;
-  if (tag != 0xFF) {
-    switch (static_cast<ColliderType>(tag)) {
-      case ColliderType::kCircle: {
-        float cx, cy, radius;
-        stream >> cx >> cy >> radius;
-        setColliderCircle({cx, cy}, radius);
-        break;
-      }
-      case ColliderType::kAABB: {
-        float cx, cy, hx, hy;
-        stream >> cx >> cy >> hx >> hy;
-        setColliderAABB({cx, cy}, {hx, hy});
-        break;
-      }
-      case ColliderType::kOBB: {
-        float cx, cy, hx, hy;
-        stream >> cx >> cy >> hx >> hy;
-        setColliderOBB({cx, cy}, {hx, hy});
-        break;
-      }
-      case ColliderType::kPoint: {
-        float px, py;
-        stream >> px >> py;
-        setColliderPoint({px, py});
-        break;
-      }
-      case ColliderType::kLine: {
-        float sx, sy, ex, ey;
-        stream >> sx >> sy >> ex >> ey;
-        setColliderLine({sx, sy}, {ex, ey});
-        break;
-      }
-    }
-  } 
-  else {
-    clearCollider();
-  }
+  deserializeBase(stream);
 
   // Button colour overrides
   stream >> m_normalColor.r   >> m_normalColor.g

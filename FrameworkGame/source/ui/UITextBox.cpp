@@ -1,10 +1,12 @@
 #include "ui/UITextBox.h"
+#include "ui/UIManager.h"
 #include "core/DataStream.h"
 
 #include <SFML/Graphics/View.hpp>
 #include <SFML/System/String.hpp>
 
 #include <algorithm>
+#include <cmath>
 
 #include "assets/AssetManager.h"
 #include "assets/FontAsset.h"
@@ -13,34 +15,22 @@
 namespace sfmx
 {
 
-UITextBox::UITextBox(sf::Vector2f size)
-  : UIWidgetT<UITextBox, WidgetType::kTextBox>(),
-    ComponentT<UITextBox>(nullptr) {
-  setSize(size);
-  syncColliderToRect();
-}
+namespace
+{
 
-UITextBox::UITextBox(SceneNode* node, sf::Vector2f size)
-  : UIWidgetT<UITextBox, WidgetType::kTextBox>(),
-    ComponentT<UITextBox>(node) {
+/** @brief Horizontal padding between the box edge and the text/caret origin. */
+constexpr float kTextPadding = 6.f;
+
+} // namespace
+
+UITextBox::UITextBox(sf::Vector2f size)
+  : UIWidgetT<UITextBox, WidgetType::kTextBox>() {
   setSize(size);
-  syncColliderToRect();
 }
 
 UUID UITextBox::getTypeId() const {
   return TypeTraits<UITextBox>::getTypeId();
 }
-
-// void UITextBox::setFont(SPtr<sf::Font> font) {
-//   m_font = font;
-//   if (m_font) {
-//     m_text = MakeUnique<sf::Text>(*m_font);
-//     m_text->setCharacterSize(m_charSize);
-//     syncText();
-//   } else {
-//     m_text.reset();
-//   }
-// }
 
 void UITextBox::setFontAsset(SPtr<FontAsset> asset) {
   if (nullptr != asset && !asset->isLoaded() && AssetManager::isStarted()) {
@@ -84,14 +74,12 @@ SPtr<FontAsset> UITextBox::getFontAsset() const {
 
 void UITextBox::syncText() {
   if (m_text) {
-    m_text->setString(sf::String(m_textContent));
+    m_text->setString(m_textContent);
   }
 }
 
 void UITextBox::insertCharacter(uint32 unicode) {
-  sf::String str(m_textContent);
-  str.insert(m_cursorPos, sf::String(static_cast<char32_t>(unicode)));
-  m_textContent = str.toAnsiString();
+  m_textContent.insert(m_cursorPos, sf::String(static_cast<char32_t>(unicode)));
   ++m_cursorPos;
   syncText();
 }
@@ -100,36 +88,56 @@ void UITextBox::deleteCharacter() {
   if (m_cursorPos == 0) {
     return;
   }
-  sf::String str(m_textContent);
-  str.erase(m_cursorPos - 1);
-  m_textContent = str.toAnsiString();
+  m_textContent.erase(m_cursorPos - 1);
   --m_cursorPos;
   syncText();
 }
 
 void UITextBox::deleteForward() {
-  sf::String str(m_textContent);
-  if (m_cursorPos >= str.getSize()) {
+  if (m_cursorPos >= m_textContent.getSize()) {
     return;
   }
-  str.erase(m_cursorPos);
-  m_textContent = str.toAnsiString();
+  m_textContent.erase(m_cursorPos);
   syncText();
 }
 
 void UITextBox::triggerPointerDown(sf::Vector2f position) {
   UIWidget::triggerPointerDown(position);
-  // TODO:
-  // Position cursor by click position (approximate: place at end for now).
-  // Full character-index-from-position would need per-glyph advance queries.
-  if (m_text) {
-    m_cursorPos = static_cast<uint32>(m_textContent.size());
+  // Place the caret from the click: `position` is widget-local, the text
+  // origin sits at (kTextPadding, kTextPadding), and findCharacterPos gives
+  // each glyph origin in text-local space — pick the nearest boundary
+  // (replaces the old "cursor at end" TODO and the average-char-width draw).
+  if (!m_text) {
+    return;
+  }
+  const std::size_t len = m_textContent.getSize();
+  const float clickX = position.x - kTextPadding;
+
+  float bestDist = std::fabs(clickX);  // distance to boundary 0
+  std::size_t best = 0;
+  for (std::size_t i = 1; i <= len; ++i) {
+    const float glyphX = m_text->findCharacterPos(i).x;
+    const float dist = std::fabs(glyphX - clickX);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  }
+  m_cursorPos = static_cast<uint32>(best);
+}
+
+void UITextBox::triggerCancel() {
+  // Subscribers see the cancel while we're still the selection, then dropping
+  // selection unfocuses the box (setSelected drives setFocused/triggerDeselect)
+  // — keyboard users are never trapped in the editor.
+  UIWidget::triggerCancel();
+  if (UIManager* manager = getManager()) {
+    manager->setSelected(nullptr);
   }
 }
 
 void UITextBox::onDraw(sf::RenderTarget& target,
                         sf::RenderStates states) const {
-  if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible()) {
     return;
   }
@@ -156,8 +164,7 @@ void UITextBox::onDraw(sf::RenderTarget& target,
   m_border.setOutlineColor(isFocused() ? m_focusedBorderColor : m_borderColor);
   target.draw(m_border, states);
 
-  constexpr float textPadding = 6.f;
-  const float innerRight = pos.x + size.x - textPadding;
+  const float innerRight = pos.x + size.x - kTextPadding;
 
   // Clip text to the textbox interior without overriding the parent view.
   const sf::View prevView = target.getView();
@@ -183,29 +190,29 @@ void UITextBox::onDraw(sf::RenderTarget& target,
   target.setView(clipView);
 
   if (m_text) {
-    if (m_textContent.empty() && !m_placeholder.empty()) {
+    if (m_textContent.isEmpty() && !m_placeholder.empty()) {
       const sf::Color savedColor = m_text->getFillColor();
-      m_text->setString(sf::String(m_placeholder));
+      m_text->setString(
+        sf::String::fromUtf8(m_placeholder.begin(), m_placeholder.end()));
       m_text->setFillColor(m_placeholderColor);
-      m_text->setPosition({pos.x + textPadding, pos.y + textPadding});
+      m_text->setPosition({pos.x + kTextPadding, pos.y + kTextPadding});
       target.draw(*m_text, states);
       m_text->setFillColor(savedColor);
-      m_text->setString(sf::String(m_textContent));
-    } else if (!m_textContent.empty()) {
-      m_text->setPosition({pos.x + textPadding, pos.y + textPadding});
+      m_text->setString(m_textContent);  // restore: caret math below runs on content
+    } else if (!m_textContent.isEmpty()) {
+      m_text->setPosition({pos.x + kTextPadding, pos.y + kTextPadding});
       target.draw(*m_text, states);
     }
 
     if (isFocused()) {
-      const float contentW = m_textContent.empty() ? 0.f
-        : m_text->getGlobalBounds().size.x;
-      const float charWidth = m_textContent.empty() ? 0.f
-        : contentW / static_cast<float>(m_textContent.size());
-      const float cursorX = pos.x + textPadding
-        + charWidth * std::min(m_cursorPos,
-            static_cast<uint32>(m_textContent.size()));
+      // Exact glyph origin for the caret — no average-character-width guessing.
+      const std::size_t caretIndex =
+        std::min<std::size_t>(m_cursorPos, m_textContent.getSize());
+      const float glyphX = m_text->findCharacterPos(caretIndex).x;
       m_cursorShape.setSize({2.f, static_cast<float>(m_charSize)});
-      m_cursorShape.setPosition({std::min(cursorX, innerRight), pos.y + textPadding});
+      m_cursorShape.setPosition(
+        {std::min(pos.x + kTextPadding + glyphX, innerRight),
+         pos.y + kTextPadding});
       m_cursorShape.setFillColor(m_cursorColor);
       target.draw(m_cursorShape, states);
     }
@@ -215,28 +222,14 @@ void UITextBox::onDraw(sf::RenderTarget& target,
 }
 
 void UITextBox::onSerialize(DataStream& stream) const {
-  constexpr uint32 kVersion = 1;
+  // Version 2: shared base state moved into UIWidget::serializeBase.
+  constexpr uint32 kVersion = 2;
   stream << kVersion;
+  serializeBase(stream);
 
-  uint8 flags = 0;
-  if (isEnabled())       flags |= 1 << 0;
-  if (isVisible())       flags |= 1 << 1;
-  if (isInteractable())  flags |= 1 << 2;
-  if (isFocused())       flags |= 1 << 3;
-  if (isBlockingInput()) flags |= 1 << 4;
-  stream << flags;
-
-  const sf::FloatRect& r = getRect();
-  stream << r.position.x << r.position.y << r.size.x << r.size.y;
-
-  stream << getAnchorMin().x << getAnchorMin().y
-         << getAnchorMax().x << getAnchorMax().y
-         << getPivot().x     << getPivot().y;
-
-  const sf::Color& c = getColor();
-  stream << c.r << c.g << c.b << c.a;
-
-  stream.writeString(m_textContent);
+  const sf::U8String utf8 = m_textContent.toUtf8();  // U8String → std::string
+  stream.writeString(
+    String(reinterpret_cast<const char*>(utf8.data()), utf8.size()));
   stream << m_charSize;
 
   const sf::Color tc = m_text ? m_text->getFillColor() : sf::Color::White;
@@ -249,32 +242,13 @@ void UITextBox::onSerialize(DataStream& stream) const {
 void UITextBox::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != 1) {
+  if (version != 2) {
     return;
   }
+  deserializeBase(stream);
 
-  uint8 flags = 0;
-  stream >> flags;
-  setEnabled((flags & (1 << 0)) != 0);
-  setVisible((flags & (1 << 1)) != 0);
-  setInteractable((flags & (1 << 2)) != 0);
-  setFocused((flags & (1 << 3)) != 0);
-  setBlocksInput((flags & (1 << 4)) != 0);
-
-  sf::FloatRect r;
-  stream >> r.position.x >> r.position.y >> r.size.x >> r.size.y;
-  setRect(r);
-
-  sf::Vector2f val;
-  stream >> val.x >> val.y; setAnchorMin(val);
-  stream >> val.x >> val.y; setAnchorMax(val);
-  stream >> val.x >> val.y; setPivot(val);
-
-  uint8 cr, cg, cb, ca;
-  stream >> cr >> cg >> cb >> ca;
-  setColor(sf::Color(cr, cg, cb, ca));
-
-  m_textContent = stream.readString();
+  const String utf8 = stream.readString();
+  m_textContent = sf::String::fromUtf8(utf8.begin(), utf8.end());
   stream >> m_charSize;
 
   uint8 tr, tg, tb, ta;
@@ -285,7 +259,6 @@ void UITextBox::onDeserialize(DataStream& stream) {
          >> m_focusedBorderColor.b >> m_focusedBorderColor.a;
 
   if (m_fontAsset && !m_text) {
-    // m_text = MakeUnique<sf::Text>(*m_font);
     m_text = MakeUnique<sf::Text>(m_fontAsset->font());
     m_text->setCharacterSize(m_charSize);
   }
@@ -293,7 +266,7 @@ void UITextBox::onDeserialize(DataStream& stream) {
     syncText();
     m_text->setFillColor(m_textColor);
   }
-  m_cursorPos = static_cast<uint32>(m_textContent.size());
+  m_cursorPos = static_cast<uint32>(m_textContent.getSize());
 }
 
 } // namespace sfmx

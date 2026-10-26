@@ -1,5 +1,5 @@
 #include "ui/UISlider.h"
-#include "ui/UIEventSystem.h"
+#include "ui/UIManager.h"
 #include "assets/AssetManager.h"
 #include "assets/TextureAsset.h"
 #include "core/DataStream.h"
@@ -12,17 +12,8 @@ namespace sfmx
 {
 
 UISlider::UISlider(sf::Vector2f size)
-  : UIWidgetT<UISlider, WidgetType::kSlider>(),
-    ComponentT<UISlider>(nullptr) {
+  : UIWidgetT<UISlider, WidgetType::kSlider>() {
   setSize(size);
-  syncColliderToRect();
-}
-
-UISlider::UISlider(SceneNode* node, sf::Vector2f size)
-  : UIWidgetT<UISlider, WidgetType::kSlider>(),
-    ComponentT<UISlider>(node) {
-  setSize(size);
-  syncColliderToRect();
 }
 
 UUID UISlider::getTypeId() const {
@@ -69,6 +60,19 @@ void UISlider::setThumbColor(sf::Color color) {
 void UISlider::setThumbSize(float size) { 
   m_thumbSize = size; 
   m_visualDirty = true; 
+}
+
+// Repositioning marks the cached track/fill/thumb dirty — relayout moves
+// roots through a UIWidget*, so this override is what keeps the drawn slider
+// and its hit-test rect at the same place after a resize.
+void UISlider::setPosition(sf::Vector2f position) {
+  UIWidget::setPosition(position);
+  m_visualDirty = true;
+}
+
+void UISlider::setRect(const sf::FloatRect& rect) {
+  UIWidget::setRect(rect);
+  m_visualDirty = true;
 }
 
 // -- Texture asset for the thumb -----------------------------------------------
@@ -145,11 +149,11 @@ void UISlider::triggerPointerUp(sf::Vector2f position) {
 
 void UISlider::onUpdate(float deltaTime) {
   SFMX_PARAMETER_UNUSED(deltaTime);
-  if (!m_dragging || !UIEventSystem::isStarted()) {
+  if (!m_dragging || !UIManager::isStarted()) {
     return;
   }
 
-  const auto& ptr = UIEventSystem::instance().getPointerState();
+  const auto& ptr = UIManager::instance().getPointerState();
   if (ptr.buttonDown) {
     const sf::Vector2f localPos = toLocalSpace(ptr.canvasPos);
     const float w = getSize().x;
@@ -165,7 +169,6 @@ void UISlider::onUpdate(float deltaTime) {
 
 void UISlider::onDraw(sf::RenderTarget& target,
                        sf::RenderStates states) const {
-  if (!UIWidget::s_canvasDrawing) return;
   if (!isVisible()) return;
 
   const sf::Vector2f pos = getPosition();
@@ -215,26 +218,10 @@ void UISlider::onDraw(sf::RenderTarget& target,
 }
 
 void UISlider::onSerialize(DataStream& stream) const {
-  constexpr uint32 kVersion = 2;
+  // Version 3: shared base state moved into UIWidget::serializeBase.
+  constexpr uint32 kVersion = 3;
   stream << kVersion;
-
-  uint8 flags = 0;
-  if (isEnabled())       flags |= 1 << 0;
-  if (isVisible())       flags |= 1 << 1;
-  if (isInteractable())  flags |= 1 << 2;
-  if (isFocused())       flags |= 1 << 3;
-  if (isBlockingInput()) flags |= 1 << 4;
-  stream << flags;
-
-  const sf::FloatRect& r = getRect();
-  stream << r.position.x << r.position.y << r.size.x << r.size.y;
-
-  stream << getAnchorMin().x << getAnchorMin().y
-         << getAnchorMax().x << getAnchorMax().y
-         << getPivot().x     << getPivot().y;
-
-  const sf::Color& c = getColor();
-  stream << c.r << c.g << c.b << c.a;
+  serializeBase(stream);
 
   stream << m_value << m_minValue << m_maxValue << m_stepValue;
   stream << m_thumbSize;
@@ -248,30 +235,10 @@ void UISlider::onSerialize(DataStream& stream) const {
 void UISlider::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version < 1 || version > 2) {
+  if (version != 3) {
     return;
   }
-
-  uint8 flags = 0;
-  stream >> flags;
-  setEnabled((flags & (1 << 0)) != 0);
-  setVisible((flags & (1 << 1)) != 0);
-  setInteractable((flags & (1 << 2)) != 0);
-  setFocused((flags & (1 << 3)) != 0);
-  setBlocksInput((flags & (1 << 4)) != 0);
-
-  sf::FloatRect r;
-  stream >> r.position.x >> r.position.y >> r.size.x >> r.size.y;
-  setRect(r);
-
-  sf::Vector2f val;
-  stream >> val.x >> val.y; setAnchorMin(val);
-  stream >> val.x >> val.y; setAnchorMax(val);
-  stream >> val.x >> val.y; setPivot(val);
-
-  uint8 cr, cg, cb, ca;
-  stream >> cr >> cg >> cb >> ca;
-  setColor(sf::Color(cr, cg, cb, ca));
+  deserializeBase(stream);
 
   stream >> m_value >> m_minValue >> m_maxValue;
   if (version >= 2) {

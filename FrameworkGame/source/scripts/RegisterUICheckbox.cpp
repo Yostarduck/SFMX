@@ -3,7 +3,6 @@
 #include "ui/UICheckbox.h"
 
 #include "core/platform/Prerequisites.h"
-#include "scene/Component.h"
 #include "scene/ScriptComponent.h"
 #include "ui/UIWidget.h"
 
@@ -17,9 +16,7 @@ void
 registerUICheckbox(sol::state_view lua) {
   lua.new_usertype<UICheckbox>("UICheckbox",
     sol::no_constructor,
-    sol::base_classes, sol::bases<UIWidget, Component>(),
-
-    "typeId", sol::var(componentTypeId<UICheckbox>()),
+    sol::base_classes, sol::bases<UIWidget>(),
 
     "isChecked", &UICheckbox::isChecked,
     "setChecked", &UICheckbox::setChecked,

@@ -11,8 +11,6 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Sprite.hpp>
-#include "scene/SceneNode.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -20,8 +18,7 @@ namespace sfmx
 
 class TextureAsset;
 
-class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
-                       public ComponentT<UISlider>
+class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>
 {
  public:
   using UIWidget::isEnabled;
@@ -32,22 +29,21 @@ class UISlider final : public UIWidgetT<UISlider, WidgetType::kSlider>,
   using UIWidget::setInteractable;
   using UIWidget::setFocused;
   using UIWidget::getPosition;
-  using UIWidget::setPosition;
   using UIWidget::getSize;
   using UIWidget::setSize;
   using UIWidget::getRect;
-  using UIWidget::setRect;
   using UIWidget::getColor;
+
+  /** @brief Repositioning/re-recting re-syncs the cached track/fill/thumb. */
+  void setPosition(sf::Vector2f position) override;
+  void setRect(const sf::FloatRect& rect) override;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
-  using UIWidget::syncColliderToRect;
   using UIWidget::onPointerDown;
   using UIWidget::onPointerUp;
 
-  /** @brief  Standalone constructor (no SceneNode). */
+  /** @brief  Constructor (normally called through ui::createWidget<UISlider>). */
   UISlider(sf::Vector2f size = {200.f, 20.f});
-  /** @brief  Component constructor attached to a SceneNode. */
-  UISlider(SceneNode* node, sf::Vector2f size = {200.f, 20.f});
   ~UISlider() override = default;
 
   /** @brief  Type UUID for serialization. */

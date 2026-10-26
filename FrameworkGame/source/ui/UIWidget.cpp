@@ -1,55 +1,77 @@
+#include "core/DataStream.h"
 #include "ui/UIWidget.h"
-#include "ui/Canvas.h"
+#include "ui/UIManager.h"
+#include "utils/MemoryPoolHandler.h"
 
 namespace sfmx
 {
 
-bool UIWidget::s_canvasDrawing = false;
+namespace
+{
+
+/**
+ * @brief Destroy a child widget through its memory pool (erased path — the
+ *        concrete type is only reachable via getTypeId()). Mirrors how Scene
+ *        destroys pooled components. Skipped when the pools are already gone
+ *        (the widget then cannot have come from a pool either).
+ */
+void
+destroyChild(UIWidget* child) {
+  if (nullptr == child) {
+    return;
+  }
+  if (MemoryPoolHandler::isStarted()) {
+    MemoryPoolHandler::instance().deallocate(child->getTypeId(),
+                                              static_cast<void*>(child));
+  }
+}
+
+} // namespace
 
 UIWidget::UIWidget() = default;
 
 UIWidget::~UIWidget() {
+  // 1. Drop any manager-side references while the manager is still reachable
+  //    (clears selection / hover without touching members we still need).
+  if (UIManager* manager = getManager()) {
+    manager->forgetWidget(this);
+  }
+
+  // 2. Unlink from our parent (no-op for roots; a parent destroying us will
+  //    have left m_parent intact so child dtors remove themselves here).
   if (m_parent != nullptr) {
     m_parent->removeChild(this);
   }
-  if (m_canvas != nullptr) {
-    m_canvas->removeWidget(this);
+
+  // 3. Destroy our children (parent owns its children). Each child's dtor
+  //    unlinks itself from m_children (step 2 above), so popping until empty
+  //    is safe. If the pools are gone we can only detach them: clearing
+  //    m_parent keeps a later child dtor from touching this dead parent.
+  if (MemoryPoolHandler::isStarted()) {
+    while (!m_children.empty()) {
+      UIWidget* child = m_children.back();
+      destroyChild(child);
+      // A deallocate that did not destroy (child not from this pool) would
+      // leave `child` at the back forever — detach it so we still make progress.
+      if (!m_children.empty() && m_children.back() == child) {
+        child->m_parent = nullptr;
+        m_children.pop_back();
+      }
+    }
+  } else {
+    for (auto* child : m_children) {
+      if (nullptr != child) {
+        child->m_parent = nullptr;
+      }
+    }
+    m_children.clear();
   }
-}
 
-// -- Collider ----------------------------------------------------------------
-
-void 
-UIWidget::setColliderCircle(const sf::Vector2f& center, float radius) {
-  m_collider = UniquePtr<ICollider>(new CircleCollider(center, radius));
-}
-
-void UIWidget::setColliderAABB(const sf::Vector2f& center, const sf::Vector2f& halfSize) {
-  m_collider = UniquePtr<ICollider>(new AABBCollider(center, halfSize));
-}
-
-void UIWidget::setColliderOBB(const sf::Vector2f& center, const sf::Vector2f& halfSize) {
-  m_collider = UniquePtr<ICollider>(new OBBCollider(center, halfSize));
-}
-
-void UIWidget::setColliderPoint(const sf::Vector2f& localPos) {
-  m_collider = UniquePtr<ICollider>(new PointCollider(localPos));
-}
-
-void UIWidget::setColliderLine(const sf::Vector2f& localStart,
-                               const sf::Vector2f& localEnd) {
-  m_collider = UniquePtr<ICollider>(new LineCollider(localStart, localEnd));
-}
-
-void UIWidget::clearCollider() {
-  m_collider.reset();
-}
-
-void UIWidget::syncColliderToRect() {
-  const auto center = sf::Vector2f{m_rect.position.x + m_rect.size.x * 0.5f,
-                                    m_rect.position.y + m_rect.size.y * 0.5f};
-  const auto halfSize = m_rect.size * 0.5f;
-  m_collider = UniquePtr<ICollider>(new AABBCollider(center, halfSize));
+  // 4. Last: unregister as a root (skipped when the UIManager is tearing its
+  //    roots down — it nulls m_manager before destroying us).
+  if (m_manager != nullptr) {
+    m_manager->removeRoot(this);
+  }
 }
 
 // -- Hit testing -------------------------------------------------------------
@@ -139,9 +161,34 @@ void UIWidget::drawHierarchy(sf::RenderTarget& target,
 }
 
 UIWidget* UIWidget::hitTestInHierarchy(sf::Vector2f point) const {
-  if (!isEnabled() || !isVisible() || !isInteractable()) return nullptr;
+  // Invisible: transparent to input (no block, no receive).
+  if (!isVisible()) return nullptr;
   if (!containsPoint(point)) return nullptr;
-  return isBlockingInput() ? const_cast<UIWidget*>(this) : nullptr;
+
+  // Dead (disabled / non-interactable) widgets still BLOCK: they swallow the
+  // hit so widgets drawn underneath receive nothing, but the UIManager never
+  // dispatches pointer events to them.
+  if (!isEnabled() || !isInteractable()) {
+    return const_cast<UIWidget*>(this);
+  }
+
+  // Recurse children topmost-first (reverse draw order), mapping the point
+  // from THIS widget's frame into each child's frame with the INVERSE of
+  // getChildTransform() — the exact reverse of the composition drawHierarchy
+  // applies forward (child vertex → parent frame), so drawing and hit-testing
+  // stay symmetric.
+  const sf::Vector2f childPoint =
+      getChildTransform().getInverse().transformPoint(point);
+  for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+    if (UIWidget* hit = (*it)->hitTestInHierarchy(childPoint)) {
+      return hit;
+    }
+  }
+
+  // Inside us: return this regardless of blocksInput — the caller
+  // (UIManager::hitTest) decides blocking vs. fall-through, so a non-blocking
+  // widget no longer hides the widgets below it.
+  return const_cast<UIWidget*>(this);
 }
 
 sf::Vector2f UIWidget::toLocalSpace(sf::Vector2f canvasPoint) const {
@@ -151,6 +198,13 @@ sf::Vector2f UIWidget::toLocalSpace(sf::Vector2f canvasPoint) const {
   return canvasPoint - getPosition();
 }
 
+// -- Lifecycle ----------------------------------------------------------------
+
+void UIWidget::onUpdate(float deltaTime) {
+  SFMX_PARAMETER_UNUSED(deltaTime);
+  // Base widget has no per-frame behaviour; subclasses override.
+}
+
 // -- Drawing -----------------------------------------------------------------
 
 void UIWidget::onDraw(sf::RenderTarget& target,
@@ -158,6 +212,70 @@ void UIWidget::onDraw(sf::RenderTarget& target,
   SFMX_PARAMETER_UNUSED(target);
   SFMX_PARAMETER_UNUSED(states);
   // Base widget has no visual; subclasses override.
+}
+
+// -- UI document: shared base payload ----------------------------------------
+
+void
+UIWidget::serializeBase(DataStream& stream) const {
+  constexpr uint8 kBaseVersion = 1;
+  stream << kBaseVersion;
+
+  stream.writeString(getName());
+
+  uint8 flags = 0;
+  if (isEnabled())       flags |= 1 << 0;
+  if (isVisible())       flags |= 1 << 1;
+  if (isInteractable())  flags |= 1 << 2;
+  if (isFocused())       flags |= 1 << 3;
+  if (isBlockingInput()) flags |= 1 << 4;
+  stream << flags;
+
+  const sf::FloatRect& r = getRect();
+  stream << r.position.x << r.position.y << r.size.x << r.size.y;
+
+  const UISlot& s = getSlot();
+  stream << s.anchorMin.x << s.anchorMin.y
+         << s.anchorMax.x << s.anchorMax.y
+         << s.pivot.x     << s.pivot.y
+         << s.offset.x    << s.offset.y;
+
+  const sf::Color& c = getColor();
+  stream << c.r << c.g << c.b << c.a;
+}
+
+void
+UIWidget::deserializeBase(DataStream& stream) {
+  uint8 baseVersion = 0;
+  stream >> baseVersion;
+  if (baseVersion != 1) {
+    return;
+  }
+
+  setName(stream.readString());
+
+  uint8 flags = 0;
+  stream >> flags;
+  setEnabled((flags & (1 << 0)) != 0);
+  setVisible((flags & (1 << 1)) != 0);
+  setInteractable((flags & (1 << 2)) != 0);
+  setFocused((flags & (1 << 3)) != 0);
+  setBlocksInput((flags & (1 << 4)) != 0);
+
+  sf::FloatRect r;
+  stream >> r.position.x >> r.position.y >> r.size.x >> r.size.y;
+  setRect(r);  // virtual — marks cached-geometry widgets dirty; syncs the
+               // offset datum, which setOffset below then overwrites
+
+  sf::Vector2f val;
+  stream >> val.x >> val.y; setAnchorMin(val);
+  stream >> val.x >> val.y; setAnchorMax(val);
+  stream >> val.x >> val.y; setPivot(val);
+  stream >> val.x >> val.y; setOffset(val);  // authoritative — runs last
+
+  uint8 cr, cg, cb, ca;
+  stream >> cr >> cg >> cb >> ca;
+  setColor(sf::Color(cr, cg, cb, ca));
 }
 
 } // namespace sfmx

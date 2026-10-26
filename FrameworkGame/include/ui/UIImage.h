@@ -10,8 +10,6 @@
 
 #include <SFML/Graphics/Sprite.hpp>
 
-#include "scene/SceneNode.h"
-#include "scene/Component.h"
 #include "ui/UIWidget.h"
 
 namespace sfmx
@@ -22,15 +20,12 @@ class TextureAsset;
 /**
  * @brief A UI widget that displays a texture (asset-backed or raw).
  *
- * Follows the same dual-mode pattern as UIButton: can live standalone in a
- * Canvas or on a SceneNode via ComponentT<UIImage>.
- *
  * Texture asset management mirrors SpriteComponent:
  *   - setTextureAsset() stores a keep-alive SPtr<TextureAsset> and records its UUID.
  *   - setTextureAssetId() resolves the UUID through AssetManager at runtime.
  *   - Serialization round-trips the UUID so the texture re-resolves on load.
  */
-class UIImage final : public UIWidgetT<UIImage, WidgetType::kImage>, public ComponentT<UIImage>
+class UIImage final : public UIWidgetT<UIImage, WidgetType::kImage>
 {
  public:
   using UIWidget::isEnabled;
@@ -49,12 +44,8 @@ class UIImage final : public UIWidgetT<UIImage, WidgetType::kImage>, public Comp
   using UIWidget::getColor;
   using UIWidget::setColor;
   using UIWidget::containsPoint;
-  using UIWidget::syncColliderToRect;
 
   UIImage(sf::Vector2f size = {200.f, 200.f});
-
-  UIImage(SceneNode* node,
-          sf::Vector2f size = {200.f, 200.f});
 
   ~UIImage() override;
 
