@@ -160,7 +160,7 @@ buildFullTree() {
   UIImage* image = ui::createWidget<UIImage>(sf::Vector2f{48.f, 48.f});
   image->setName("Image");
   // No AssetManager in tests — the id round-trips as pure data.
-  image->setTextureAssetId(UUID::createFromName("uitest_tex"));
+  image->setTextureAssetId(sfmx::UUID::createFromName("uitest_tex"));
   image->setFlipX(true);
   hbox->addChild(image);
 
@@ -254,7 +254,7 @@ checkFullTree(const Vector<UIWidget*>& roots) {
   CHECK(image->getType() == WidgetType::kImage);
   CHECK(image->getName() == "Image");
   auto* imageTyped = static_cast<UIImage*>(image);
-  CHECK(imageTyped->getTextureAssetId() == UUID::createFromName("uitest_tex"));
+  CHECK(imageTyped->getTextureAssetId() == sfmx::UUID::createFromName("uitest_tex"));
 
   // --- root 2: scroll view — scroll offset + nested box -------------------
   UIWidget* scroll = roots[1];
@@ -302,7 +302,7 @@ TEST_CASE("UI document skips unknown type records without desyncing") {
   probe->onSerialize(payload);
 
   // Unknown id: the abstract base's type id is never factory-registered.
-  const UUID unknownId = TypeTraits<UIWidget>::getTypeId();
+  const sfmx::UUID unknownId = TypeTraits<UIWidget>::getTypeId();
 
   MemoryDataStream blob;
   blob << static_cast<uint32>(2);  // two roots
