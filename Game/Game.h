@@ -3,6 +3,7 @@
 namespace sfmx
 {
 
+
 class Game : public App {
  public:
   
@@ -18,6 +19,16 @@ class Game : public App {
 
   virtual void
   shutdown() override;
+
+  void
+  cook();
+
+  void
+  cookGame();
+
+ private:
+
+  IniFile m_config;
 
 };
 

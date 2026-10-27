@@ -1,5 +1,5 @@
 #include "Game.h"
-
+#include "core/ArgumentParser.h"
 namespace sfmx
 {
 
@@ -15,6 +15,10 @@ Game::~Game()
 void Game::initialize(int argc, char **argv) 
 {
   // Implementation of initialize
+  ArgumentParser argParser;
+  argParser.parse(argc, argv);
+
+  
 
 }
 
