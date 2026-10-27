@@ -77,11 +77,17 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include "Game.h"
 
 using namespace sfmx;
 
 int
 main(int argc, char **argv) {
+
+  Game* app = new Game();
+
+
+
   // Offline cooking entry points (exit without opening a window):
   //   --cook [src] [out]  wrap the media under src into .sfmxasset containers.
   //   --cook-scene        build the demo scene in code and serialize it.
