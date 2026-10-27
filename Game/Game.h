@@ -28,7 +28,6 @@ class Game : public App {
 
  private:
 
-  IniFile m_config;
 
 };
 

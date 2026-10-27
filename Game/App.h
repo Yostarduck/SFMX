@@ -16,6 +16,10 @@ class App {
   virtual void
   shutdown() = 0;
 
+ protected:
+  IniFile m_config;
+  PostProcessPipeline m_postProcessPipeline;
+
 };
 
 }
