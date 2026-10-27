@@ -26,7 +26,7 @@ void Game::initialize(int argc, char **argv)  {
 
   }
 
-  
+
 
 }
 
@@ -38,6 +38,14 @@ void Game::run() {
 void Game::shutdown()  {
   // Clean up everything
 
+}
+
+void Game::cook() {
+
+}
+
+void Game::cookGame() {
+  
 }
 
 }

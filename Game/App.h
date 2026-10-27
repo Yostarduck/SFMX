@@ -1,3 +1,8 @@
+#include "core/platform/Prerequisites.h"
+#include "core/platform/STDHeaders.h"
+#include "render/PostProcessPipeline.h"
+#include "config/IniFile.h"
+
 
 namespace sfmx
 {

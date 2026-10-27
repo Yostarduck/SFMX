@@ -1,6 +1,7 @@
 
 #include "platform/Prerequisites.h"
 #include "platform/STDHeaders.h"
+#include <regex>
 
 namespace sfmx
 {
