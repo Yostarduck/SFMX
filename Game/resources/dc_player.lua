@@ -1,0 +1,4 @@
+
+local DCPlayer = DCEntity:new()
+
+
