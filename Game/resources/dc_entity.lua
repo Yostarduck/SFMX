@@ -1,7 +1,7 @@
 local DCEntity = {}
 
 function DCEntity.onCreated(self)
-  self.health = 100
+  self.life = 100
   self.destructible = true
   self.gameManager = nil
   self.speed = 0
