@@ -84,8 +84,13 @@ using namespace sfmx;
 int
 main(int argc, char **argv) {
 
-  Game* app = new Game();
-
+  Game* game = new Game();
+  game->initialize(argc, argv);
+  if (!game->shouldExit()) {
+    game->run();
+  }
+  game->shutdown();
+  return game->exitCode();
 
 
   // Offline cooking entry points (exit without opening a window):

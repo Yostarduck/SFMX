@@ -26,8 +26,15 @@ class Game : public App {
   void
   cookGame();
 
+  bool
+  shouldExit() const { return m_exitCode != 0; }
+
+  int 
+  exitCode() const { return m_exitCode; }
+
  private:
 
+ int m_exitCode;
 
 };
 
