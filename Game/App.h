@@ -15,16 +15,32 @@ class App {
   virtual void
   initialize(int argc, char **argv) = 0;
 
+  virtual void  
+  pollEvents() = 0;
+
+  virtual void
+  update(float deltaTime) = 0;
+
+  virtual void 
+  render() = 0;
+
   virtual void
   run() = 0;
 
   virtual void
   shutdown() = 0;
 
+  bool
+  shouldExit() const { return m_exitCode != 0; }
+
+  int 
+  exitCode() const { return m_exitCode; }
+
  protected:
   IniFile m_config;
   PostProcessPipeline m_postProcessPipeline;
 
+  int m_exitCode;
 };
 
 }

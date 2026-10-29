@@ -30,6 +30,21 @@ void Game::initialize(int argc, char **argv)  {
 
 }
 
+void
+Game::pollEvents() {
+
+}
+
+void 
+Game::update(float deltaTime) {
+
+}
+
+void
+Game::render() {
+
+}
+
 void Game::run() {
   // Game loop
 }

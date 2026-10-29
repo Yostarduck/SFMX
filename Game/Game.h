@@ -14,6 +14,15 @@ class Game : public App {
   virtual void
   initialize(int argc, char **argv) override;
 
+  virtual void  
+  pollEvents() override;
+
+  virtual void
+  update(float deltaTime) override;
+
+  virtual void 
+  render() override;
+
   virtual void
   run() override;
 
@@ -26,15 +35,10 @@ class Game : public App {
   void
   cookGame();
 
-  bool
-  shouldExit() const { return m_exitCode != 0; }
-
-  int 
-  exitCode() const { return m_exitCode; }
 
  private:
 
- int m_exitCode;
+  IniFile m_gameConfig;
 
 };
 
