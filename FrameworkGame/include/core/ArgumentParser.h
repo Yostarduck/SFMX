@@ -49,6 +49,9 @@ class ArgumentParser {
   const Vector<String>
   getFlagValues(StringView flag);
 
+  StringView
+  getFlagValue(StringView flag, int32 index);
+
   bool
   hasFlag(StringView flag);
 

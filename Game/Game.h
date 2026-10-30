@@ -1,5 +1,7 @@
 #include "App.h"
 
+#include "core/ArgumentParser.h"
+
 namespace sfmx
 {
 
@@ -37,7 +39,7 @@ class Game : public App {
 
 
  private:
-
+  ArgumentParser m_argParser;
   IniFile m_gameConfig;
 
 };

@@ -109,6 +109,19 @@ ArgumentParser::getFlagValues(StringView flag) {
   return {};
 }
 
+StringView
+ArgumentParser::getFlagValue(StringView flag, int32 index) {
+  
+  if (m_flagMap.find(flag.data()) != m_flagMap.end()) {
+    if (index >= 0 && index < static_cast<int32>(m_flagMap[flag.data()].size())) {
+      return m_flagMap[flag.data()][index];
+    }
+  }
+  return {};
+}
+
+
+
 bool
 ArgumentParser::hasFlag(StringView flag) {
   String toFind(flag);
