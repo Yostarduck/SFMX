@@ -31,10 +31,10 @@ class Game : public App {
   virtual void
   shutdown() override;
 
-  void
+  bool
   cook();
 
-  void
+  bool
   cookGame();
 
 

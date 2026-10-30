@@ -1,6 +1,7 @@
 add_executable(UnitTests
     UnitTest.cpp
     FlagTest.cpp
+    ArgumentParserTest.cpp
     DataStreamTest.cpp
     ParticleSystemTest.cpp
     BenchmarkTest.cpp

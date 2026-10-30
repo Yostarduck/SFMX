@@ -31,7 +31,7 @@ class App {
   shutdown() = 0;
 
   bool
-  shouldExit() const { return m_exitCode != 0; }
+  shouldExit() const { return m_shouldExit; }
 
   int 
   exitCode() const { return m_exitCode; }
@@ -39,8 +39,8 @@ class App {
  protected:
   IniFile m_config;
   PostProcessPipeline m_postProcessPipeline;
-
-  int m_exitCode;
+  bool m_shouldExit = false;
+  int m_exitCode = 0;
 };
 
 }

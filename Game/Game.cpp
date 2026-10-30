@@ -19,11 +19,14 @@ void Game::initialize(int argc, char **argv)  {
   
   m_argParser.parse(argc, argv);
   if (m_argParser.hasFlag("cook")) {
-    cook();
+    m_exitCode = cook() ? 0 : 1;
+    m_shouldExit = true;
+    return;
   }
-
   if (m_argParser.hasFlag("cook-scene")) {
-    cookGame();
+    m_exitCode = cookGame() ? 0 : 1;
+    m_shouldExit = true;
+    return;
   }
 
   if (m_argParser.hasFlag("content-dir")) {
@@ -59,7 +62,8 @@ void Game::shutdown()  {
 
 }
 
-void Game::cook() {
+bool 
+Game::cook() {
   auto& flagValues = m_argParser.getFlagValues("cook");
   const FileSystemPath srcDir = flagValues.size() > 0 ? flagValues[0] : "Game/resources";
   const FileSystemPath outDir = flagValues.size() > 1 ? flagValues[1] : "Game/assets";
@@ -69,10 +73,12 @@ void Game::cook() {
   imagewebp::registerModule(); // adds the .webp import rule (decoder skipped: no AssetManager in cook)
   AssetCooker::cookDirectory(srcDir, outDir);
   AssetImporterRegistry::shutDown();
+  return true;
 }
 
-void Game::cookGame() {
-  
+bool 
+Game::cookGame() {
+  return true;
 }
 
 }
