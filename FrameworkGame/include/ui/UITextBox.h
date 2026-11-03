@@ -46,7 +46,7 @@ class UITextBox final : public UIWidgetT<UITextBox, WidgetType::kTextBox>
 
   /** @brief  Type UUID for serialization. */
   NODISCARD UUID getTypeId() const override;
-  /** @brief  Serialize text content, char size, colors and texture ID. */
+  /** @brief  Serialize text content, char size, colors, and font asset UUID. */
   void onSerialize(DataStream& stream) const override;
   /** @brief  Restore state written by onSerialize. */
   void onDeserialize(DataStream& stream) override;

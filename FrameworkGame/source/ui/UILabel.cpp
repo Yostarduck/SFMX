@@ -16,7 +16,10 @@ namespace sfmx
 {
 
 namespace {
-constexpr uint32 kUILabelVersion = 2; ///< Blob version; bump on format changes.
+/// Blob version; bump on format changes.
+/// v2: shared base state (name/flags/rect/slot/colour) moved into serializeBase.
+/// v3: font asset UUID appended (v2 documents load with no font).
+constexpr uint32 kUILabelVersion = 3;
 } // anonymous namespace
 
 // -- Constructors ------------------------------------------------------------
@@ -108,13 +111,19 @@ void UILabel::onSerialize(DataStream& stream) const {
                             utf8.size()));
   stream << m_charSize;
   stream << m_textColor.r << m_textColor.g << m_textColor.b << m_textColor.a;
+
+  // The font is stored as its asset UUID, never as a pointer: the cooked
+  // document stays machine-independent and the loader resolves the id through
+  // the AssetManager. With no manager running (tests, tools) the id still
+  // round-trips as plain data.
+  stream << m_fontAssetId;
 }
 
 void UILabel::onDeserialize(DataStream& stream) {
-  // TODO: When the FontAsset is made, add here the UUID
   uint32 version = 0;
   stream >> version;
-  if (version != kUILabelVersion) {
+  // v2 documents predate font serialization; they still load, without a font.
+  if (version < 2 || version > kUILabelVersion) {
     return;
   }
   deserializeBase(stream);
@@ -126,6 +135,14 @@ void UILabel::onDeserialize(DataStream& stream) {
   uint8 r = 255, g = 255, b = 255, a = 255;
   stream >> r >> g >> b >> a;
   m_textColor = sf::Color(r, g, b, a);
+
+  if (version >= 3) {
+    UUID fontId;
+    stream >> fontId;
+    // Resolves through the AssetManager when one is running; otherwise it just
+    // records the id so a later setFontAsset()/setFontAssetId() can bind it.
+    setFontAssetId(fontId);
+  }
 
   // Apply now if the font is already resolved; otherwise setFontAsset()
   // pushes the backing store when the font UUID gets loaded later.
