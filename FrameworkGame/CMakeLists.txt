@@ -39,11 +39,12 @@ endif()
 add_library(FrameworkGame STATIC
     source/config/IniFile.cpp
 
-    source/core/MemoryPool.cpp
+    source/core/ArgumentParser.cpp
     source/core/DataStream.cpp
-    source/core/MemoryDataStream.cpp
     source/core/FileDataStream.cpp
     source/core/FileSystem.cpp
+    source/core/MemoryPool.cpp
+    source/core/MemoryDataStream.cpp
     source/core/Window.cpp
     source/core/physics/Collider.cpp
     source/core/physics/PhysicsSystem.cpp

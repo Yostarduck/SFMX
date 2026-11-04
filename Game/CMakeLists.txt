@@ -1,7 +1,9 @@
 add_executable(Game
     main.cpp
     DemoScene.cpp
-    DemoCook.cpp)
+    DemoCook.cpp
+    Game.cpp
+    )
 
 # SFMX::ImageWebP is a format module: it self-registers a WebP decoder + import rule
 # at runtime (see imagewebp::registerModule in main.cpp). Linked here so both the cook
