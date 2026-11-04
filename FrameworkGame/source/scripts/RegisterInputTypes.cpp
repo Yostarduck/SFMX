@@ -1,9 +1,11 @@
 #include "scripts/RegisterInputTypes.h"
 
 #include "core/platform/Prerequisites.h"
+#include "input/InputControl.h"
 #include "input/InputTypes.h"
 #include "input/InputValue.h"
 #include "input/Interaction.h"
+#include "input/Processor.h"
 
 namespace sfmx
 {
@@ -138,6 +140,36 @@ registerInputTypes(sol::state_view lua) {
     { "Started",   ActionPhase::kStarted },
     { "Performed", ActionPhase::kPerformed },
     { "Canceled",  ActionPhase::kCanceled }
+  });
+
+  lua.new_enum<CompositeType>("CompositeType", {
+    { "Axis1D",   CompositeType::kAxis1D },
+    { "Vector2D", CompositeType::kVector2D }
+  });
+
+  lua.new_enum<CompositeRole>("CompositeRole", {
+    { "PositiveX", CompositeRole::kPositiveX },
+    { "NegativeX", CompositeRole::kNegativeX },
+    { "PositiveY", CompositeRole::kPositiveY },
+    { "NegativeY", CompositeRole::kNegativeY },
+    { "AxisX",     CompositeRole::kAxisX },
+    { "AxisY",     CompositeRole::kAxisY }
+  });
+
+  lua.new_enum<InteractionType>("InteractionType", {
+    { "PassThrough", InteractionType::kPassThrough },
+    { "Press",       InteractionType::kPress },
+    { "Hold",        InteractionType::kHold },
+    { "Tap",         InteractionType::kTap },
+    { "MultiTap",    InteractionType::kMultiTap }
+  });
+
+  lua.new_enum<ProcessorType>("ProcessorType", {
+    { "Invert",    ProcessorType::kInvert },
+    { "Scale",     ProcessorType::kScale },
+    { "DeadZone",  ProcessorType::kDeadZone },
+    { "Normalize", ProcessorType::kNormalize },
+    { "Clamp",     ProcessorType::kClamp }
   });
 
   lua.set_function("toString", sol::overload(
