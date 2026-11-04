@@ -80,4 +80,27 @@ InputSystem::createMapping(StringView name) {
   return m_mappings.back().get();
 }
 
+bool
+InputSystem::destroyMapping(Mapping* mapping) {
+  if (nullptr == mapping) {
+    return false;
+  }
+  for (auto it = m_mappings.begin(); it != m_mappings.end(); ++it) {
+    if (it->get() == mapping) {
+      if (m_activeMapping == mapping) {
+        m_activeMapping = nullptr;
+      }
+      m_mappings.erase(it);
+      return true;
+    }
+  }
+  return false;
+}
+
+void
+InputSystem::clearMappings() {
+  m_activeMapping = nullptr;
+  m_mappings.clear();
+}
+
 } // namespace sfmx

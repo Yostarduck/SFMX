@@ -63,6 +63,25 @@ class InputSystem : public Module<InputSystem>
   Mapping*
   createMapping(StringView name);
 
+  /**
+   * @brief Destroy a mapping created by @ref createMapping.
+   *
+   * Clears @ref getActiveMapping() first when it points at @p mapping, so the
+   * per-frame evaluate can never dereference a destroyed mapping.
+   *
+   * @return True if @p mapping was owned by this system; false otherwise.
+   */
+  bool
+  destroyMapping(Mapping* mapping);
+
+  /** @brief Destroy every mapping and clear the active pointer. */
+  void
+  clearMappings();
+
+  /** @brief Number of mappings owned by this system. */
+  NODISCARD size_t
+  getMappingCount() const { return m_mappings.size(); }
+
   /** @brief Make @p mapping the one evaluated each frame (may be nullptr). */
   void
   setActiveMapping(Mapping* mapping) { m_activeMapping = mapping; }

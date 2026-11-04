@@ -24,6 +24,24 @@ InputAction::addComposite(CompositeType type) {
   return m_composites.back();
 }
 
+bool
+InputAction::removeBinding(size_t index) {
+  if (index >= m_bindings.size()) {
+    return false;
+  }
+  m_bindings.erase(m_bindings.begin() + index);
+  return true;
+}
+
+bool
+InputAction::removeComposite(size_t index) {
+  if (index >= m_composites.size()) {
+    return false;
+  }
+  m_composites.erase(m_composites.begin() + index);
+  return true;
+}
+
 void
 InputAction::addProcessor(const Processor& processor) {
   m_processors.push_back(processor);

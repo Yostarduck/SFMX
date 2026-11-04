@@ -55,9 +55,49 @@ class InputAction
   CompositeBinding&
   addComposite(CompositeType type);
 
+  /** @brief Number of simple bindings. */
+  NODISCARD size_t
+  getBindingCount() const { return m_bindings.size(); }
+
+  /** @brief The simple binding at @p index (valid while < getBindingCount()). */
+  NODISCARD const Binding&
+  getBinding(size_t index) const { return m_bindings[index]; }
+
+  /** @brief Remove the simple binding at @p index; false if out of range. */
+  bool
+  removeBinding(size_t index);
+
+  /** @brief Remove every simple binding (composites are untouched). */
+  void
+  clearBindings() { m_bindings.clear(); }
+
+  /** @brief Number of composite bindings. */
+  NODISCARD size_t
+  getCompositeCount() const { return m_composites.size(); }
+
+  /** @brief The composite binding at @p index (valid while < getCompositeCount()). */
+  NODISCARD const CompositeBinding&
+  getComposite(size_t index) const { return m_composites[index]; }
+
+  /** @brief Remove the composite binding at @p index; false if out of range. */
+  bool
+  removeComposite(size_t index);
+
+  /** @brief Remove every composite binding (simple bindings are untouched). */
+  void
+  clearComposites() { m_composites.clear(); }
+
   /** @brief Append an action-level processor (applied after combination). */
   void
   addProcessor(const Processor& processor);
+
+  /** @brief Number of action-level processors. */
+  NODISCARD size_t
+  getProcessorCount() const { return m_processors.size(); }
+
+  /** @brief Remove every action-level processor. */
+  void
+  clearProcessors() { m_processors.clear(); }
 
   /** @brief Set the interaction (timing model). */
   void

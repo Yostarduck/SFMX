@@ -55,36 +55,100 @@ InputControl::toPath() const {
   }
 }
 
-InputControl
-InputControl::fromPath(StringView path) {
-  InputControl control;
+Optional<InputControl>
+InputControl::tryFromPath(StringView path) {
   const Vector<String> parts = splitPath(path);
   if (parts.empty()) {
-    return control;
+    return std::nullopt;
   }
 
   const String& device = parts[0];
-  if ("Keyboard" == device && parts.size() >= 2) {
+
+  if ("Keyboard" == device) {
+    if (parts.size() != 2) {
+      return std::nullopt;
+    }
+    const Key key = keyFromString(parts[1]);
+    // keyFromString falls back to kUnknown, which toString renders as "Unknown".
+    // The round-trip check also rejects a non-canonical spelling.
+    if (Key::kUnknown == key || toString(key) != parts[1]) {
+      return std::nullopt;
+    }
+    InputControl control;
     control.m_device = DeviceType::kKeyboard;
-    control.m_code = static_cast<int>(keyFromString(parts[1]));
+    control.m_code = static_cast<int>(key);
+    return control;
   }
-  else if ("Mouse" == device && parts.size() >= 2) {
+
+  if ("Mouse" == device) {
+    if (parts.size() != 2) {
+      return std::nullopt;
+    }
+    const MouseButton button = mouseButtonFromString(parts[1]);
+    // mouseButtonFromString falls back to kLeft, so validity is checked by
+    // re-rendering the parsed value and comparing it with the input.
+    if (toString(button) != parts[1]) {
+      return std::nullopt;
+    }
+    InputControl control;
     control.m_device = DeviceType::kMouse;
-    control.m_code = static_cast<int>(mouseButtonFromString(parts[1]));
+    control.m_code = static_cast<int>(button);
+    return control;
   }
-  else if (device.rfind("Gamepad", 0) == 0 && parts.size() >= 3) {
+
+  if (device.rfind("Gamepad", 0) == 0) {
+    if (parts.size() != 3) {
+      return std::nullopt;
+    }
+
+    // "Gamepad" alone, a non-numeric suffix, or an index outside the tracked
+    // range is rejected rather than silently clamped to pad 0.
+    const StringView indexText(device.data() + 7, device.size() - 7);
+    if (indexText.empty()) {
+      return std::nullopt;
+    }
+    for (const char c : indexText) {
+      if (c < '0' || c > '9') {
+        return std::nullopt;
+      }
+    }
+    const int index = std::atoi(device.c_str() + 7);
+    if (index < 0 || index >= kMaxGamepads) {
+      return std::nullopt;
+    }
+
+    InputControl control;
     control.m_device = DeviceType::kGamepad;
-    control.m_gamepadIndex = device.size() > 7 ? std::atoi(device.c_str() + 7) : 0;
+    control.m_gamepadIndex = index;
+
     if ("Axis" == parts[1]) {
+      const Axis axis = axisFromString(parts[2]);
+      if (Axis::kCount == axis || toString(axis) != parts[2]) {
+        return std::nullopt;
+      }
       control.m_isAxis = true;
-      control.m_code = static_cast<int>(axisFromString(parts[2]));
+      control.m_code = static_cast<int>(axis);
+    }
+    else if ("Button" == parts[1]) {
+      const GamepadButton button = gamepadButtonFromString(parts[2]);
+      if (GamepadButton::kCount == button || toString(button) != parts[2]) {
+        return std::nullopt;
+      }
+      control.m_isAxis = false;
+      control.m_code = static_cast<int>(button);
     }
     else {
-      control.m_isAxis = false;
-      control.m_code = static_cast<int>(gamepadButtonFromString(parts[2]));
+      return std::nullopt;
     }
+    return control;
   }
-  return control;
+
+  return std::nullopt;
+}
+
+InputControl
+InputControl::fromPath(StringView path) {
+  return tryFromPath(path).value_or(InputControl{});
 }
 
 InputValue

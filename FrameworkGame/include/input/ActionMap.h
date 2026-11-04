@@ -31,6 +31,18 @@ class ActionMap
   NODISCARD InputAction*
   findAction(StringView name) const;
 
+  /** @brief Remove the action named @p name; false if it does not exist. */
+  bool
+  removeAction(StringView name);
+
+  /** @brief Remove every action in this map. */
+  void
+  clearActions() { m_actions.clear(); }
+
+  /** @brief Number of registered actions. */
+  NODISCARD size_t
+  getActionCount() const { return m_actions.size(); }
+
   void
   enable() { m_enabled = true; }
 
