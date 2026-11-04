@@ -103,6 +103,10 @@ class InputAction
   void
   setInteraction(const Interaction& interaction) { m_interaction = interaction; }
 
+  /** @brief The current interaction (timing model). */
+  NODISCARD FORCEINLINE const Interaction&
+  getInteraction() const { return m_interaction; }
+
   /** @brief Subscribe to the started phase; returns an RAII unsubscribe handle. */
   NODISCARD HEvent
   onStarted(Function<void(const InputContext&)> callback) const {

@@ -184,7 +184,67 @@ registerInputMapping(sol::state_view lua) {
     "clearBindings", &InputAction::clearBindings,
 
     "getCompositeCount", &InputAction::getCompositeCount,
-    "clearComposites",   &InputAction::clearComposites,
+
+    // 1-based composite index, matching removeBinding.
+    "removeComposite", [](InputAction& action, int index) {
+      if (index < 1) {
+        return false;
+      }
+      return action.removeComposite(static_cast<size_t>(index - 1));
+    },
+    "clearComposites", &InputAction::clearComposites,
+
+    // Composite introspection by 1-based index: type, part count, and each
+    // part's control path and role. Enough for a rebinding UI without exposing
+    // the BindingPart/Processor internals.
+    "getCompositeType", [](const InputAction& action, int index,
+                           sol::this_state state) -> sol::object {
+      if (index < 1 ||
+          static_cast<size_t>(index) > action.getCompositeCount()) {
+        return sol::make_object(state, sol::lua_nil);
+      }
+      return sol::make_object(
+        state, action.getComposite(static_cast<size_t>(index - 1)).m_type);
+    },
+    "getCompositePartCount", [](const InputAction& action, int index) -> size_t {
+      if (index < 1 ||
+          static_cast<size_t>(index) > action.getCompositeCount()) {
+        return 0;
+      }
+      return action.getComposite(static_cast<size_t>(index - 1)).m_parts.size();
+    },
+    "getCompositePartPath", [](const InputAction& action, int compositeIndex,
+                               int partIndex) -> String {
+      if (compositeIndex < 1 ||
+          static_cast<size_t>(compositeIndex) > action.getCompositeCount()) {
+        return String();
+      }
+      const CompositeBinding& composite =
+        action.getComposite(static_cast<size_t>(compositeIndex - 1));
+      if (partIndex < 1 ||
+          static_cast<size_t>(partIndex) > composite.m_parts.size()) {
+        return String();
+      }
+      return composite.m_parts[static_cast<size_t>(partIndex - 1)]
+        .m_control.toPath();
+    },
+    "getCompositePartRole", [](const InputAction& action, int compositeIndex,
+                               int partIndex,
+                               sol::this_state state) -> sol::object {
+      if (compositeIndex < 1 ||
+          static_cast<size_t>(compositeIndex) > action.getCompositeCount()) {
+        return sol::make_object(state, sol::lua_nil);
+      }
+      const CompositeBinding& composite =
+        action.getComposite(static_cast<size_t>(compositeIndex - 1));
+      if (partIndex < 1 ||
+          static_cast<size_t>(partIndex) > composite.m_parts.size()) {
+        return sol::make_object(state, sol::lua_nil);
+      }
+      return sol::make_object(
+        state,
+        composite.m_parts[static_cast<size_t>(partIndex - 1)].m_role);
+    },
 
     // Timing model: setInteraction(InteractionType.Hold, 0.4).
     "setInteraction", [](InputAction& action, InteractionType type,
@@ -203,6 +263,15 @@ registerInputMapping(sol::state_view lua) {
         interaction.m_tapCount = *tapCount;
       }
       action.setInteraction(interaction);
+    },
+    "getInteraction", [](const InputAction& action, sol::this_state state) {
+      const Interaction& interaction = action.getInteraction();
+      sol::table result = sol::state_view(state).create_table();
+      result["type"] = interaction.m_type;
+      result["duration"] = interaction.m_duration;
+      result["tapSpacing"] = interaction.m_tapSpacing;
+      result["tapCount"] = interaction.m_tapCount;
+      return result;
     },
 
     // Value transform: addProcessor(ProcessorType.DeadZone, 0.15, 0.95).

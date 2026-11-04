@@ -1,4 +1,29 @@
 -- file: inputDemo.lua
+-- Read/subscribe example for the mapping-mode input system.
+--
+-- The runtime authoring surface (for creating and rebinding mappings) looks like:
+--
+--   local mapping = InputSystem:createMapping("MyControls")
+--   local player  = mapping:addMap("Player")
+--   local jump    = player:addAction("Jump", ActionValueType.Button)
+--   assert(jump:bind("Keyboard/Space"))            -- validated control path
+--   assert(jump:bind("Gamepad0/Button/South"))
+--   jump:bindComposite({                            -- e.g. WASD + left stick
+--     { path = "Keyboard/A",          role = CompositeRole.NegativeX },
+--     { path = "Keyboard/D",          role = CompositeRole.PositiveX },
+--     { path = "Gamepad0/Axis/LeftX", role = CompositeRole.AxisX },
+--   })
+--   jump:setInteraction(InteractionType.Press)
+--   jump:addProcessor(ProcessorType.DeadZone, 0.15, 0.95)
+--   InputSystem:setActiveMapping(mapping)
+--   -- ...
+--   InputSystem:destroyMapping(mapping)              -- clears it if active
+--
+-- Control paths are "Keyboard/<Key>", "Mouse/<Button>",
+-- "GamepadN/Axis/<Axis>" and "GamepadN/Button/<Button>".
+-- InputControl.fromPath(path) returns nil for a malformed path, while
+-- jump:bind(path) returns false and adds nothing.
+--
 -- Shows the mapping-mode input bindings: reach an action, subscribe a callback,
 -- and unbind a specific subscription. Submit stays bound; Cancel unbinds itself
 -- the first time it fires.

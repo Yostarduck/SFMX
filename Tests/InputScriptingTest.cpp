@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 
+#include <iostream>
+
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 
@@ -47,7 +49,8 @@ runLua(sol::state& lua, const char* code) {
       lua.safe_script(code, sol::script_pass_on_error);
   if (!result.valid()) {
     const sol::error err = result;
-    FAIL_CHECK(err.what());
+    std::cerr << "[Lua error] " << err.what() << "\n";
+    CHECK(false);
   }
   REQUIRE(result.valid());
 }
@@ -70,6 +73,9 @@ TEST_CASE("Lua creates a mapping and binds controls by path") {
     assert(jump:getBindingCount() == 2)
     assert(jump:getBindingPath(1) == "Keyboard/Space")
     assert(jump:getBindingPath(2) == "Gamepad0/Button/South")
+    assert(jump:getValueType() == ActionValueType.Button)
+    assert(jump:getPhase() == ActionPhase.Waiting)
+    assert(jump:isEnabled())
 
     InputSystem:setActiveMapping(mapping)
   )");
@@ -91,6 +97,43 @@ TEST_CASE("Lua creates a mapping and binds controls by path") {
   system.onEvent(sf::Event{sf::Event::KeyPressed{sf::Keyboard::Key::Space}});
   mapping->evaluate(system, 0.016f);
   CHECK(jump->getValue().asBool());
+}
+
+TEST_CASE("Lua removes actions and maps by name") {
+  InputScriptScope scope;
+
+  sol::state lua;
+  script::registerAll(lua);
+
+  runLua(lua, R"(
+    local mapping = InputSystem:createMapping("LuaRemoval")
+    local player = mapping:addMap("Player")
+
+    player:addAction("Jump", ActionValueType.Button)
+    player:addAction("Move", ActionValueType.Axis2D)
+    assert(player:getActionCount() == 2)
+    assert(player:removeAction("Jump"))
+    assert(player:removeAction("Jump") == false)
+    assert(player:getActionCount() == 1)
+    assert(player:findAction("Jump") == nil)
+    assert(player:findAction("Move") ~= nil)
+
+    player:clearActions()
+    assert(player:getActionCount() == 0)
+
+    assert(mapping:getMapCount() == 1)
+    assert(mapping:removeMap("Player"))
+    assert(mapping:removeMap("Player") == false)
+    assert(mapping:getMapCount() == 0)
+
+    mapping:addMap("Other")
+    assert(mapping:getMapCount() == 1)
+    mapping:clearMaps()
+    assert(mapping:getMapCount() == 0)
+
+    assert(InputSystem:getMappingCount() >= 1)
+    assert(InputSystem:destroyMapping(mapping))
+  )");
 }
 
 TEST_CASE("Lua validates paths and can unbind controls") {
@@ -142,6 +185,12 @@ TEST_CASE("Lua builds composite bindings and configures interactions") {
       { path = "Gamepad0/Axis/LeftX", role = CompositeRole.AxisX },
     }))
     assert(move:getCompositeCount() == 1)
+    assert(move:getCompositeType(1) == CompositeType.Vector2D)
+    assert(move:getCompositePartCount(1) == 3)
+    assert(move:getCompositePartPath(1, 1) == "Keyboard/A")
+    assert(move:getCompositePartRole(1, 1) == CompositeRole.NegativeX)
+    assert(move:getCompositePartPath(1, 4) == "")   -- part index out of range
+    assert(move:getCompositeType(2) == nil)          -- composite index out of range
 
     -- A bad part rejects the whole composite and leaves the existing one alone.
     assert(move:bindComposite({
@@ -150,6 +199,15 @@ TEST_CASE("Lua builds composite bindings and configures interactions") {
     assert(move:getCompositeCount() == 1)
 
     move:setInteraction(InteractionType.Hold, 0.4)
+    local interaction = move:getInteraction()
+    assert(interaction.type == InteractionType.Hold)
+    assert(math.abs(interaction.duration - 0.4) < 1e-6)
+    assert(interaction.tapCount == 2)                -- default
+
+    assert(move:removeComposite(1))
+    assert(move:getCompositeCount() == 0)
+    assert(move:removeComposite(1) == false)
+
     move:addProcessor(ProcessorType.DeadZone, 0.15, 0.95)
     assert(move:getProcessorCount() == 1)
     move:clearProcessors()
