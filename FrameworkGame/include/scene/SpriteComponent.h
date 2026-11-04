@@ -95,6 +95,9 @@ class SpriteComponent : public ComponentT<SpriteComponent> {
   /** @brief Restores the state written by @ref onSerialize (re-resolves the texture). */
   void onDeserialize(DataStream& stream) override;
 
+  /** @brief Relinks the sibling MaterialComponent (if any) after a scene load. */
+  void onPostDeserialize() override;
+
   NODISCARD sf::Sprite& activeSprite();
   NODISCARD const sf::Sprite& activeSprite() const;
 

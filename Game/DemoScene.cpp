@@ -161,6 +161,7 @@ registerDemoComponents() {
   reg.registerComponent<CameraComponent>();
   reg.registerComponent<SpriteComponent>();
   reg.registerComponent<InstancedSpriteComponent>();
+  reg.registerComponent<MaterialComponent>();
   reg.registerComponent<AnimatorComponent>();
   reg.registerComponent<ParticleSystemComponent>();
   reg.registerComponent<ColliderComponent>();

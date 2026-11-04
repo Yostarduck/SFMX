@@ -124,6 +124,10 @@ SceneSerializer::deserialize(Scene& scene, DataStream& in) {
   UnorderedMap<NodeId, SceneNode*> idMap;
   idMap[rootId] = scene.getRoot();
 
+  // Components created this pass, in creation order; the post-deserialize pass
+  // below runs once every node/component exists.
+  Vector<Component*> createdComponents;
+
   for (uint64 i = 0; i < nodeCount; ++i) {
     NodeId id = kInvalidNodeId;
     NodeId parentId = kInvalidNodeId;
@@ -179,9 +183,16 @@ SceneSerializer::deserialize(Scene& scene, DataStream& in) {
         // Feed only this component's bytes so it cannot read past its slice.
         MemoryDataStream slice(bytes.data(), bytes.size());
         component->onDeserialize(slice);
+        createdComponents.push_back(component);
       }
       // else: unknown component type — bytes already skipped, attach nothing.
     }
+  }
+
+  // Second pass: a component can now resolve references to siblings that were
+  // created after it (e.g. a drawable relinking its node's material).
+  for (Component* component : createdComponents) {
+    component->onPostDeserialize();
   }
   return true;
 }

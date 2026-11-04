@@ -402,4 +402,13 @@ SpriteComponent::onDeserialize(DataStream& stream)
   }
 }
 
+void
+SpriteComponent::onPostDeserialize()
+{
+  // A material lives on the same node; bind it now that every component exists.
+  if (nullptr == m_material) {
+    m_material = m_owner->getComponent<MaterialComponent>();
+  }
+}
+
 } // namespace sfmx
