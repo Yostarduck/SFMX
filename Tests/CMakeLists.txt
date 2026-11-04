@@ -17,7 +17,6 @@ add_executable(UnitTests
     SceneSerializerTest.cpp
     ComponentSerializationTest.cpp
     SpriteComponentSerializationTest.cpp
-    MaterialComponentSerializationTest.cpp
     ScriptComponentSerializationTest.cpp
     SourceComponentSerializationTest.cpp
     AnimatorComponentSerializationTest.cpp

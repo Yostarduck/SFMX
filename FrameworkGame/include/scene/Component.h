@@ -94,18 +94,6 @@ class Component
   virtual void
   onDeserialize(DataStream& stream) { SFMX_PARAMETER_UNUSED(stream); }
 
-  /**
-   * @brief Called once after the entire scene has been deserialized.
-   *
-   * @ref onDeserialize runs per component as it is created, so a component that
-   * refers to a *sibling* (e.g. a drawable relinking its node's material) cannot
-   * resolve it yet — the sibling may not exist. The scene serializer runs this
-   * hook in a second pass, once every node and component exists, for exactly
-   * that cross-component wiring. Default: nothing.
-   */
-  virtual void
-  onPostDeserialize() {}
-
  protected:
   SceneNode* m_owner;
 

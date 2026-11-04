@@ -297,10 +297,6 @@ class ParticleSystemComponent : public ComponentT<ParticleSystemComponent> {
   void
   onDeserialize(DataStream& stream) override;
 
-  /** @brief Relinks the sibling MaterialComponent (if any) after a scene load. */
-  void
-  onPostDeserialize() override;
-
  private:
   /**
    * @brief Loads @c m_config.textureAssetId into @ref m_textureAsset and points

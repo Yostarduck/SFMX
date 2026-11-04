@@ -3,7 +3,6 @@
 #include <SFML/Graphics/Glsl.hpp>
 #include <SFML/Graphics/Shader.hpp>
 
-#include "assets/AssetManager.h"
 #include "assets/ShaderAsset.h"
 
 namespace sfmx
@@ -14,40 +13,21 @@ MaterialComponent::MaterialComponent(SceneNode* owner)
 
 void
 MaterialComponent::setShader(SPtr<ShaderAsset> shader) {
-  m_shaderAsset        = std::move(shader);
-  m_data.shaderAssetId = (nullptr != m_shaderAsset)
-                             ? m_shaderAsset->metadata().uuid
-                             : UUID::null();
+  m_shaderAsset = std::move(shader);
 }
 
-void
-MaterialComponent::setShaderAssetId(const UUID& id) {
-  if (id != UUID::null() && AssetManager::isStarted()) {
-    SPtr<ShaderAsset> asset = AssetManager::instance().load<ShaderAsset>(id);
-    if (nullptr != asset) {
-      setShader(std::move(asset));  // records the asset's uuid (== id)
-      return;
-    }
-  }
-
-  // Couldn't resolve (no manager, null id, or not cataloged): keep the id so it
-  // still re-serializes and can resolve later, and drop any stale shader.
-  m_shaderAsset.reset();
-  m_data.shaderAssetId = id;
-}
-
-MaterialUniform*
+MaterialComponent::UniformSlot*
 MaterialComponent::slotFor(StringView name, UniformKind kind) {
-  for (MaterialUniform& uniform : m_data.uniforms) {
-    if (uniform.name == name) {
-      uniform.kind = kind;
-      return &uniform;
+  for (size_t i = 0; i < m_uniformCount; ++i) {
+    if (m_uniforms[i].name == name) {
+      m_uniforms[i].kind = kind;
+      return &m_uniforms[i];
     }
   }
-  if (m_data.uniforms.size() >= kMaxUniforms) {
+  if (m_uniformCount >= kMaxUniforms) {
     return nullptr;  // fixed budget exhausted; caller's update is dropped
   }
-  MaterialUniform& slot = m_data.uniforms.emplace_back();
+  UniformSlot& slot = m_uniforms[m_uniformCount++];
   slot.name = String(name);  // setup-time: the only place a name string is written
   slot.kind = kind;
   return &slot;
@@ -55,14 +35,14 @@ MaterialComponent::slotFor(StringView name, UniformKind kind) {
 
 void
 MaterialComponent::setFloat(StringView name, float value) {
-  if (MaterialUniform* s = slotFor(name, UniformKind::kFloat)) {
+  if (UniformSlot* s = slotFor(name, UniformKind::kFloat)) {
     s->value[0] = value;
   }
 }
 
 void
 MaterialComponent::setVec2(StringView name, float x, float y) {
-  if (MaterialUniform* s = slotFor(name, UniformKind::kVec2)) {
+  if (UniformSlot* s = slotFor(name, UniformKind::kVec2)) {
     s->value[0] = x;
     s->value[1] = y;
   }
@@ -70,7 +50,7 @@ MaterialComponent::setVec2(StringView name, float x, float y) {
 
 void
 MaterialComponent::setVec3(StringView name, float x, float y, float z) {
-  if (MaterialUniform* s = slotFor(name, UniformKind::kVec3)) {
+  if (UniformSlot* s = slotFor(name, UniformKind::kVec3)) {
     s->value[0] = x;
     s->value[1] = y;
     s->value[2] = z;
@@ -79,7 +59,7 @@ MaterialComponent::setVec3(StringView name, float x, float y, float z) {
 
 void
 MaterialComponent::setColor(StringView name, const sf::Color& color) {
-  if (MaterialUniform* s = slotFor(name, UniformKind::kVec4)) {
+  if (UniformSlot* s = slotFor(name, UniformKind::kVec4)) {
     s->value[0] = color.r / 255.f;
     s->value[1] = color.g / 255.f;
     s->value[2] = color.b / 255.f;
@@ -89,7 +69,7 @@ MaterialComponent::setColor(StringView name, const sf::Color& color) {
 
 void
 MaterialComponent::setTextureUniform(StringView name) {
-  m_data.textureUniform = String(name);
+  m_textureUniform = String(name);
 }
 
 void
@@ -99,11 +79,12 @@ MaterialComponent::apply(sf::RenderStates& states) const {
   }
 
   sf::Shader& shader = m_shaderAsset->shader();
-  if (m_data.bindCurrentTexture) {
+  if (m_bindCurrentTexture) {
     // Bind the drawable's own texture (set on states at draw time) to the sampler.
-    shader.setUniform(m_data.textureUniform, sf::Shader::CurrentTexture);
+    shader.setUniform(m_textureUniform, sf::Shader::CurrentTexture);
   }
-  for (const MaterialUniform& u : m_data.uniforms) {
+  for (size_t i = 0; i < m_uniformCount; ++i) {
+    const UniformSlot& u = m_uniforms[i];
     switch (u.kind) {
       case UniformKind::kFloat:
         shader.setUniform(u.name, u.value[0]);
@@ -122,21 +103,6 @@ MaterialComponent::apply(sf::RenderStates& states) const {
   }
 
   states.shader = &shader;
-}
-
-void
-MaterialComponent::onSerialize(DataStream& stream) const {
-  m_data.serialize(stream);
-}
-
-void
-MaterialComponent::onDeserialize(DataStream& stream) {
-  if (!m_data.deserialize(stream)) {
-    return;  // unknown version / over-budget payload: keep defaults
-  }
-  // Copy first: setShaderAssetId() may rewrite m_data.shaderAssetId.
-  const UUID id = m_data.shaderAssetId;
-  setShaderAssetId(id);
 }
 
 } // namespace sfmx
