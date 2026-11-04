@@ -119,7 +119,13 @@ class UILabel final : public UIWidgetT<UILabel, WidgetType::kLabel>
 
   // -- Serialization ---------------------------------------------------------
 
-  /** @brief  Serialise text content, character size, and colour. */
+  /**
+   * @brief  Serialise text content, character size, colour, and the font
+   *         asset UUID.
+   *
+   * The font is stored as an id, never as a pointer, so a UI document loads on
+   * any machine and resolves the font through the AssetManager.
+   */
   void onSerialize(DataStream& stream) const override;
   /** @brief  Restore state written by onSerialize. */
   void onDeserialize(DataStream& stream) override;

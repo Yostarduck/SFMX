@@ -30,8 +30,10 @@ using namespace sfmx;
 // depth-first; payloads are UIWidget::onSerialize output (widget version byte
 // + UIWidget::serializeBase shared state + type-specific fields). Covers the
 // full 9-type nested tree, uniform base state (name/rect/flags/anchors now
-// survive for EVERY widget — UILabel/UIImage used to drop it), unknown-type
-// skipping, the widget version byte, and the .sfmxasset container on disk.
+// survive for EVERY widget — UILabel/UIImage used to drop it), font asset ids
+// on text widgets (v3 label/text box payloads, with v2 still loadable),
+// unknown-type skipping, the widget version byte, and the .sfmxasset container
+// on disk.
 
 namespace {
 
@@ -132,6 +134,8 @@ buildFullTree() {
   UILabel* label = ui::createWidget<UILabel>(sf::Vector2f{120.f, 30.f});
   label->setName("Label");
   label->setText("Hello UI");
+  // No AssetManager in tests — the font id round-trips as pure data.
+  label->setFontAssetId(sfmx::UUID::createFromName("uitest_font"));
   vbox->addChild(label);
 
   UICheckbox* check = ui::createWidget<UICheckbox>(sf::Vector2f{24.f, 24.f});
@@ -148,6 +152,7 @@ buildFullTree() {
   UITextBox* editor = ui::createWidget<UITextBox>(sf::Vector2f{160.f, 28.f});
   editor->setName("Editor");
   editor->setText("type here");
+  editor->setFontAssetId(sfmx::UUID::createFromName("uitest_editor_font"));
   vbox->addChild(editor);
 
   UIHorizontalBox* hbox =
@@ -220,6 +225,8 @@ checkFullTree(const Vector<UIWidget*>& roots) {
   CHECK(label->getName() == "Label");
   checkRect(*label, {{0.f, 0.f}, {120.f, 30.f}});
   CHECK(static_cast<UILabel*>(label)->getText() == "Hello UI");
+  CHECK(static_cast<UILabel*>(label)->getFontAssetId() ==
+        sfmx::UUID::createFromName("uitest_font"));
 
   // Checkbox — base flags + checked state (own byte now).
   UIWidget* check = vboxChildren[1];
@@ -238,6 +245,8 @@ checkFullTree(const Vector<UIWidget*>& roots) {
   CHECK(editor->getType() == WidgetType::kTextBox);
   CHECK(editor->getName() == "Editor");
   CHECK(static_cast<UITextBox*>(editor)->getText() == "type here");
+  CHECK(static_cast<UITextBox*>(editor)->getFontAssetId() ==
+        sfmx::UUID::createFromName("uitest_editor_font"));
 
   // HBox → Image — nested container + texture id + flip.
   UIWidget* hbox = vboxChildren[4];
@@ -362,6 +371,68 @@ TEST_CASE("UI document: unknown widget version yields defaults, stream intact") 
   REQUIRE(loaded.size() == 2);
   CHECK(loaded[0]->getName().empty());  // version rejected → no base state
   CHECK(loaded[1]->getName() == "VProbe");
+
+  destroyAll(loaded);
+  destroyRoot(probe);
+}
+
+TEST_CASE("UI document: a label without a font round-trips a null font id") {
+  ensureUIEnv();
+
+  UILabel* label = ui::createWidget<UILabel>(sf::Vector2f{100.f, 20.f});
+  label->setName("NoFont");
+  label->setText("unstyled");
+
+  Vector<UIWidget*> original{label};
+  MemoryDataStream blob;
+  REQUIRE(UISerializer::serialize(original, blob));
+
+  MemoryDataStream in(blob.data(), blob.size());
+  Vector<UIWidget*> loaded;
+  REQUIRE(UISerializer::deserialize(loaded, in));
+  REQUIRE(loaded.size() == 1);
+
+  auto* roundTripped = static_cast<UILabel*>(loaded[0]);
+  CHECK(roundTripped->getText() == "unstyled");
+  CHECK(roundTripped->getFontAssetId() == sfmx::UUID::null());
+
+  destroyAll(loaded);
+  destroyAll(original);
+}
+
+TEST_CASE("UI document: a v2 label payload still loads, without a font") {
+  ensureUIEnv();
+
+  // Hand-build the pre-font payload: version 2 + base state + text + size +
+  // colour. This is what a document cooked before the font id was added holds.
+  UILabel* probe = ui::createWidget<UILabel>(sf::Vector2f{140.f, 24.f});
+  probe->setName("LegacyLabel");
+  probe->setText("legacy");
+
+  MemoryDataStream payload;
+  payload << static_cast<uint32>(2);
+  probe->serializeBase(payload);
+  payload.writeString(probe->getText());
+  payload << probe->getCharacterSize();
+  const sf::Color color = probe->getTextColor();
+  payload << color.r << color.g << color.b << color.a;
+
+  MemoryDataStream blob;
+  blob << static_cast<uint32>(1);  // one root
+  blob << probe->getTypeId();
+  blob << static_cast<uint64>(payload.size());
+  blob << static_cast<uint32>(0);  // no children
+  blob.write(payload.data(), payload.size());
+
+  MemoryDataStream in(blob.data(), blob.size());
+  Vector<UIWidget*> loaded;
+  REQUIRE(UISerializer::deserialize(loaded, in));
+  REQUIRE(loaded.size() == 1);
+
+  auto* label = static_cast<UILabel*>(loaded[0]);
+  CHECK(label->getName() == "LegacyLabel");
+  CHECK(label->getText() == "legacy");
+  CHECK(label->getFontAssetId() == sfmx::UUID::null());
 
   destroyAll(loaded);
   destroyRoot(probe);

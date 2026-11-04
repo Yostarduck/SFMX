@@ -222,8 +222,9 @@ void UITextBox::onDraw(sf::RenderTarget& target,
 }
 
 void UITextBox::onSerialize(DataStream& stream) const {
+  // Version 3: font asset UUID appended.
   // Version 2: shared base state moved into UIWidget::serializeBase.
-  constexpr uint32 kVersion = 2;
+  constexpr uint32 kVersion = 3;
   stream << kVersion;
   serializeBase(stream);
 
@@ -237,12 +238,17 @@ void UITextBox::onSerialize(DataStream& stream) const {
   stream << m_bgColor.r << m_bgColor.g << m_bgColor.b << m_bgColor.a;
   stream << m_focusedBorderColor.r << m_focusedBorderColor.g
          << m_focusedBorderColor.b << m_focusedBorderColor.a;
+
+  // Font asset UUID: resolved through the AssetManager on load; round-trips as
+  // plain data when no manager is running (tests, tools).
+  stream << m_fontAssetId;
 }
 
 void UITextBox::onDeserialize(DataStream& stream) {
   uint32 version = 0;
   stream >> version;
-  if (version != 2) {
+  // v2 documents predate font serialization; they still load, without a font.
+  if (version < 2 || version > 3) {
     return;
   }
   deserializeBase(stream);
@@ -257,6 +263,14 @@ void UITextBox::onDeserialize(DataStream& stream) {
   stream >> m_bgColor.r >> m_bgColor.g >> m_bgColor.b >> m_bgColor.a;
   stream >> m_focusedBorderColor.r >> m_focusedBorderColor.g
          >> m_focusedBorderColor.b >> m_focusedBorderColor.a;
+
+  if (version >= 3) {
+    UUID fontId;
+    stream >> fontId;
+    // Resolves through the AssetManager when one is running, which creates
+    // m_text; otherwise the id is recorded for a later setFontAsset() call.
+    setFontAssetId(fontId);
+  }
 
   if (m_fontAsset && !m_text) {
     m_text = MakeUnique<sf::Text>(m_fontAsset->font());
