@@ -15,7 +15,7 @@ function GenericMage.onCreated(self)
   self.scene = SceneManager:getActiveScene()
   self.bulletSpawnPosition = self.transform:getPosition() + Vector2f(25, -45)
 
-  self.bulletAssetID = UUID.createFromName("particle.png")
+  self.bulletAssetID = UUID.createFromName("spritebullet.png")
   self.bulletScriptID = UUID.createFromName("bullet.lua")
 end
 
