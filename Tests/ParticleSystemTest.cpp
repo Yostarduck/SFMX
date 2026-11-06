@@ -321,7 +321,14 @@ TEST_CASE(
   cfg.maxParticles = 16;
   ps->setConfig(cfg);
 
-  ps->emit(1);
+  // emit() takes a per-call config override; the custom payload rides on it.
+  EmitterConfig payload;
+  payload.customData.id = 42;
+  payload.customData.x  = 1.5f;
+  payload.customData.y  = -2.5f;
+  payload.customData.z  = 0.25f;
+
+  ps->emit(1, payload);
   REQUIRE(ps->getParticleCount() == 1);
 
   const Particle* p = ps->getFirstParticle();
