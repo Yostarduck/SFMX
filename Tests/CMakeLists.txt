@@ -27,6 +27,8 @@ add_executable(UnitTests
     FrameMemoryTest.cpp
     FrameScratchTest.cpp
     LocalizationAssetTest.cpp
+    InputModelTest.cpp
+    InputScriptingTest.cpp
     ScriptHotReloadTest.cpp
     UISerializerTest.cpp
     UIHitTestTest.cpp

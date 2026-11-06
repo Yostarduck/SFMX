@@ -37,7 +37,25 @@ struct InputControl
   NODISCARD String
   toPath() const;
 
-  /** @brief Parse a control from the @ref toPath form. */
+  /**
+   * @brief Parse a control from the @ref toPath form, rejecting malformed paths.
+   *
+   * Unlike @ref fromPath this validates every segment: the device prefix, the
+   * exact segment count, the gamepad index, and the control name (including its
+   * canonical spelling). Use this wherever a bad path must be reported to the
+   * caller — scripting, config parsing, rebinding UIs.
+   *
+   * @return The parsed control, or @c std::nullopt if @p path is not valid.
+   */
+  NODISCARD static Optional<InputControl>
+  tryFromPath(StringView path);
+
+  /**
+   * @brief Parse a control from the @ref toPath form.
+   *
+   * Lenient: an invalid path yields a default-constructed control
+   * (keyboard / key 0). Prefer @ref tryFromPath when validity matters.
+   */
   NODISCARD static InputControl
   fromPath(StringView path);
 };

@@ -22,6 +22,17 @@ ActionMap::findAction(StringView name) const {
   return nullptr;
 }
 
+bool
+ActionMap::removeAction(StringView name) {
+  for (auto it = m_actions.begin(); it != m_actions.end(); ++it) {
+    if ((*it)->getName() == name) {
+      m_actions.erase(it);
+      return true;
+    }
+  }
+  return false;
+}
+
 void
 ActionMap::evaluate(InputSystem& system, float deltaTime) {
   if (!m_enabled) {

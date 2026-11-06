@@ -30,6 +30,18 @@ class Mapping
   NODISCARD ActionMap*
   findMap(StringView name) const;
 
+  /** @brief Remove the map named @p name; false if it does not exist. */
+  bool
+  removeMap(StringView name);
+
+  /** @brief Remove every action map in this mapping. */
+  void
+  clearMaps() { m_maps.clear(); }
+
+  /** @brief Number of registered action maps. */
+  NODISCARD size_t
+  getMapCount() const { return m_maps.size(); }
+
   /** @brief (Internal) Evaluate every enabled map in this mapping. */
   void
   evaluate(InputSystem& system, float deltaTime);
