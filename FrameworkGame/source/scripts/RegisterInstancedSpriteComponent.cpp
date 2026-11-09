@@ -15,7 +15,14 @@ namespace script {
       "setFrame", &InstancedSpriteComponent::setFrame,
       "setSize", &InstancedSpriteComponent::setSize,
       "setRotation", &InstancedSpriteComponent::setRotation,
-      "setTint", &InstancedSpriteComponent::setTint
+      "setTint", &InstancedSpriteComponent::setTint,
+      "getFrame", &InstancedSpriteComponent::getFrame,
+      "getSize", &InstancedSpriteComponent::getSize,
+      "getRotation", &InstancedSpriteComponent::getRotation,
+      "getTint", &InstancedSpriteComponent::getTint
+
+
+
     );
   }
 
